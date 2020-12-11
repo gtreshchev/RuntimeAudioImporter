@@ -2,7 +2,8 @@
 ## Basic information
 This plugin will be useful for those who want to be able to import audio files of MP3, WAV and FLAC formats into the game in runtime (for example, if the game involves importing audio files from the player's device memory). It's easy to use in both C++ and Blueprints.
 
-![Runtime Audio Importer Unreal Engine Plugin Nodes](image/nodesexample.png "RuntimeAudioImporter Unreal Engine Plugin Nodes")
+![Runtime Audio Importer Unreal Engine Plugin Nodes 1](image/nodesexample1.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 1")
+![Runtime Audio Importer Unreal Engine Plugin Nodes 2](image/nodesexample2.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 2")
 
 ## Features
 - Low library size (≈ 1 mb)
