@@ -1,0 +1,24 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "RuntimeAudioImporter",
+  "Description": "Runtime Audio Importer plugin for Unreal Engine 4. Supports mp3, wav and flac formats.",
+  "Category": "Audio",
+  "CreatedBy": "Respirant",
+  "CreatedByURL": "https://github.com/Respirant/RuntimeAudioImporter",
+  "DocsURL": "https://github.com/Respirant/RuntimeAudioImporter",
+  "MarketplaceURL": "",
+  "SupportURL": "https://telegram.me/Respirant",
+  "CanContainContent": false,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": true,
+  "Modules": [
+    {
+      "Name": "RuntimeAudioImporter",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
