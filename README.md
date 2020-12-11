@@ -5,9 +5,6 @@ This plugin will be useful for those who want to be able to import audio files o
 
 ![Runtime Audio Importer Unreal Engine Plugin Logo](image/runtimeaudioimporter.png "RuntimeAudioImporter Unreal Engine Plugin Logo")
 
-![Runtime Audio Importer Unreal Engine Plugin Nodes 1](image/nodesexample1.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 1")
-![Runtime Audio Importer Unreal Engine Plugin Nodes 2](image/nodesexample2.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 2")
-
 ## Features
 - Low library size (≈ 1 mb)
 - Fast transcoding speed (≈ 200-900 ms)
@@ -16,6 +13,9 @@ This plugin will be useful for those who want to be able to import audio files o
 - System for obtaining transcoding status for error detection
 - No any third party libraries and external dependencies
 - Support for all available devices (tested on Windows and Android, but there are no restrictions to work on other devices)
+
+![Runtime Audio Importer Unreal Engine Plugin Nodes 1](image/nodesexample1.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 1")
+![Runtime Audio Importer Unreal Engine Plugin Nodes 2](image/nodesexample2.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 2")
 
 ## How to install
 Just extract the "RuntimeAudioImporter" folder into your plugins project folder to get the following path: "[ProjectName]/Plugins/RuntimeAudioImporter".
