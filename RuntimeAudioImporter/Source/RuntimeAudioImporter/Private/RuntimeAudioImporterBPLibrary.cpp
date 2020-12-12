@@ -157,7 +157,7 @@ TEnumAsByte<AudioFormat> URuntimeAudioImporterBPLibrary::GetAudioFormat(const FS
 bool URuntimeAudioImporterBPLibrary::TranscodeAudioToWaveData(const char* filePath, TEnumAsByte<AudioFormat> Format, TEnumAsByte<TranscodingStatus>& status, uint64& framesToWrite, int16_t*&pSampleData, uint32& channels, uint32& sampleRate) {
 	switch (Format)
 	{
-	case MP3:
+	case AudioFormat::MP3:
 	{
 		drmp3 mp3;
 		if (!drmp3_init_file(&mp3, filePath, NULL)) {
@@ -174,7 +174,7 @@ bool URuntimeAudioImporterBPLibrary::TranscodeAudioToWaveData(const char* filePa
 		}
 		break;
 	}
-	case WAV:
+	case AudioFormat::WAV:
 	{
 		drwav wav;
 		if (!drwav_init_file(&wav, filePath, NULL)) {
@@ -191,7 +191,7 @@ bool URuntimeAudioImporterBPLibrary::TranscodeAudioToWaveData(const char* filePa
 		}
 		break;
 	}
-	case FLAC:
+	case AudioFormat::FLAC:
 	{
 		drflac* pFlac = drflac_open_file(filePath, NULL);
 		if (pFlac == NULL) {
