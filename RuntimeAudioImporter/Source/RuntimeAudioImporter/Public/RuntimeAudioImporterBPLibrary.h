@@ -5,10 +5,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 
 #include "Runtime/Engine/Classes/Sound/SoundWave.h"
-//#include "Runtime/Engine/Public/VorbisAudioInfo.h"
-#include "Developer/TargetPlatform/Public/Interfaces/IAudioFormat.h"
 
-#include "Async/Async.h"
+#include "Developer/TargetPlatform/Public/Interfaces/IAudioFormat.h"
 
 #include "RuntimeAudioImporterBPLibrary.generated.h"
 
