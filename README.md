@@ -12,7 +12,7 @@ Some theoretical information is presented here: [How to import an audio file int
 - Supported for major audio formats: MP3, WAV and FLAC
 - Automatic detection of audio format (by extension)
 - System for obtaining transcoding status for error detection
-- No any third party libraries and external dependencies
+- No any external dependencies
 - Support for all available devices (tested on Windows and Android, but there are no restrictions to work on other devices)
 
 ![Runtime Audio Importer Unreal Engine Plugin Nodes 1](image/nodesexample1.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 1")
