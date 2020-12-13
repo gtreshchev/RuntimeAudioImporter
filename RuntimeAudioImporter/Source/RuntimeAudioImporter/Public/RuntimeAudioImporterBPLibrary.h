@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Respirant 2020.
 
 #pragma once
 
@@ -9,8 +9,6 @@
 #include "Developer/TargetPlatform/Public/Interfaces/IAudioFormat.h"
 
 #include "RuntimeAudioImporterBPLibrary.generated.h"
-
-
 
 
 UENUM(BlueprintType)
@@ -30,7 +28,6 @@ enum TranscodingStatus
 	ZeroDurationError			UMETA(DisplayName = "Transcoded audio has zero length")
 };
 
-
 UENUM(BlueprintType)
 enum AudioFormat
 {
@@ -39,7 +36,6 @@ enum AudioFormat
 	FLAC						UMETA(DisplayName = "flac"),
 	INVALID						UMETA(DisplayName = "invalid (not defined format, internal use only)", Hidden)
 };
-
 
 UCLASS()
 class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterBPLibrary : public UBlueprintFunctionLibrary
