@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Respirant 2020.
 
 #include "RuntimeAudioImporter.h"
 

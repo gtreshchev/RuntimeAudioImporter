@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Respirant 2020.
 
 #include "RuntimeAudioImporterBPLibrary.h"
 #include "RuntimeAudioImporter.h"
@@ -8,9 +8,6 @@ URuntimeAudioImporterBPLibrary::URuntimeAudioImporterBPLibrary(const FObjectInit
 {
 
 }
-
-
-
 
 /* Transcode audio file to USoundWave static object */
 class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveFromAudioFile(const FString& filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& status, bool DefineFormatAutomatically)
@@ -82,15 +79,11 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8
 	return sw;
 }
 
-#define DR_WAV_IMPLEMENTATION
-#include "dr_libs/dr_wav.h"
+#include "ThirdParty/dr_wav.h"
 
-#define DR_MP3_IMPLEMENTATION
-#include "dr_libs/dr_mp3.h"
+#include "ThirdParty/dr_mp3.h"
 
-#define DR_FLAC_IMPLEMENTATION
-#include "dr_libs/dr_flac.h"
-
+#include "ThirdParty/dr_flac.h"
 
 /* Main internal get USoundWave from audio file */
 class USoundWave* URuntimeAudioImporterBPLibrary::GetUSoundWaveFromAudioFile_Internal(const FString& filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& status, bool DefineFormatAutomatically)
@@ -136,9 +129,8 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetUSoundWaveFromAudioFile_Int
 	return ReadyUSoundWave;
 }
 
-
 /* Automatically get audio format. Internal use only recommended */
-TEnumAsByte<AudioFormat> URuntimeAudioImporterBPLibrary::GetAudioFormat(const FString & filePath) {
+TEnumAsByte<AudioFormat> URuntimeAudioImporterBPLibrary::GetAudioFormat(const FString& filePath) {
 	if (FPaths::GetExtension(filePath, false).Equals(TEXT("mp3"), ESearchCase::IgnoreCase)) {
 		return AudioFormat::MP3;
 	}
@@ -154,7 +146,7 @@ TEnumAsByte<AudioFormat> URuntimeAudioImporterBPLibrary::GetAudioFormat(const FS
 }
 
 /* Transcode Audio to Wave Data */
-bool URuntimeAudioImporterBPLibrary::TranscodeAudioToWaveData(const char* filePath, TEnumAsByte<AudioFormat> Format, TEnumAsByte<TranscodingStatus>& status, uint64& framesToWrite, int16_t*&pSampleData, uint32& channels, uint32& sampleRate) {
+bool URuntimeAudioImporterBPLibrary::TranscodeAudioToWaveData(const char* filePath, TEnumAsByte<AudioFormat> Format, TEnumAsByte<TranscodingStatus>& status, uint64& framesToWrite, int16_t*& pSampleData, uint32& channels, uint32& sampleRate) {
 	switch (Format)
 	{
 	case AudioFormat::MP3:
