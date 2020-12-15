@@ -1,5 +1,4 @@
 ![GitHub](https://img.shields.io/github/license/Respirant/RuntimeAudioImporter)
-![GitHub](https://img.shields.io/github/languages/code-size/Respirant/RuntimeAudioImporter)
 # RuntimeAudioImporter
 This plugin will be useful for those who want to be able to import audio files of MP3, WAV and FLAC formats into the game in runtime (for example, if the game involves importing audio files from the player's device memory). It's easy to use in both C++ and Blueprints.
 Some theoretical information is presented here: [How to import an audio file into Unreal Engine at runtime](https://unreal.blog/how-to-import-an-audio-file-into-unreal-engine-at-runtime).
