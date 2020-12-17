@@ -18,7 +18,9 @@ Some theoretical information is presented here: [How to import an audio file int
 ![Runtime Audio Importer Unreal Engine Plugin Nodes 2](image/nodesexample2.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 2")
 
 ## How to install
-Just extract the "RuntimeAudioImporter" folder into your plugins project folder to get the following path: "[ProjectName]/Plugins/RuntimeAudioImporter".
+There're two ways to install the plugin:
+1) [Through the marketplace](https://www.unrealengine.com/marketplace/product/runtime-audio-importer) and download it
+2) Manual installation. Just extract the "RuntimeAudioImporter" folder into your plugins project folder to get the following path: "[ProjectName]/Plugins/RuntimeAudioImporter".
 
 ## How to use
  There are two ways to use this plugin: using Blueprints and C++:
