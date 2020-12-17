@@ -19,7 +19,7 @@ Some theoretical information is presented here: [How to import an audio file int
 
 ## How to install
 There're two ways to install the plugin:
-1) [Through the marketplace](https://www.unrealengine.com/marketplace/product/runtime-audio-importer)
+1) [Through the marketplace](https://www.unrealengine.com/marketplace/product/runtime-audio-importer).
 2) Manual installation. Just extract the "RuntimeAudioImporter" folder into your plugins project folder to get the following path: "[ProjectName]/Plugins/RuntimeAudioImporter".
 
 ## How to use
