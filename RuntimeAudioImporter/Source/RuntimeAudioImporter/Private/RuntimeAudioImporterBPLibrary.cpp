@@ -75,7 +75,7 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8
 		status = TranscodingStatus::InvalidUSoundWave;
 		return nullptr;
 	}
-	status = TranscodingStatus::Success;
+	status = TranscodingStatus::SuccessTranscoding;
 	return sw;
 }
 

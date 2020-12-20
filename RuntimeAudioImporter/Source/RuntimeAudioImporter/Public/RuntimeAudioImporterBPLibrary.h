@@ -14,7 +14,7 @@
 UENUM(BlueprintType)
 enum TranscodingStatus
 {
-	Success						UMETA(DisplayName = "Success"),
+	SuccessTranscoding			UMETA(DisplayName = "Success"),
 	FailedToOpenStream			UMETA(DisplayName = "Failed to open stream"),
 	UnsupportedBitDepth			UMETA(DisplayName = "Unsupported bit depth (Unreal Engine only supports 16 bit)"),
 	InvalidWAVEData				UMETA(DisplayName = "Invalid WAVE data"),
