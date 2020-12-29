@@ -4,7 +4,7 @@
 
 #include "Kismet/BlueprintFunctionLibrary.h"
 
-#include "Runtime/Engine/Classes/Sound/SoundWave.h"
+#include "Sound/SoundWave.h"
 
 #include "Developer/TargetPlatform/Public/Interfaces/IAudioFormat.h"
 
@@ -46,6 +46,9 @@ public:
 	/* Transcode audio file to USoundWave static object */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, MP3, FLAC, WAV", ToolTip = "Transcode audio file to USoundWave static object"), Category = "RuntimeAudioImporter")
 		static class USoundWave* GetSoundWaveFromAudioFile(const FString & filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & status, bool DefineFormatAutomatically);
+
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "MP3, FLAC, WAV, Destroy", ToolTip = "After the Soundwave is no longer needed, you need to call this function to free memory"), Category = "RuntimeAudioImporter")
+		static void DestroySoundWave(USoundWave * ReadySoundWave, bool& SuccessfullyDestroyed);
 
 private:
 

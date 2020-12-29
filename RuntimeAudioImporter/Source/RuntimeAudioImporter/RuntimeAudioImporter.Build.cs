@@ -19,11 +19,7 @@ public class RuntimeAudioImporter : ModuleRules
             }
             );
 
-        PrivateIncludePaths.AddRange(
-            new string[] {
-				// ... add other private include paths required here ...
-			}
-            );
+        //PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty"));
 
 
         PublicDependencyModuleNames.AddRange(
