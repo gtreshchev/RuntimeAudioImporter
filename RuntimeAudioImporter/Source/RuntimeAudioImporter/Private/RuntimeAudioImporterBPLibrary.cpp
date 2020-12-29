@@ -79,6 +79,23 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8
 	return sw;
 }
 
+/* Destroy USoundWave static object */
+void URuntimeAudioImporterBPLibrary::DestroySoundWave(USoundWave* ReadySoundWave, bool& SuccessfullyDestroyed) {
+	if (IsValid(ReadySoundWave) && ReadySoundWave->IsReadyForFinishDestroy()) {
+		FMemory::Free(ReadySoundWave->RawPCMData);
+
+		ReadySoundWave->RawData.RemoveBulkData();
+		ReadySoundWave->InvalidateCompressedData();
+		ReadySoundWave->FreeResources();
+		ReadySoundWave->RemoveAudioResource();
+		ReadySoundWave->ConditionalBeginDestroy();
+		SuccessfullyDestroyed = true;
+	}
+	else {
+		SuccessfullyDestroyed = false;
+	}
+}
+
 #include "ThirdParty/dr_wav.h"
 
 #include "ThirdParty/dr_mp3.h"
@@ -125,7 +142,9 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetUSoundWaveFromAudioFile_Int
 
 	USoundWave* ReadyUSoundWave = GetSoundWaveObject((const uint8*)pWavFileData, wavFileSize, status); // A ready USoundWave static object
 
+	drwav_free(pSampleData, NULL);
 	drwav_free(pWavFileData, NULL);
+
 	return ReadyUSoundWave;
 }
 
