@@ -9,7 +9,15 @@ URuntimeAudioImporterBPLibrary::URuntimeAudioImporterBPLibrary(const FObjectInit
 
 }
 
-/* Transcode audio file to USoundWave static object */
+/**
+* Transcode audio file to USoundWave static object
+*
+* @param filePath							Path to the audio file to import
+* @param Format								Audio file format (extension)
+* @param status								Final import status (TranscodingStatus)
+* @param DefineFormatAutomatically			Whether to define format (extension) automatically or not
+* @return Returns USoundWave Static Object.
+*/
 class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveFromAudioFile(const FString& filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& status, bool DefineFormatAutomatically)
 {
 	return GetUSoundWaveFromAudioFile_Internal(filePath, Format, status, DefineFormatAutomatically);
@@ -79,20 +87,31 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8
 	return sw;
 }
 
-/* Destroy USoundWave static object */
-void URuntimeAudioImporterBPLibrary::DestroySoundWave(USoundWave* ReadySoundWave, bool& SuccessfullyDestroyed) {
-	if (IsValid(ReadySoundWave) && ReadySoundWave->IsReadyForFinishDestroy()) {
-		FMemory::Free(ReadySoundWave->RawPCMData);
+/**
+* Destroy USoundWave static object
+*
+* @return Returns true - success, false - failure.
+*/
+bool URuntimeAudioImporterBPLibrary::DestroySoundWave(USoundWave* ReadySoundWave) {
 
-		ReadySoundWave->RawData.RemoveBulkData();
+	if (IsValid(ReadySoundWave) && ReadySoundWave->IsValidLowLevel()) {
+
+		/* Free memory */
 		ReadySoundWave->InvalidateCompressedData();
-		ReadySoundWave->FreeResources();
+		FMemory::Free(ReadySoundWave->RawPCMData);
+		ReadySoundWave->RawData.RemoveBulkData();
 		ReadySoundWave->RemoveAudioResource();
+		/* Free memory */
+
+		/* Destroying USoundWave object as UObject */
 		ReadySoundWave->ConditionalBeginDestroy();
-		SuccessfullyDestroyed = true;
+		ReadySoundWave = NULL;
+		/* Destroying USoundWave object as UObject */
+
+		return true;
 	}
 	else {
-		SuccessfullyDestroyed = false;
+		return false;
 	}
 }
 

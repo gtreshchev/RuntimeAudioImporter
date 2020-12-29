@@ -43,12 +43,25 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterBPLibrary : public UBlueprin
 	GENERATED_UCLASS_BODY()
 public:
 
-	/* Transcode audio file to USoundWave static object */
+	/**
+	* Transcode audio file to USoundWave static object 
+	*
+	* @param filePath							Path to the audio file to import
+	* @param Format								Audio file format (extension)
+	* @param status								Final import status (TranscodingStatus)
+	* @param DefineFormatAutomatically			Whether to define format (extension) automatically or not
+	* @return Returns USoundWave Static Object.
+	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, MP3, FLAC, WAV", ToolTip = "Transcode audio file to USoundWave static object"), Category = "RuntimeAudioImporter")
 		static class USoundWave* GetSoundWaveFromAudioFile(const FString & filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & status, bool DefineFormatAutomatically);
 
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "MP3, FLAC, WAV, Destroy", ToolTip = "After the Soundwave is no longer needed, you need to call this function to free memory"), Category = "RuntimeAudioImporter")
-		static void DestroySoundWave(USoundWave * ReadySoundWave, bool& SuccessfullyDestroyed);
+	/**
+	* Destroy USoundWave static object
+	*
+	* @return Returns true - success, false - failure.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, MP3, FLAC, WAV, Destroy", ToolTip = "After the Soundwave is no longer needed, you need to call this function to free memory"), Category = "RuntimeAudioImporter")
+		static bool DestroySoundWave(USoundWave * ReadySoundWave);
 
 private:
 
