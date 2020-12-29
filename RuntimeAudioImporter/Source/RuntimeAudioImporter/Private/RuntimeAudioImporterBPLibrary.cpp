@@ -23,6 +23,34 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveFromAudioFile(cons
 	return GetUSoundWaveFromAudioFile_Internal(filePath, Format, status, DefineFormatAutomatically);
 }
 
+/**
+* Destroy USoundWave static object
+*
+* @return Returns true - success, false - failure.
+*/
+bool URuntimeAudioImporterBPLibrary::DestroySoundWave(USoundWave* ReadySoundWave) {
+
+	if (IsValid(ReadySoundWave) && ReadySoundWave->IsValidLowLevel()) {
+
+		/* Free memory */
+		ReadySoundWave->InvalidateCompressedData();
+		FMemory::Free(ReadySoundWave->RawPCMData);
+		ReadySoundWave->RawData.RemoveBulkData();
+		ReadySoundWave->RemoveAudioResource();
+		/* Free memory */
+
+		/* Destroying USoundWave object as UObject */
+		ReadySoundWave->ConditionalBeginDestroy();
+		ReadySoundWave = NULL;
+		/* Destroying USoundWave object as UObject */
+
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 /* Get USoundWave static object reference */
 class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8* WaveData, int32 WaveDataSize, TEnumAsByte < TranscodingStatus >& status) {
 	USoundWave* sw = NewObject<USoundWave>(USoundWave::StaticClass());
@@ -85,34 +113,6 @@ class USoundWave* URuntimeAudioImporterBPLibrary::GetSoundWaveObject(const uint8
 	}
 	status = TranscodingStatus::SuccessTranscoding;
 	return sw;
-}
-
-/**
-* Destroy USoundWave static object
-*
-* @return Returns true - success, false - failure.
-*/
-bool URuntimeAudioImporterBPLibrary::DestroySoundWave(USoundWave* ReadySoundWave) {
-
-	if (IsValid(ReadySoundWave) && ReadySoundWave->IsValidLowLevel()) {
-
-		/* Free memory */
-		ReadySoundWave->InvalidateCompressedData();
-		FMemory::Free(ReadySoundWave->RawPCMData);
-		ReadySoundWave->RawData.RemoveBulkData();
-		ReadySoundWave->RemoveAudioResource();
-		/* Free memory */
-
-		/* Destroying USoundWave object as UObject */
-		ReadySoundWave->ConditionalBeginDestroy();
-		ReadySoundWave = NULL;
-		/* Destroying USoundWave object as UObject */
-
-		return true;
-	}
-	else {
-		return false;
-	}
 }
 
 #include "ThirdParty/dr_wav.h"
