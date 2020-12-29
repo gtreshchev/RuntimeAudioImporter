@@ -16,6 +16,7 @@ Some theoretical information is presented here: [How to import an audio file int
 
 ![Runtime Audio Importer Unreal Engine Plugin Nodes 1](image/nodesexample1.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 1")
 ![Runtime Audio Importer Unreal Engine Plugin Nodes 2](image/nodesexample2.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 2")
+![Runtime Audio Importer Unreal Engine Plugin Nodes 3](image/nodesexample3.png "RuntimeAudioImporter Unreal Engine Plugin Nodes 3")
 
 ## How to install
 There're two ways to install the plugin:
