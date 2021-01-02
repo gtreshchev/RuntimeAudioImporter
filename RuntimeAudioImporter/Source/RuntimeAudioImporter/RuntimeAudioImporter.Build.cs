@@ -1,15 +1,13 @@
 // Respirant 2020.
-
 using System;
 using System.IO;
 using UnrealBuildTool;
 
 public class RuntimeAudioImporter : ModuleRules
 {
-    public RuntimeAudioImporter(ReadOnlyTargetRules Target) : base(Target)
-    {
-        PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
+	public RuntimeAudioImporter(ReadOnlyTargetRules Target) : base(Target)
+	{
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
         PublicDefinitions.AddRange(
             new string[] {
@@ -19,35 +17,33 @@ public class RuntimeAudioImporter : ModuleRules
             }
             );
 
-        //PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "ThirdParty"));
-
 
         PublicDependencyModuleNames.AddRange(
-            new string[]
-            {
-                "Core",
+			new string[]
+			{
+				"Core",
 				// ... add other public dependencies that you statically link with here ...
 			}
-            );
-
-
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
-                "CoreUObject",
-                "Engine",
-                "Slate",
-                "SlateCore",
+			);
+			
+		
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
 				// ... add private dependencies that you statically link with here ...	
 			}
-            );
-
-
-        DynamicallyLoadedModuleNames.AddRange(
-            new string[]
-            {
+			);
+		
+		
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[]
+			{
 				// ... add any modules that your module loads dynamically here ...
 			}
-            );
-    }
+			);
+	}
 }
