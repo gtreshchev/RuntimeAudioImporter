@@ -1,24 +1,40 @@
 {
-  "FileVersion": 3,
-  "Version": 1,
-  "VersionName": "1.0",
-  "FriendlyName": "RuntimeAudioImporter",
-  "Description": "Runtime Audio Importer plugin for Unreal Engine 4. Supports mp3, wav and flac formats.",
-  "Category": "Audio",
-  "CreatedBy": "Respirant",
-  "CreatedByURL": "https://github.com/Respirant/RuntimeAudioImporter",
-  "DocsURL": "https://github.com/Respirant/RuntimeAudioImporter",
-  "MarketplaceURL": "",
-  "SupportURL": "https://telegram.me/Respirant",
-  "CanContainContent": false,
-  "IsBetaVersion": false,
-  "IsExperimentalVersion": false,
-  "Installed": true,
-  "Modules": [
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "RuntimeAudioImporter",
+	"Description": "Runtime Audio Importer plugin for Unreal Engine 4. Supports mp3, wav and flac formats.",
+	"Category": "Audio",
+	"CreatedBy": "Respirant",
+	"CreatedByURL": "https://github.com/Respirant/RuntimeAudioImporter",
+	"DocsURL": "https://unreal.blog/runtime-audio-importer",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/81fd278e318e4235a028d3fdf46bf036",
+	"SupportURL": "https://telegram.me/Respirant",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": true,
+	"EngineVersion": "4.26.0",
+	"Modules": [
     {
       "Name": "RuntimeAudioImporter",
       "Type": "Runtime",
-      "LoadingPhase": "Default"
+      "LoadingPhase": "Default",
+      "WhitelistPlatforms": [
+        "Win64",
+        "Win32",
+        "Mac",
+        "Android",
+        "IOS",
+        "Linux"
+      ],
+      "BlacklistPlatforms": [
+        "XboxOne",
+        "PS4",
+        "HTML5",
+        "TVOS",
+        "Switch"
+      ]
     }
   ]
 }
