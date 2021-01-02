@@ -201,7 +201,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 			Status = TranscodingStatus::InvalidBitrate;
 		}
 		else if (ErrorReason.Equals(TEXT("Unsupported WAVE file format: subformat identifier not recognized."), ESearchCase::CaseSensitive)) {
-			Status = TranscodingStatus::InvalidBitrate;
+			Status = TranscodingStatus::InvalidSubformat;
 		}
 		else {
 			Status = TranscodingStatus::UnrecognizedReadWaveError;
