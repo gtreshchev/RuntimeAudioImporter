@@ -160,7 +160,7 @@ private:
 
 	/**
 	 * Audio transcoding progress callback
-	 * @param Percentage						Percentage of download completed (0-100%)
+	 * @param Percentage						Percentage of download completion (0-100%)
 	 * @note									The impementation of dispatcher is not fully right. The data is taken approximately, and will not show exactly the correct percentage of transcoding progress
 	 */
 	void OnProgress_Internal(int32 Percentage);
