@@ -96,7 +96,7 @@ public:
 	 * Destroy USoundWave static object. After the Soundwave is no longer needed, you need to call this function to free memory
 	 *
 	 * @param ReadySoundWave					SoundWave Object need to be destroyed
-	 * @return									Whether the descruction of USoundWave was successfull or not
+	 * @return									Whether the descruction of USoundWave was successful or not
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "MP3, FLAC, WAV, Destroy"), Category = "RuntimeAudioImporter")
 		static bool DestroySoundWave(USoundWave * ReadySoundWave);
