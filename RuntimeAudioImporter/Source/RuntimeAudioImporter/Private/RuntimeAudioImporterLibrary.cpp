@@ -39,17 +39,15 @@ bool URuntimeAudioImporterLibrary::DestroySoundWave(USoundWave* ReadySoundWave) 
 		//Delete all audio data from physical memory 
 		ReadySoundWave->RawData.RemoveBulkData();
 		ReadySoundWave->RemoveAudioResource();
+		AsyncTask(ENamedThreads::AudioThread, [=]() {
 		ReadySoundWave->InvalidateCompressedData(true);
+		});
 
 		//Finish USoundWave destroy (complete object deletion as UObject) 
-		if (ReadySoundWave->IsReadyForFinishDestroy()) {
-			ReadySoundWave->ConditionalFinishDestroy();
-			ReadySoundWave->FinishDestroy();
-			return true;
-		}
-		else {
-			return false;
-		}
+		ReadySoundWave->IsReadyForFinishDestroy(); //This is not needed for verification, but for the initial removal
+		ReadySoundWave->ConditionalFinishDestroy();
+		ReadySoundWave->FinishDestroy();
+		return true;
 	}
 	else {
 		return false;
