@@ -14,7 +14,7 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": true,
-	"EngineVersion": "4.26.0",
+	"EngineVersion": "4.24.0",
 	"Modules": [
     {
       "Name": "RuntimeAudioImporter",

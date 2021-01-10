@@ -77,6 +77,50 @@ void unreal_free(void* p, void* pUserData)
 	FMemory::Free(p);
 }
 
+bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveToExport, FString PathToExport, bool Faster)
+{
+	uint8* PCMData = SoundWaveToExport->RawPCMData;
+	size_t PCMDataSize = SoundWaveToExport->RawPCMDataSize;
+
+	uint32 SampleRate;
+	uint16 ChannelCount;
+
+	drwav_allocation_callbacks allocationCallbacksDecoding;
+	allocationCallbacksDecoding.pUserData = NULL;
+	allocationCallbacksDecoding.onMalloc = unreal_malloc;
+	allocationCallbacksDecoding.onRealloc = unreal_realloc;
+	allocationCallbacksDecoding.onFree = unreal_free;
+
+	drwav_uint64 framesToWrite = PCMDataSize / sizeof(DR_WAVE_FORMAT_PCM) / SoundWaveToExport->NumChannels;
+
+	if (Faster) {
+		ChannelCount = SoundWaveToExport->NumChannels;
+		SampleRate = FGenericPlatformMath::RoundToInt((framesToWrite / (float)SoundWaveToExport->GetDuration() * ChannelCount));
+	}
+	else {
+		TArray<uint8> NeedlessPCMData; //Needless PCMData array, but without it, it is not possible to get SampleRate
+		SoundWaveToExport->GetImportedSoundWaveData(*&NeedlessPCMData, *&SampleRate, *&ChannelCount);
+		NeedlessPCMData.Empty();
+	}
+	drwav wavEncode;
+
+	drwav_data_format format;
+	format.container = drwav_container_riff;
+	format.format = DR_WAVE_FORMAT_PCM;
+	format.channels = ChannelCount;
+	format.sampleRate = SampleRate;
+	format.bitsPerSample = 16;
+
+	if (!drwav_init_file_write(&wavEncode, TCHAR_TO_UTF8(*PathToExport), &format, &allocationCallbacksDecoding)) {
+		return false;
+	}
+
+	drwav_write_pcm_frames(&wavEncode, framesToWrite, PCMData);
+	drwav_uninit(&wavEncode);
+
+	return true;
+}
+
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAudioFile_Internal(const FString& filePath, TEnumAsByte < AudioFormat > Format, bool DefineFormatAutomatically)
 {
 	TEnumAsByte < TranscodingStatus > Status;
