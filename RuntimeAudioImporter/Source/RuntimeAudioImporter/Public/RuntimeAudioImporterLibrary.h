@@ -106,12 +106,11 @@ public:
 	 *
 	 * @param SoundWaveToExport					SoundWave object need to be exported
 	 * @param PathToExport						Path where to save audio file
-	 * @param Faster							Get SampleRate faster. Less clear, but fast. The difference is very insignificant, True is recommended
 	 * @return									Whether the save was successfull or not
 	 * @warning									It is very important that USoundWave should not used by the engine so that it can be read from physical memory.
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Exporter, Export, Save, Runtime, WAV"), Category = "RuntimeAudioImporter")
-		static bool ExportSoundWaveToFile(USoundWave * SoundWaveToExport, FString PathToExport, bool Faster = true);
+		static bool ExportSoundWaveToFile(USoundWave * SoundWaveToExport, FString PathToExport);
 
 private:
 	/**

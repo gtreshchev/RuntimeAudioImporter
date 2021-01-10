@@ -77,7 +77,7 @@ void unreal_free(void* p, void* pUserData)
 	FMemory::Free(p);
 }
 
-bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveToExport, FString PathToExport, bool Faster)
+bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveToExport, FString PathToExport)
 {
 	uint8* PCMData = SoundWaveToExport->RawPCMData;
 	size_t PCMDataSize = SoundWaveToExport->RawPCMDataSize;
@@ -93,15 +93,9 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveTo
 
 	drwav_uint64 framesToWrite = PCMDataSize / sizeof(DR_WAVE_FORMAT_PCM) / SoundWaveToExport->NumChannels;
 
-	if (Faster) {
-		ChannelCount = SoundWaveToExport->NumChannels;
-		SampleRate = FGenericPlatformMath::RoundToInt((framesToWrite / (float)SoundWaveToExport->GetDuration() * ChannelCount));
-	}
-	else {
-		TArray<uint8> NeedlessPCMData; //Needless PCMData array, but without it, it is not possible to get SampleRate
-		SoundWaveToExport->GetImportedSoundWaveData(*&NeedlessPCMData, *&SampleRate, *&ChannelCount);
-		NeedlessPCMData.Empty();
-	}
+	ChannelCount = SoundWaveToExport->NumChannels;
+	SampleRate = FGenericPlatformMath::RoundToInt((framesToWrite / (float)SoundWaveToExport->GetDuration() * ChannelCount));
+	
 	drwav wavEncode;
 
 	drwav_data_format format;
