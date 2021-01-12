@@ -95,7 +95,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveTo
 
 	ChannelCount = SoundWaveToExport->NumChannels;
 	SampleRate = FGenericPlatformMath::RoundToInt((framesToWrite / (float)SoundWaveToExport->GetDuration() * ChannelCount));
-	
+
 	drwav wavEncode;
 
 	drwav_data_format format;
