@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Sound/SoundWave.h"
+#include "Async/Async.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
 /**
