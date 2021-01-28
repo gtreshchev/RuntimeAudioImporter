@@ -2,7 +2,6 @@
 #pragma once
 
 #include "Sound/SoundWave.h"
-#include "Async/Async.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
 /**
@@ -70,9 +69,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "RuntimeAudioImporter")
 		FOnResult OnResult;
 
-	URuntimeAudioImporterLibrary();
-	~URuntimeAudioImporterLibrary();
-
 	/**
 	 * Instantiates a RuntimeAudioImporter object.
 	 *
@@ -115,7 +111,7 @@ public:
 private:
 	/**
 	 * Internal main audio transcoding function
-	 * 
+	 *
 	 * @param filePath							Path to the audio file to import
 	 * @param Format							Audio file format (extension)
 	 * @param DefineFormatAutomatically			Whether to define format (extension) automatically or not
@@ -126,18 +122,16 @@ private:
 	/**
 	 * Get USoundWave static object reference from 16-bit WAV data
 	 *
-	 * @param RuntimeAudioImporterObjRef		Reference to the created RuntimeAudioImporter object
 	 * @param WaveData							Reference to memory location of 16-bit WAV byte data
 	 * @param WaveDataSize						Memory size allocated for 16-bit WAV byte data
 	 * @param Status							Reference to TranscodingStatus Enumerator in case an error occurs
 	 * @return									Returns a ready USoundWave object
 	 */
-	static class USoundWave* GetSoundWaveObject(URuntimeAudioImporterLibrary * RuntimeAudioImporterObjRef, const uint8 * WaveData, int32 WaveDataSize, TEnumAsByte < TranscodingStatus > & Status);
+	class USoundWave* GetSoundWaveObject(const uint8 * WaveData, int32 WaveDataSize, TEnumAsByte < TranscodingStatus > & Status);
 
 	/**
 	 * Transcode Audio from File to PCM Data
 	 *
-	 * @param RuntimeAudioImporterObjRef		Reference to the created RuntimeAudioImporter object
 	 * @param filePath							Path to the audio file from which to receive PCM data
 	 * @param Format							Format of the audio file (e.g. mp3. flac, etc)
 	 * @param Status							Reference to TranscodingStatus Enumerator in case an error occurs
@@ -147,12 +141,11 @@ private:
 	 * @param sampleRate						Sample rate of the audio
 	 * @return									Whether the transcoding was successful or not
 	 */
-	static bool TranscodeAudioFileToPCMData(URuntimeAudioImporterLibrary * RuntimeAudioImporterObjRef, const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & Status, uint64 & framesToWrite, int16_t * &pSampleData, uint32 & channels, uint32 & sampleRate);
+	bool TranscodeAudioFileToPCMData(const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & Status, uint64 & framesToWrite, int16_t * &pSampleData, uint32 & channels, uint32 & sampleRate);
 
 	/**
 	 * Transcode Audio from PCM to 16-bit WAV data
 	 *
-	 * @param RuntimeAudioImporterObjRef		Reference to the created RuntimeAudioImporter object
 	 * @param WaveData							Reference to memory location of 16-bit WAV byte data
 	 * @param WaveDataSize						Memory size allocated for 16-bit WAV byte data
 	 * @param framesToWrite						PCM frames which will be written for WAV data
@@ -161,7 +154,7 @@ private:
 	 * @param sampleRate						Sample rate of the audio
 	 * @return									Whether the transcoding was successful or not
 	 */
-	static bool TranscodePCMToWAVData(URuntimeAudioImporterLibrary* RuntimeAudioImporterObjRef, void*& WaveData, size_t & WaveDataSize, uint64 framesToWrite, int16_t * &pSampleData, uint32 channels, uint32 sampleRate);
+	bool TranscodePCMToWAVData(void*& WaveData, size_t & WaveDataSize, uint64 framesToWrite, int16_t * &pSampleData, uint32 channels, uint32 sampleRate);
 
 	/**
 	 * @param filePath							File path, where to find the format (by extension)

@@ -1,7 +1,6 @@
 // Respirant 2020.
 
 #include "RuntimeAudioImporterLibrary.h"
-#include "RuntimeAudioImporter.h"
 
 URuntimeAudioImporterLibrary::URuntimeAudioImporterLibrary(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -9,19 +8,15 @@ URuntimeAudioImporterLibrary::URuntimeAudioImporterLibrary(const FObjectInitiali
 
 }
 
-URuntimeAudioImporterLibrary::~URuntimeAudioImporterLibrary()
-{
-}
-
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
 	URuntimeAudioImporterLibrary* Importer = NewObject<URuntimeAudioImporterLibrary>();
+	Importer->AddToRoot();
 	return Importer;
 }
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& filePath, TEnumAsByte < AudioFormat > Format, bool DefineFormatAutomatically)
 {
-	AddToRoot();
 	AsyncTask(ENamedThreads::AnyThread, [=]() {
 		GetUSoundWaveFromAudioFile_Internal(filePath, Format, DefineFormatAutomatically);
 		});
@@ -40,8 +35,8 @@ bool URuntimeAudioImporterLibrary::DestroySoundWave(USoundWave* ReadySoundWave) 
 		ReadySoundWave->RawData.RemoveBulkData();
 		ReadySoundWave->RemoveAudioResource();
 		AsyncTask(ENamedThreads::AudioThread, [=]() {
-		ReadySoundWave->InvalidateCompressedData(true);
-		});
+			ReadySoundWave->InvalidateCompressedData(true);
+			});
 
 		//Finish USoundWave destroy (complete object deletion as UObject) 
 		ReadySoundWave->IsReadyForFinishDestroy(); //This is not needed for verification, but for the initial removal
@@ -141,7 +136,7 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAud
 			OnResult_Internal(nullptr, Status);
 		}
 		else {
-			if (TranscodeAudioFileToPCMData(this, TCHAR_TO_ANSI(*filePath), Format, Status, framesToWrite, pSampleData, channels, sampleRate) == false) {
+			if (TranscodeAudioFileToPCMData(TCHAR_TO_ANSI(*filePath), Format, Status, framesToWrite, pSampleData, channels, sampleRate) == false) {
 				FMemory::Free(pSampleData);
 
 				// Callback Dispatcher OnResult
@@ -151,14 +146,14 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAud
 				void* WaveData;
 				size_t WaveDataSize;
 
-				if (TranscodePCMToWAVData(this, *&WaveData, *&WaveDataSize, framesToWrite, *&pSampleData, channels, sampleRate) == false) {
+				if (TranscodePCMToWAVData(*&WaveData, *&WaveDataSize, framesToWrite, *&pSampleData, channels, sampleRate) == false) {
 					FMemory::Free(pSampleData);
 
 					// Callback Dispatcher OnResult
 					OnResult_Internal(nullptr, Status);
 				}
 				else {
-					USoundWave* ReadyUSoundWave = GetSoundWaveObject(this, (const uint8*)WaveData, WaveDataSize, Status); // A ready USoundWave static object
+					USoundWave* ReadyUSoundWave = GetSoundWaveObject((const uint8*)WaveData, WaveDataSize, Status); // A ready USoundWave static object
 
 					/* Free temporary transcoding data */
 					FMemory::Free(WaveData);
@@ -172,14 +167,14 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAud
 					OnResult_Internal(ReadyUSoundWave, Status);
 				}
 
-				
+
 			}
 		}
 	}
 	return this;
 }
 
-class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudioImporterLibrary* RuntimeAudioImporterObjRef, const uint8* WaveData, int32 WaveDataSize, TEnumAsByte < TranscodingStatus >& Status)
+class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* WaveData, int32 WaveDataSize, TEnumAsByte < TranscodingStatus >& Status)
 {
 	USoundWave* sw = NewObject<USoundWave>(USoundWave::StaticClass());
 	if (!sw) {
@@ -190,12 +185,12 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 	FString ErrorReason;
 
 	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	RuntimeAudioImporterObjRef->OnProgress_Internal(65);
+	OnProgress_Internal(65);
 
 	if (WaveInfo.ReadWaveInfo(WaveData, WaveDataSize, &ErrorReason))
 	{
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		RuntimeAudioImporterObjRef->OnProgress_Internal(75);
+		OnProgress_Internal(75);
 
 		if (*WaveInfo.pBitsPerSample != 16) {
 			Status = TranscodingStatus::UnsupportedBitDepth;
@@ -208,7 +203,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 		sw->RawData.Unlock();
 
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		RuntimeAudioImporterObjRef->OnProgress_Internal(80);
+		OnProgress_Internal(80);
 
 		int32 DurationDiv = *WaveInfo.pChannels * *WaveInfo.pBitsPerSample * *WaveInfo.pSamplesPerSec;
 		if (DurationDiv)
@@ -227,7 +222,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 		sw->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
 
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		RuntimeAudioImporterObjRef->OnProgress_Internal(85);
+		OnProgress_Internal(85);
 	}
 	else {
 		if (ErrorReason.Equals(TEXT("Invalid WAVE file."), ESearchCase::CaseSensitive)) {
@@ -248,12 +243,12 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 	sw->RawPCMData = (uint8*)FMemory::Malloc(sw->RawPCMDataSize);
 
 	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	RuntimeAudioImporterObjRef->OnProgress_Internal(90);
+	OnProgress_Internal(90);
 
 	FMemory::Memcpy(sw->RawPCMData, WaveInfo.SampleDataStart, sw->RawPCMDataSize);
 
 	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	RuntimeAudioImporterObjRef->OnProgress_Internal(95);
+	OnProgress_Internal(95);
 
 	if (!sw) {
 		Status = TranscodingStatus::InvalidUSoundWave;
@@ -263,9 +258,9 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(URuntimeAudio
 	return sw;
 }
 
-bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(URuntimeAudioImporterLibrary* RuntimeAudioImporterObjRef, const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& Status, uint64& framesToWrite, int16_t*& pSampleData, uint32& channels, uint32& sampleRate)
+bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& Status, uint64& framesToWrite, int16_t*& pSampleData, uint32& channels, uint32& sampleRate)
 {
-	RuntimeAudioImporterObjRef->OnProgress_Internal(5);
+	OnProgress_Internal(5);
 	switch (Format)
 	{
 	case AudioFormat::MP3:
@@ -283,17 +278,17 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(URuntimeAudioImpo
 		}
 		else {
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(10);
+			OnProgress_Internal(10);
 
 			pSampleData = (int16_t*)FMemory::Malloc((size_t)drmp3_get_pcm_frame_count(&mp3) * mp3.channels * sizeof(int16_t));
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(15);
+			OnProgress_Internal(15);
 
 			framesToWrite = drmp3_read_pcm_frames_s16(&mp3, drmp3_get_pcm_frame_count(&mp3), pSampleData);
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(35);
+			OnProgress_Internal(35);
 
 			channels = mp3.channels;
 			sampleRate = mp3.sampleRate;
@@ -317,17 +312,17 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(URuntimeAudioImpo
 		}
 		else {
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(10);
+			OnProgress_Internal(10);
 
 			pSampleData = (int16_t*)FMemory::Malloc((size_t)wav.totalPCMFrameCount * wav.channels * sizeof(int16_t));
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(15);
+			OnProgress_Internal(15);
 
 			framesToWrite = drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pSampleData);
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(35);
+			OnProgress_Internal(35);
 
 			channels = wav.channels;
 			sampleRate = wav.sampleRate;
@@ -351,17 +346,17 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(URuntimeAudioImpo
 		}
 		else {
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(10);
+			OnProgress_Internal(10);
 
 			pSampleData = (int16_t*)FMemory::Malloc((size_t)pFlac->totalPCMFrameCount * pFlac->channels * sizeof(int16_t));
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(15);
+			OnProgress_Internal(15);
 
 			framesToWrite = drflac_read_pcm_frames_s16(pFlac, pFlac->totalPCMFrameCount, pSampleData);
 
 			// Callback Dispatcher OnProgress (not completely accurate implementation)
-			RuntimeAudioImporterObjRef->OnProgress_Internal(35);
+			OnProgress_Internal(35);
 
 			channels = pFlac->channels;
 			sampleRate = pFlac->sampleRate;
@@ -379,7 +374,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(URuntimeAudioImpo
 	}
 }
 
-bool URuntimeAudioImporterLibrary::TranscodePCMToWAVData(URuntimeAudioImporterLibrary* RuntimeAudioImporterObjRef, void*& WaveData, size_t& WaveDataSize, uint64 framesToWrite, int16_t*& pSampleData, uint32 channels, uint32 sampleRate) {
+bool URuntimeAudioImporterLibrary::TranscodePCMToWAVData(void*& WaveData, size_t& WaveDataSize, uint64 framesToWrite, int16_t*& pSampleData, uint32 channels, uint32 sampleRate) {
 	drwav wavEncode;
 	drwav_data_format format;
 	format.container = drwav_container_riff;
@@ -398,12 +393,12 @@ bool URuntimeAudioImporterLibrary::TranscodePCMToWAVData(URuntimeAudioImporterLi
 	}
 
 	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	RuntimeAudioImporterObjRef->OnProgress_Internal(40);
+	OnProgress_Internal(40);
 
 	drwav_write_pcm_frames(&wavEncode, framesToWrite, pSampleData);
 
 	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	RuntimeAudioImporterObjRef->OnProgress_Internal(60);
+	OnProgress_Internal(60);
 
 	drwav_uninit(&wavEncode);
 	return true;
