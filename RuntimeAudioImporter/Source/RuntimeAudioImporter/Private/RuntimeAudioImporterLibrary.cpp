@@ -137,8 +137,6 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAud
 		}
 		else {
 			if (TranscodeAudioFileToPCMData(TCHAR_TO_ANSI(*filePath), Format, Status, framesToWrite, pSampleData, channels, sampleRate) == false) {
-				FMemory::Free(pSampleData);
-
 				// Callback Dispatcher OnResult
 				OnResult_Internal(nullptr, Status);
 			}
