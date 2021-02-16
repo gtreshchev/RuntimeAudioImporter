@@ -142,7 +142,7 @@ private:
 	 * @param sampleRate						Sample rate of the audio
 	 * @return									Whether the transcoding was successful or not
 	 */
-	bool TranscodeAudioFileToPCMData(const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & Status, uint64 & framesToWrite, int16_t * &pSampleData, uint32 & channels, uint32 & sampleRate);
+	bool TranscodeAudioFileToPCMData(const wchar_t* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus > & Status, uint64 & framesToWrite, int16_t * &pSampleData, uint32 & channels, uint32 & sampleRate);
 
 	/**
 	 * Transcode Audio from PCM to 16-bit WAV data
