@@ -100,7 +100,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveTo
 	format.sampleRate = SampleRate;
 	format.bitsPerSample = 16;
 
-	if (!drwav_init_file_write_w(&wavEncode, (wchar_t*)filePath.GetCharArray().GetData(), &format, &allocationCallbacksDecoding)) {
+	if (!drwav_init_file_write_w(&wavEncode, (wchar_t*)PathToExport.GetCharArray().GetData(), &format, &allocationCallbacksDecoding)) {
 		return false;
 	}
 
