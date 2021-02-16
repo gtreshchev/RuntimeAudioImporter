@@ -31,14 +31,14 @@ bool URuntimeAudioImporterLibrary::DestroySoundWave(USoundWave* ReadySoundWave) 
 		ReadySoundWave->ConditionalBeginDestroy();
 		ReadySoundWave->BeginDestroy();
 
-		//Delete all audio data from physical memory 
+		//Delete all audio data from physical memory
 		ReadySoundWave->RawData.RemoveBulkData();
 		ReadySoundWave->RemoveAudioResource();
 		AsyncTask(ENamedThreads::AudioThread, [=]() {
 			ReadySoundWave->InvalidateCompressedData(true);
 			});
 
-		//Finish USoundWave destroy (complete object deletion as UObject) 
+		//Finish USoundWave destroy (complete object deletion as UObject)
 		ReadySoundWave->IsReadyForFinishDestroy(); //This is not needed for verification, but for the initial removal
 		ReadySoundWave->ConditionalFinishDestroy();
 		ReadySoundWave->FinishDestroy();
@@ -100,7 +100,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveTo
 	format.sampleRate = SampleRate;
 	format.bitsPerSample = 16;
 
-	if (!drwav_init_file_write(&wavEncode, TCHAR_TO_UTF8(*PathToExport), &format, &allocationCallbacksDecoding)) {
+	if (!drwav_init_file_write_w(&wavEncode, (wchar_t*)filePath.GetCharArray().GetData(), &format, &allocationCallbacksDecoding)) {
 		return false;
 	}
 
@@ -136,7 +136,7 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAud
 			OnResult_Internal(nullptr, Status);
 		}
 		else {
-			if (TranscodeAudioFileToPCMData(TCHAR_TO_UTF8(*filePath), Format, Status, framesToWrite, pSampleData, channels, sampleRate) == false) {
+			if (TranscodeAudioFileToPCMData((wchar_t*)filePath.GetCharArray().GetData(), Format, Status, framesToWrite, pSampleData, channels, sampleRate) == false) {
 				// Callback Dispatcher OnResult
 				OnResult_Internal(nullptr, Status);
 			}
@@ -256,7 +256,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* 
 	return sw;
 }
 
-bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const char* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& Status, uint64& framesToWrite, int16_t*& pSampleData, uint32& channels, uint32& sampleRate)
+bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const wchar_t* filePath, TEnumAsByte < AudioFormat > Format, TEnumAsByte < TranscodingStatus >& Status, uint64& framesToWrite, int16_t*& pSampleData, uint32& channels, uint32& sampleRate)
 {
 	OnProgress_Internal(5);
 	switch (Format)
@@ -270,7 +270,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const char* fileP
 		allocationCallbacksDecoding.onFree = unreal_free;
 
 		drmp3 mp3;
-		if (!drmp3_init_file(&mp3, filePath, &allocationCallbacksDecoding)) {
+		if (!drmp3_init_file_w(&mp3, filePath, &allocationCallbacksDecoding)) {
 			Status = TranscodingStatus::FailedToOpenStream;
 			return false;
 		}
@@ -304,7 +304,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const char* fileP
 		allocationCallbacksDecoding.onFree = unreal_free;
 
 		drwav wav;
-		if (!drwav_init_file(&wav, filePath, &allocationCallbacksDecoding)) {
+		if (!drwav_init_file_w(&wav, filePath, &allocationCallbacksDecoding)) {
 			Status = TranscodingStatus::FailedToOpenStream;
 			return false;
 		}
@@ -337,7 +337,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(const char* fileP
 		allocationCallbacksDecoding.onRealloc = unreal_realloc;
 		allocationCallbacksDecoding.onFree = unreal_free;
 
-		drflac* pFlac = drflac_open_file(filePath, &allocationCallbacksDecoding);
+		drflac* pFlac = drflac_open_file_w(filePath, &allocationCallbacksDecoding);
 		if (pFlac == NULL) {
 			Status = TranscodingStatus::FailedToOpenStream;
 			return false;
