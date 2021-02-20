@@ -1,6 +1,6 @@
 /*
 MP3 audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_mp3 - v0.6.22 - 2020-12-02
+dr_mp3 - v0.6.26 - 2021-01-31
 
 David Reid - mackron@gmail.com
 
@@ -95,7 +95,7 @@ extern "C" {
 
 #define DRMP3_VERSION_MAJOR     0
 #define DRMP3_VERSION_MINOR     6
-#define DRMP3_VERSION_REVISION  22
+#define DRMP3_VERSION_REVISION  26
 #define DRMP3_VERSION_STRING    DRMP3_XSTRINGIFY(DRMP3_VERSION_MAJOR) "." DRMP3_XSTRINGIFY(DRMP3_VERSION_MINOR) "." DRMP3_XSTRINGIFY(DRMP3_VERSION_REVISION)
 
 #include <stddef.h> /* For size_t. */
@@ -281,14 +281,6 @@ DRMP3_API void drmp3dec_f32_to_s16(const float *in, drmp3_int16 *out, size_t num
 Main API (Pull API)
 ===================
 */
-#ifndef DRMP3_DEFAULT_CHANNELS
-#define DRMP3_DEFAULT_CHANNELS      2
-#endif
-#ifndef DRMP3_DEFAULT_SAMPLE_RATE
-#define DRMP3_DEFAULT_SAMPLE_RATE   44100
-#endif
-
-
 typedef enum
 {
     drmp3_seek_origin_start,
@@ -1870,7 +1862,7 @@ static void drmp3d_DCT_II(float *grbuf, int n)
     } else
 #endif
 #ifdef DR_MP3_ONLY_SIMD
-    {}
+    {} /* for HAVE_SIMD=1, MINIMP3_ONLY_SIMD=1 case we do not need non-intrinsic "else" branch */
 #else
     for (; k < n; k++)
     {
@@ -2103,7 +2095,7 @@ static void drmp3d_synth(float *xl, drmp3d_sample_t *dstl, int nch, float *lins)
     } else
 #endif
 #ifdef DR_MP3_ONLY_SIMD
-    {}
+    {} /* for HAVE_SIMD=1, MINIMP3_ONLY_SIMD=1 case we do not need non-intrinsic "else" branch */
 #else
     for (i = 14; i >= 0; i--)
     {
@@ -2831,7 +2823,7 @@ static drmp3_bool32 drmp3_init_internal(drmp3* pMP3, drmp3_read_proc onRead, drm
 
     /* Decode the first frame to confirm that it is indeed a valid MP3 stream. */
     if (!drmp3_decode_next_frame(pMP3)) {
-        drmp3_uninit(pMP3);
+        drmp3__free_from_callbacks(pMP3->pData, &pMP3->allocationCallbacks);    /* The call above may have allocated memory. Need to make sure it's freed before aborting. */
         return DRMP3_FALSE; /* Not a valid MP3 stream. */
     }
 
@@ -3527,7 +3519,7 @@ DRMP3_API void drmp3_uninit(drmp3* pMP3)
     if (pMP3 == NULL) {
         return;
     }
-    
+
 #ifndef DR_MP3_NO_STDIO
     if (pMP3->onRead == drmp3__on_read_stdio) {
         FILE* pFile = (FILE*)pMP3->pUserData;
@@ -3915,7 +3907,7 @@ DRMP3_API drmp3_bool32 drmp3_get_mp3_and_pcm_frame_count(drmp3* pMP3, drmp3_uint
 
     /* We'll need to seek back to where we were, so grab the PCM frame we're currently sitting on so we can restore later. */
     currentPCMFrame = pMP3->currentPCMFrame;
-    
+
     if (!drmp3_seek_to_start_of_stream(pMP3)) {
         return DRMP3_FALSE;
     }
@@ -4013,7 +4005,7 @@ DRMP3_API drmp3_bool32 drmp3_calculate_seek_points(drmp3* pMP3, drmp3_uint32* pS
 
     /* We'll need to seek back to the current sample after calculating the seekpoints so we need to go ahead and grab the current location at the top. */
     currentPCMFrame = pMP3->currentPCMFrame;
-    
+
     /* We never do more than the total number of MP3 frames and we limit it to 32-bits. */
     if (!drmp3_get_mp3_and_pcm_frame_count(pMP3, &totalMP3FrameCount, &totalPCMFrameCount)) {
         return DRMP3_FALSE;
@@ -4458,6 +4450,18 @@ counts rather than sample counts.
 /*
 REVISION HISTORY
 ================
+v0.6.26 - 2021-01-31
+  - Bring up to date with minimp3.
+
+v0.6.25 - 2020-12-26
+  - Remove DRMP3_DEFAULT_CHANNELS and DRMP3_DEFAULT_SAMPLE_RATE which are leftovers from some removed APIs.
+
+v0.6.24 - 2020-12-07
+  - Fix a typo in version date for 0.6.23.
+
+v0.6.23 - 2020-12-03
+  - Fix an error where a file can be closed twice when initialization of the decoder fails.
+
 v0.6.22 - 2020-12-02
   - Fix an error where it's possible for a file handle to be left open when initialization of the decoder fails.
 
