@@ -218,14 +218,19 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* 
 			Status = TranscodingStatus::UnsupportedBitDepth;
 			return nullptr;
 		}
-		sw->InvalidateCompressedData();
 		sw->RawData.Lock(LOCK_READ_WRITE);
-		void* LockedData = sw->RawData.Realloc(WaveDataSize);
-		FMemory::Memcpy(LockedData, WaveData, WaveDataSize);
+		FMemory::Memcpy(sw->RawData.Realloc(WaveDataSize), WaveData, WaveDataSize); 
 		sw->RawData.Unlock();
 
+		OnProgress_Internal(85);
+
+		// RawPCMDataSize = WaveDataSize - 44 bytes (the header of the WAV data) = SampleDataSize 
+		sw->RawPCMDataSize = WaveInfo.SampleDataSize;
+		sw->RawPCMData = (uint8*)FMemory::Malloc(sw->RawPCMDataSize);
+		FMemory::Memmove(sw->RawPCMData, WaveData, WaveDataSize);
+
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		OnProgress_Internal(80);
+		OnProgress_Internal(90);
 
 		int32 DurationDiv = *WaveInfo.pChannels * *WaveInfo.pBitsPerSample * *WaveInfo.pSamplesPerSec;
 		if (DurationDiv)
@@ -244,7 +249,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* 
 		sw->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
 
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		OnProgress_Internal(85);
+		OnProgress_Internal(95);
 	}
 	else
 	{
@@ -269,16 +274,6 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* 
 		}
 		return nullptr;
 	}
-
-	sw->RawPCMData = (uint8*)FMemory::Malloc(sw->RawPCMDataSize);
-
-	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	OnProgress_Internal(90);
-
-	FMemory::Memcpy(sw->RawPCMData, WaveInfo.SampleDataStart, sw->RawPCMDataSize);
-
-	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	OnProgress_Internal(95);
 
 	if (!sw)
 	{
