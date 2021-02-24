@@ -227,7 +227,7 @@ class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* 
 		// RawPCMDataSize = WaveDataSize - 44 bytes (the header of the WAV data) = SampleDataSize 
 		sw->RawPCMDataSize = WaveInfo.SampleDataSize;
 		sw->RawPCMData = (uint8*)FMemory::Malloc(sw->RawPCMDataSize);
-		FMemory::Memmove(sw->RawPCMData, WaveData, WaveDataSize);
+		FMemory::Memmove(sw->RawPCMData, WaveData, sw->RawPCMDataSize);
 
 		// Callback Dispatcher OnProgress (not completely accurate implementation)
 		OnProgress_Internal(90);
