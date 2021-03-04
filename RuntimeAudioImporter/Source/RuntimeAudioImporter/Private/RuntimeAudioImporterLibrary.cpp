@@ -145,7 +145,7 @@ USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 	OnProgress_Internal(45);
 
 	// Whether to fill the compressed buffer or not. If not filled, it is necessary to fill Raw (Wave) data so that the engine will automatically generate compressed data.
-	if (!BuffersDetailsInfo.CompressionFormat == ECompressionFormat::RawData)
+	if (BuffersDetailsInfo.CompressionFormat == ECompressionFormat::RawData)
 	{
 		// Callback Dispatcher OnProgress
 		OnProgress_Internal(60);
