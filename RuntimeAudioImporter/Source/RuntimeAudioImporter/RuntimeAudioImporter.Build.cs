@@ -1,4 +1,4 @@
-// Respirant 2020.
+// Georgy Treshchev 2021.
 using System;
 using System.IO;
 using UnrealBuildTool;
@@ -9,7 +9,9 @@ public class RuntimeAudioImporter : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PublicDefinitions.AddRange(
+		//PublicDefinitions.Add("WITH_OGGVORBIS=0");
+
+		PublicDefinitions.AddRange(
             new string[] {
                 "DR_WAV_IMPLEMENTATION=1",
                 "DR_MP3_IMPLEMENTATION=1",
@@ -21,8 +23,7 @@ public class RuntimeAudioImporter : ModuleRules
         PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
-				// ... add other public dependencies that you statically link with here ...
+				"Core"
 			}
 			);
 			
@@ -34,16 +35,21 @@ public class RuntimeAudioImporter : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				// ... add private dependencies that you statically link with here ...	
+				"AudioPlatformConfiguration"	
 			}
 			);
 		
 		
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
-				// ... add any modules that your module loads dynamically here ...
-			}
+		
+		
+		
+			AddEngineThirdPartyPrivateStaticDependencies(Target,
+				"UEOgg",
+				"Vorbis",
+				"libOpus"
 			);
+		
+	
+		PublicDefinitions.Add("WITH_OGGVORBIS");
 	}
 }
