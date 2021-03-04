@@ -1,11 +1,16 @@
-// Respirant 2020.
+// Georgy Treshchev 2021.
 
 #include "RuntimeAudioImporterLibrary.h"
 
-URuntimeAudioImporterLibrary::URuntimeAudioImporterLibrary(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
+#include "AudioDevice.h"
+#include "AudioCompressionSettingsUtils.h"
+#include "Interfaces/IAudioFormat.h"
+
+// Compressors for platform-specific audio formats
+#include "VorbisCompressor.h"
+#include "OpusCompressor.h"
+#include "AdvancedPCMCompressor.h"
+
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -14,14 +19,48 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 	return Importer;
 }
 
-URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::ImportAudioFromFile(
-	const FString& FilePath, TEnumAsByte<AudioFormat> Format, bool DefineFormatAutomatically)
+void URuntimeAudioImporterLibrary::ImportAudioFromFile(
+	const FString& FilePath, TEnumAsByte<EAudioFormat> Format, const FBuffersDetailsStruct& BuffersDetails)
+{
+	if (!FPaths::FileExists(FilePath))
+	{
+		// Trying to get a file inside packaged build
+		IPlatformFile& FileManager = FPlatformFileManager::Get().GetPlatformFile();
+
+		OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
+		return;
+	}
+
+
+	if (Format == EAudioFormat::Auto)
+	{
+		Format = GetAudioFormat(FilePath);
+	}
+
+	TArray<uint8> AudioBuffer;
+	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
+	{
+		// Callback Dispatcher OnResult
+		OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
+		return;
+	}
+	ImportAudioFromBuffer(AudioBuffer, Format, BuffersDetails);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef,
+                                                                   const FBuffersDetailsStruct& BuffersDetails)
+{
+	ImportAudioFromBuffer(PreimportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3, BuffersDetails);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(const TArray<uint8>& AudioDataArray,
+                                                         const TEnumAsByte<EAudioFormat>& Format,
+                                                         const FBuffersDetailsStruct& BuffersDetails)
 {
 	AsyncTask(ENamedThreads::AnyThread, [=]()
 	{
-		GetUSoundWaveFromAudioFile_Internal(FilePath, Format, DefineFormatAutomatically);
+		ImportAudioFromBuffer_Internal(AudioDataArray, Format, BuffersDetails);
 	});
-	return this;
 }
 
 bool URuntimeAudioImporterLibrary::DestroySoundWave(USoundWave* ReadySoundWave)
@@ -52,431 +91,540 @@ bool URuntimeAudioImporterLibrary::DestroySoundWave(USoundWave* ReadySoundWave)
 	}
 }
 
-/**
- * Including dr_wav, dr_mp3 and dr_flac libraries
- */
-#include "ThirdParty/dr_wav.h"
-#include "ThirdParty/dr_mp3.h"
-#include "ThirdParty/dr_flac.h"
-
-/**
- * Replacing standard CPP memory functions (malloc, realloc, free) with memory management functions that are maintained by Epic as the engine evolves.
- */
-void* unreal_malloc(size_t sz, void* pUserData)
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(
+	const TArray<uint8>& AudioDataArray, const TEnumAsByte<EAudioFormat>& Format,
+	const FBuffersDetailsStruct& BuffersDetails)
 {
-	return FMemory::Malloc(sz);
-}
+	BuffersDetailsInfo = BuffersDetails;
 
-void* unreal_realloc(void* p, size_t sz, void* pUserData)
-{
-	return FMemory::Realloc(p, sz);
-}
 
-void unreal_free(void* p, void* pUserData)
-{
-	FMemory::Free(p);
-}
-
-bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(USoundWave* SoundWaveToExport, FString PathToExport)
-{
-	uint8* PCMData = SoundWaveToExport->RawPCMData;
-	size_t PCMDataSize = SoundWaveToExport->RawPCMDataSize;
-
-	drwav_allocation_callbacks allocationCallbacksDecoding;
-	allocationCallbacksDecoding.pUserData = NULL;
-	allocationCallbacksDecoding.onMalloc = unreal_malloc;
-	allocationCallbacksDecoding.onRealloc = unreal_realloc;
-	allocationCallbacksDecoding.onFree = unreal_free;
-
-	drwav_uint64 framesToWrite = PCMDataSize / sizeof(DR_WAVE_FORMAT_PCM) / SoundWaveToExport->NumChannels;
-
-	uint16 ChannelCount = SoundWaveToExport->NumChannels;
-	uint32 SampleRate = FGenericPlatformMath::RoundToInt(
-		(framesToWrite / (float)SoundWaveToExport->GetDuration() * ChannelCount));
-
-	drwav wavEncode;
-
-	drwav_data_format format;
-	format.container = drwav_container_riff;
-	format.format = DR_WAVE_FORMAT_PCM;
-	format.channels = ChannelCount;
-	format.sampleRate = SampleRate;
-	format.bitsPerSample = 16;
-
-#if PLATFORM_WINDOWS
-	if (!drwav_init_file_write_w(&wavEncode, (wchar_t*)PathToExport.GetCharArray().GetData(), &format,
-	                             &allocationCallbacksDecoding))
-#else
-	if (!drwav_init_file_write(&wavEncode, TCHAR_TO_UTF8(*PathToExport), &format,
-                                 &allocationCallbacksDecoding))
-#endif
+	if (Format == EAudioFormat::Auto || Format == EAudioFormat::Invalid)
 	{
-		return false;
-	}
-
-	drwav_write_pcm_frames(&wavEncode, framesToWrite, PCMData);
-	drwav_uninit(&wavEncode);
-
-	return true;
-}
-
-URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::GetUSoundWaveFromAudioFile_Internal(
-	const FString& FilePath, TEnumAsByte<AudioFormat> Format, bool DefineFormatAutomatically)
-{
-	TEnumAsByte<TranscodingStatus> Status;
-	if (FPaths::FileExists(FilePath) != true)
-	{
-		Status = TranscodingStatus::AudioDoesNotExist;
-
 		// Callback Dispatcher OnResult
-		OnResult_Internal(nullptr, Status);
+		OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+		return;
 	}
-	else
+
+	// Transcoding importer Audio Data to PCM Data
+	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format))
 	{
-		int16_t* pSampleData;
-		uint64 framesToWrite;
-		uint32 channels;
-		uint32 sampleRate;
-
-		if (DefineFormatAutomatically)
-		{
-			Format = GetAudioFormat(FilePath);
-		}
-
-		if (Format == AudioFormat::INVALID)
-		{
-			Status = TranscodingStatus::InvalidAudioFormat;
-
-			// Callback Dispatcher OnResult
-			OnResult_Internal(nullptr, Status);
-		}
-		else
-		{
-			if (TranscodeAudioFileToPCMData(FilePath, Format, Status, framesToWrite, pSampleData, channels, sampleRate)
-				== false)
-			{
-				// Callback Dispatcher OnResult
-				OnResult_Internal(nullptr, Status);
-			}
-			else
-			{
-				void* WaveData;
-				size_t WaveDataSize;
-
-				if (TranscodePCMToWAVData(*&WaveData, *&WaveDataSize, framesToWrite, *&pSampleData, channels,
-				                          sampleRate) == false)
-				{
-					FMemory::Free(pSampleData);
-
-					// Callback Dispatcher OnResult
-					OnResult_Internal(nullptr, Status);
-				}
-				else
-				{
-					USoundWave* ReadyUSoundWave = GetSoundWaveObject((const uint8*)WaveData, WaveDataSize, Status);
-					// A ready USoundWave static object
-
-					/* Free temporary transcoding data */
-					FMemory::Free(WaveData);
-					FMemory::Free(pSampleData);
-					/* Free temporary transcoding data */
-
-					// Callback Dispatcher OnProgress (not completely accurate implementation)
-					OnProgress_Internal(100);
-
-					// Callback Dispatcher OnResult
-					OnResult_Internal(ReadyUSoundWave, Status);
-				}
-			}
-		}
+		return;
 	}
-	return this;
+
+	// A ready USoundWave static object
+	USoundWave* ReadySoundWave = DefineSoundWave();
+
+	if (ReadySoundWave == nullptr)
+	{
+		return;
+	}
+
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(100);
+
+	// Callback Dispatcher OnResult, with the created SoundWave object
+	OnResult_Internal(ReadySoundWave, ETranscodingStatus::SuccessImporting);
 }
 
-class USoundWave* URuntimeAudioImporterLibrary::GetSoundWaveObject(const uint8* WaveData, int32 WaveDataSize,
-                                                                   TEnumAsByte<TranscodingStatus>& Status)
+USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 {
-	USoundWave* sw = NewObject<USoundWave>(USoundWave::StaticClass());
-	if (!sw)
+	USoundWave* SoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
+	if (!SoundWaveRef)
 	{
-		Status = TranscodingStatus::USoundWaveDeclarationError;
+		OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
 		return nullptr;
 	}
-	FWaveModInfo WaveInfo;
-	FString ErrorReason;
 
-	// Callback Dispatcher OnProgress (not completely accurate implementation)
-	OnProgress_Internal(65);
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(40);
 
-	if (WaveInfo.ReadWaveInfo(WaveData, WaveDataSize, &ErrorReason))
+	// Fill SoundWave basic information (e.g. duration, number of channels, etc)
+	FillSoundWaveBasicInfo(SoundWaveRef);
+
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(45);
+
+	// Whether to fill the compressed buffer or not. If not filled, it is necessary to fill Raw (Wave) data so that the engine will automatically generate compressed data.
+	if (!BuffersDetailsInfo.CompressionFormat == ECompressionFormat::RawData)
 	{
-		// Callback Dispatcher OnProgress (not completely accurate implementation)
+		// Callback Dispatcher OnProgress
+		OnProgress_Internal(60);
+
+		// Transcode PCM to Raw (Wave) Data
+		if (!TranscodePCMToWAVData())
+		{
+			FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+			return nullptr;
+		}
+
+		// free unneeded PCM Data
+		FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+
+		// Callback Dispatcher OnProgress
 		OnProgress_Internal(75);
 
-		if (*WaveInfo.pBitsPerSample != 16)
-		{
-			Status = TranscodingStatus::UnsupportedBitDepth;
-			return nullptr;
-		}
-		sw->RawData.Lock(LOCK_READ_WRITE);
-		FMemory::Memcpy(sw->RawData.Realloc(WaveDataSize), WaveData, WaveDataSize); 
-		sw->RawData.Unlock();
+		// Fill Raw (Wave) Data
+		FillRawWaveData(SoundWaveRef);
 
-		OnProgress_Internal(85);
-
-		// RawPCMDataSize = WaveDataSize - 44 bytes (the header of the WAV data) = SampleDataSize 
-		sw->RawPCMDataSize = WaveInfo.SampleDataSize;
-		sw->RawPCMData = (uint8*)FMemory::Malloc(sw->RawPCMDataSize);
-		FMemory::Memmove(sw->RawPCMData, WaveData, sw->RawPCMDataSize);
-
-		// Callback Dispatcher OnProgress (not completely accurate implementation)
-		OnProgress_Internal(90);
-
-		int32 DurationDiv = *WaveInfo.pChannels * *WaveInfo.pBitsPerSample * *WaveInfo.pSamplesPerSec;
-		if (DurationDiv)
-		{
-			sw->Duration = *WaveInfo.pWaveDataSize * 8.0f / DurationDiv;
-		}
-		else
-		{
-			sw->Duration = 0.0f;
-			Status = TranscodingStatus::ZeroDurationError;
-			return nullptr;
-		}
-		sw->SetSampleRate(*WaveInfo.pSamplesPerSec);
-		sw->NumChannels = *WaveInfo.pChannels;
-		sw->RawPCMDataSize = WaveInfo.SampleDataSize;
-		sw->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
-
-		// Callback Dispatcher OnProgress (not completely accurate implementation)
+		// Callback Dispatcher OnProgress
 		OnProgress_Internal(95);
+
+		return SoundWaveRef;
 	}
-	else
+
+	/* We don't need to fill RawPCMData buffer since it is not used at runtime during audio playback. But in case you want to fill this buffer - uncomment the code below (you should also remove some RawPCMData cleanups in code before it is executed)
+	sw->RawPCMData = static_cast<uint8*>(FMemory::Malloc(sw->RawPCMDataSize));
+	FMemory::Memmove(sw->RawPCMData, TranscodingFillInfo.PCMInfo.RawPCMData, sw->RawPCMDataSize);
+	*/
+
+	// Set a new sound compression quality
+	SoundWaveRef->CompressionQuality = BuffersDetailsInfo.SoundCompressionQuality;
+
+	// This variable won't be used anywhere, but it is recommended to set a decompression type to realtime since it will be decompressed at runtime
+	SoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
+
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(60);
+
+	// Transcode Raw PCM data to Compressed data
+	if (!TranscodePCMToCompressedData(SoundWaveRef))
 	{
-		if (ErrorReason.Equals(TEXT("Invalid WAVE file."), ESearchCase::CaseSensitive))
-		{
-			Status = TranscodingStatus::InvalidWAVEData;
-		}
-		else if (ErrorReason.Equals(
-			TEXT("Unsupported WAVE file format: actual bit rate does not match the container size."),
-			ESearchCase::CaseSensitive))
-		{
-			Status = TranscodingStatus::InvalidBitrate;
-		}
-		else if (ErrorReason.Equals(
-			TEXT("Unsupported WAVE file format: subformat identifier not recognized."), ESearchCase::CaseSensitive))
-		{
-			Status = TranscodingStatus::InvalidSubformat;
-		}
-		else
-		{
-			Status = TranscodingStatus::UnrecognizedReadWaveError;
-		}
 		return nullptr;
 	}
 
-	if (!sw)
-	{
-		Status = TranscodingStatus::InvalidUSoundWave;
-		return nullptr;
-	}
-	Status = TranscodingStatus::SuccessTranscoding;
-	return sw;
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(75);
+
+	SoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::NotStarted);
+
+	// Fill the compressed data
+	FillCompressedData(SoundWaveRef);
+
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(95);
+
+
+	return SoundWaveRef;
 }
 
-bool URuntimeAudioImporterLibrary::TranscodeAudioFileToPCMData(FString FilePath, TEnumAsByte<AudioFormat> Format,
-                                                               TEnumAsByte<TranscodingStatus>& Status,
-                                                               uint64& framesToWrite, int16_t*& pSampleData,
-                                                               uint32& channels, uint32& sampleRate)
+void URuntimeAudioImporterLibrary::FillSoundWaveBasicInfo(USoundWave* SoundWaveRef) const
 {
-	OnProgress_Internal(5);
-	switch (Format)
+	SoundWaveRef->RawPCMDataSize = TranscodingFillInfo.PCMInfo.RawPCMDataSize;
+	SoundWaveRef->Duration = TranscodingFillInfo.SoundWaveBasicInfo.Duration;
+	SoundWaveRef->SetSampleRate(TranscodingFillInfo.SoundWaveBasicInfo.SampleRate);
+	SoundWaveRef->NumChannels = TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum;
+	SoundWaveRef->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
+
+	if (SoundWaveRef->NumChannels == 4)
 	{
-	case AudioFormat::MP3:
+		SoundWaveRef->bIsAmbisonics = 1;
+	}
+}
+
+void URuntimeAudioImporterLibrary::FillRawWaveData(USoundWave* SoundWaveRef) const
+{
+	SoundWaveRef->RawData.Lock(LOCK_READ_WRITE);
+	FMemory::Memmove(SoundWaveRef->RawData.Realloc(TranscodingFillInfo.WAVInfo.WaveDataSize),
+	                 TranscodingFillInfo.WAVInfo.WaveData, TranscodingFillInfo.WAVInfo.WaveDataSize);
+	SoundWaveRef->RawData.Unlock();
+}
+
+void URuntimeAudioImporterLibrary::FillCompressedData(USoundWave* SoundWaveRef)
+{
+	// Get the name of the runtime format that will be used during audio playback
+	const FName CurrentAudioFormat = GEngine->GetAudioDeviceManager()->GetActiveAudioDevice()->
+	                                          GetRuntimeFormat(SoundWaveRef);
+
+	SoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::InProgress);
+
+	// Fill the compressed data
+	FByteBulkData* CompressedBulkData = &SoundWaveRef->CompressedFormatData.GetFormat(
+		GetPlatformSpecificFormat(CurrentAudioFormat));
+	CompressedBulkData->Lock(LOCK_READ_WRITE);
+	FMemory::Memmove(CompressedBulkData->Realloc(TranscodingFillInfo.CompressedInfo.CompressedFormatData.Num()),
+	                 TranscodingFillInfo.CompressedInfo.CompressedFormatData.GetData(),
+	                 TranscodingFillInfo.CompressedInfo.CompressedFormatData.Num());
+	CompressedBulkData->Unlock();
+
+	SoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
+}
+
+bool URuntimeAudioImporterLibrary::TranscodePCMToCompressedData(USoundWave* SoundWaveToGetData)
+{
+	// Raw PCM data Array
+	TArray<uint8> RawPCMArray = TArray<uint8>(TranscodingFillInfo.PCMInfo.RawPCMData,
+	                                          TranscodingFillInfo.PCMInfo.RawPCMDataSize);
+
+	// Sound quality information for compression purposes
+	FSoundQualityInfo SoundQualityInfo = GenerateSoundQualityInfo(SoundWaveToGetData);
+
+	switch (BuffersDetailsInfo.CompressionFormat)
+	{
+	case OggVorbis:
 		{
-			drmp3_allocation_callbacks allocationCallbacksDecoding;
-			allocationCallbacksDecoding.pUserData = NULL;
-			allocationCallbacksDecoding.onMalloc = unreal_malloc;
-			allocationCallbacksDecoding.onRealloc = unreal_realloc;
-			allocationCallbacksDecoding.onFree = unreal_free;
-
-			drmp3 mp3;
-#if PLATFORM_WINDOWS
-			if (!drmp3_init_file_w(&mp3, (wchar_t*)FilePath.GetCharArray().GetData(), &allocationCallbacksDecoding))
-#else
-			if (!drmp3_init_file(&mp3, TCHAR_TO_UTF8(*FilePath), &allocationCallbacksDecoding))
-#endif
+			if (!FVorbisCompressor::GenerateCompressedData(RawPCMArray, SoundQualityInfo,
+			                                               TranscodingFillInfo.CompressedInfo.CompressedFormatData))
 			{
-				Status = TranscodingStatus::FailedToOpenStream;
+				// Clearing all data in case of error for performance reasons
+				TranscodingFillInfo.CompressedInfo.CompressedFormatData.Empty();
+				RawPCMArray.Empty();
+				FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+				OnResult_Internal(nullptr, ETranscodingStatus::GenerateCompressedDataError);
 				return false;
-			}
-			else
-			{
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(10);
-
-				pSampleData = (int16_t*)FMemory::Malloc(
-					(size_t)drmp3_get_pcm_frame_count(&mp3) * mp3.channels * sizeof(int16_t));
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(15);
-
-				framesToWrite = drmp3_read_pcm_frames_s16(&mp3, drmp3_get_pcm_frame_count(&mp3), pSampleData);
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(35);
-
-				channels = mp3.channels;
-				sampleRate = mp3.sampleRate;
-				drmp3_uninit(&mp3);
-				return true;
 			}
 			break;
 		}
-	case AudioFormat::WAV:
+
+	case OggOpus:
 		{
-			drwav_allocation_callbacks allocationCallbacksDecoding;
-			allocationCallbacksDecoding.pUserData = NULL;
-			allocationCallbacksDecoding.onMalloc = unreal_malloc;
-			allocationCallbacksDecoding.onRealloc = unreal_realloc;
-			allocationCallbacksDecoding.onFree = unreal_free;
-
-			drwav wav;
-#if PLATFORM_WINDOWS
-			if (!drwav_init_file_w(&wav, (wchar_t*)FilePath.GetCharArray().GetData(), &allocationCallbacksDecoding))
-#else
-			if (!drwav_init_file(&wav, TCHAR_TO_UTF8(*FilePath), &allocationCallbacksDecoding))	
-#endif
+			if (!FOpusCompressor::GenerateCompressedData(RawPCMArray, SoundQualityInfo,
+			                                             TranscodingFillInfo.CompressedInfo.CompressedFormatData))
 			{
-				Status = TranscodingStatus::FailedToOpenStream;
+				// Clearing all data in case of error for performance reasons
+				TranscodingFillInfo.CompressedInfo.CompressedFormatData.Empty();
+				RawPCMArray.Empty();
+				FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+				OnResult_Internal(nullptr, ETranscodingStatus::GenerateCompressedDataError);
 				return false;
-			}
-			else
-			{
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(10);
-
-				pSampleData = (int16_t*)
-					FMemory::Malloc((size_t)wav.totalPCMFrameCount * wav.channels * sizeof(int16_t));
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(15);
-
-				framesToWrite = drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pSampleData);
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(35);
-
-				channels = wav.channels;
-				sampleRate = wav.sampleRate;
-				drwav_uninit(&wav);
-				return true;
 			}
 			break;
 		}
-	case AudioFormat::FLAC:
+	case ADPCMLPCM:
 		{
-			drflac_allocation_callbacks allocationCallbacksDecoding;
-			allocationCallbacksDecoding.pUserData = NULL;
-			allocationCallbacksDecoding.onMalloc = unreal_malloc;
-			allocationCallbacksDecoding.onRealloc = unreal_realloc;
-			allocationCallbacksDecoding.onFree = unreal_free;
-
-#if PLATFORM_WINDOWS
-			drflac* pFlac = drflac_open_file_w((wchar_t*)FilePath.GetCharArray().GetData(),
-			                                   &allocationCallbacksDecoding);
-#else
-			drflac* pFlac = drflac_open_file(TCHAR_TO_UTF8(*FilePath),
-                                             &allocationCallbacksDecoding);
-#endif
-			if (pFlac == NULL)
+			if (!FAdvancedPCMCompressor::GenerateCompressedData(RawPCMArray, SoundQualityInfo,
+			                                                    TranscodingFillInfo.CompressedInfo.CompressedFormatData)
+			)
 			{
-				Status = TranscodingStatus::FailedToOpenStream;
+				// Clearing all data in case of error for performance reasons
+				TranscodingFillInfo.CompressedInfo.CompressedFormatData.Empty();
+				RawPCMArray.Empty();
+				FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+				OnResult_Internal(nullptr, ETranscodingStatus::GenerateCompressedDataError);
 				return false;
-			}
-			else
-			{
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(10);
-
-				pSampleData = (int16_t*)FMemory::Malloc(
-					(size_t)pFlac->totalPCMFrameCount * pFlac->channels * sizeof(int16_t));
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(15);
-
-				framesToWrite = drflac_read_pcm_frames_s16(pFlac, pFlac->totalPCMFrameCount, pSampleData);
-
-				// Callback Dispatcher OnProgress (not completely accurate implementation)
-				OnProgress_Internal(35);
-
-				channels = pFlac->channels;
-				sampleRate = pFlac->sampleRate;
-				drflac_close(pFlac);
-				return true;
 			}
 			break;
 		}
 	default:
 		{
-			Status = TranscodingStatus::InvalidAudioFormat;
+			// Clearing all data in case of error for performance reasons
+			TranscodingFillInfo.CompressedInfo.CompressedFormatData.Empty();
+			RawPCMArray.Empty();
+			FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+			OnResult_Internal(nullptr, ETranscodingStatus::InvalidCompressedFormat);
 			return false;
-			break;
+		}
+	}
+
+	// When the compressed data is generated, RawPCMData is no longer needed.
+	RawPCMArray.Empty();
+	FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+
+	// Callback Dispatcher OnProgress
+	OnProgress_Internal(85);
+
+	return true;
+}
+
+
+/**
+* Including dr_wav, dr_mp3 and dr_flac libraries
+*/
+#include "ThirdParty/dr_wav.h"
+#include "ThirdParty/dr_mp3.h"
+#include "ThirdParty/dr_flac.h"
+
+/**
+* Replacing standard CPP memory functions (malloc, realloc, free) with memory management functions that are maintained by Epic as the engine evolves.
+*/
+void* Unreal_Malloc(size_t sz, void* pUserData)
+{
+	return FMemory::Malloc(sz);
+}
+
+void* Unreal_Realloc(void* p, size_t sz, void* pUserData)
+{
+	return FMemory::Realloc(p, sz);
+}
+
+void Unreal_Free(void* p, void* pUserData)
+{
+	FMemory::Free(p);
+}
+
+bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8* AudioData, uint32 AudioDataSize,
+                                                                    TEnumAsByte<EAudioFormat> Format)
+{
+	OnProgress_Internal(5);
+	switch (Format)
+	{
+	case EAudioFormat::Mp3:
+		{
+			drmp3_allocation_callbacks allocationCallbacksDecoding;
+			allocationCallbacksDecoding.pUserData = nullptr;
+			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+			drmp3 mp3;
+
+			if (!drmp3_init_memory(&mp3, AudioData, AudioDataSize, &allocationCallbacksDecoding))
+			{
+				// Callback Dispatcher OnResult
+				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				return false;
+			}
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(10);
+
+			TranscodingFillInfo.PCMInfo.RawPCMData = static_cast<uint8*>(FMemory::Malloc(
+				static_cast<size_t>(drmp3_get_pcm_frame_count(&mp3)) * mp3.channels * sizeof(int16_t)));
+
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(15);
+
+			TranscodingFillInfo.PCMInfo.RawPCMNumOfFrames = drmp3_read_pcm_frames_s16(
+				&mp3, drmp3_get_pcm_frame_count(&mp3),
+				reinterpret_cast<int16_t*>(TranscodingFillInfo.PCMInfo.RawPCMData));
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(35);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.
+				RawPCMNumOfFrames * mp3.channels * sizeof(int16_t));
+
+			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.
+				sampleRate;
+			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = mp3.channels;
+			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
+
+
+			drmp3_uninit(&mp3);
+			return true;
+		}
+	case EAudioFormat::Wav:
+		{
+			drwav_allocation_callbacks allocationCallbacksDecoding;
+			allocationCallbacksDecoding.pUserData = nullptr;
+			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+			drwav wav;
+
+			if (!drwav_init_memory(&wav, AudioData, AudioDataSize, &allocationCallbacksDecoding))
+
+			{
+				// Callback Dispatcher OnResult
+				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				return false;
+			}
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(10);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMData = static_cast<uint8*>(FMemory::Malloc(
+				static_cast<size_t>(wav.totalPCMFrameCount) * wav.channels * sizeof(int16_t)));
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(15);
+
+			TranscodingFillInfo.PCMInfo.RawPCMNumOfFrames = drwav_read_pcm_frames_s16(
+				&wav, wav.totalPCMFrameCount, reinterpret_cast<int16_t*>(TranscodingFillInfo.PCMInfo.RawPCMData));
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(35);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.
+				RawPCMNumOfFrames * wav.channels * sizeof(int16_t));
+
+			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.
+				sampleRate;
+			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = wav.channels;
+			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
+
+
+			drwav_uninit(&wav);
+			return true;
+		}
+	case EAudioFormat::Flac:
+		{
+			drflac_allocation_callbacks allocationCallbacksDecoding;
+			allocationCallbacksDecoding.pUserData = nullptr;
+			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+
+			drflac* pFlac = drflac_open_memory(AudioData, AudioDataSize, &allocationCallbacksDecoding);
+
+			if (pFlac == nullptr)
+			{
+				// Callback Dispatcher OnResult
+				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				return false;
+			}
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(10);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMData = static_cast<uint8*>(FMemory::Malloc(
+				static_cast<size_t>(pFlac->totalPCMFrameCount) * pFlac->channels * sizeof(int16_t)));
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(15);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMNumOfFrames = drflac_read_pcm_frames_s16(
+				pFlac, pFlac->totalPCMFrameCount, reinterpret_cast<int16_t*>(TranscodingFillInfo.PCMInfo.RawPCMData));
+
+			// Callback Dispatcher OnProgress
+			OnProgress_Internal(35);
+
+
+			TranscodingFillInfo.PCMInfo.RawPCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.
+				RawPCMNumOfFrames * pFlac->channels * sizeof(int16_t));
+
+
+			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->
+				sampleRate;
+			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = pFlac->channels;
+			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = pFlac->sampleRate;
+			drflac_close(pFlac);
+			return true;
+		}
+	default:
+		{
+			// Callback Dispatcher OnResult
+			OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+			return false;
 		}
 	}
 }
 
-bool URuntimeAudioImporterLibrary::TranscodePCMToWAVData(void*& WaveData, size_t& WaveDataSize, uint64 framesToWrite,
-                                                         int16_t*& pSampleData, uint32 channels, uint32 sampleRate)
+bool URuntimeAudioImporterLibrary::TranscodePCMToWAVData()
 {
 	drwav wavEncode;
 	drwav_data_format format;
 	format.container = drwav_container_riff;
 	format.format = DR_WAVE_FORMAT_PCM;
-	format.channels = channels;
-	format.sampleRate = sampleRate;
+	format.channels = TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum;
+	format.sampleRate = TranscodingFillInfo.SoundWaveBasicInfo.SampleRate;
 	format.bitsPerSample = 16; // Unreal Engine supports only 16-bit rate
 
 	drwav_allocation_callbacks allocationCallbacks;
-	allocationCallbacks.pUserData = NULL;
-	allocationCallbacks.onMalloc = unreal_malloc;
-	allocationCallbacks.onRealloc = unreal_realloc;
-	allocationCallbacks.onFree = unreal_free;
-	if (!drwav_init_memory_write(&wavEncode, &WaveData, &WaveDataSize, &format, &allocationCallbacks))
+	allocationCallbacks.pUserData = nullptr;
+	allocationCallbacks.onMalloc = Unreal_Malloc;
+	allocationCallbacks.onRealloc = Unreal_Realloc;
+	allocationCallbacks.onFree = Unreal_Free;
+
+	// Initializing PCM data writing to memory
+	if (!drwav_init_memory_write(&wavEncode, reinterpret_cast<void**>(&TranscodingFillInfo.WAVInfo.WaveData),
+	                             reinterpret_cast<size_t*>(&TranscodingFillInfo.WAVInfo.WaveDataSize), &format,
+	                             &allocationCallbacks))
 	{
-		return false; //error
+		FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
+		OnResult_Internal(nullptr, ETranscodingStatus::PCMToWavDataError);
+		return false;
 	}
 
-	// Callback Dispatcher OnProgress (not completely accurate implementation)
+
+	// Callback Dispatcher OnProgress
 	OnProgress_Internal(40);
 
-	drwav_write_pcm_frames(&wavEncode, framesToWrite, pSampleData);
+	// Write Raw PCM Data
+	drwav_write_pcm_frames(&wavEncode, TranscodingFillInfo.PCMInfo.RawPCMNumOfFrames,
+	                       reinterpret_cast<int16_t*>(TranscodingFillInfo.PCMInfo.RawPCMData));
 
-	// Callback Dispatcher OnProgress (not completely accurate implementation)
+	// Callback Dispatcher OnProgress
 	OnProgress_Internal(60);
 
+
 	drwav_uninit(&wavEncode);
+
 	return true;
 }
 
-TEnumAsByte<AudioFormat> URuntimeAudioImporterLibrary::GetAudioFormat(const FString& filePath)
+TEnumAsByte<EAudioFormat> URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePath)
 {
-	if (FPaths::GetExtension(filePath, false).Equals(TEXT("mp3"), ESearchCase::IgnoreCase))
+	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("mp3"), ESearchCase::IgnoreCase))
 	{
-		return AudioFormat::MP3;
+		return EAudioFormat::Mp3;
 	}
-	else if (FPaths::GetExtension(filePath, false).Equals(TEXT("wav"), ESearchCase::IgnoreCase))
+	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("wav"), ESearchCase::IgnoreCase))
 	{
-		return AudioFormat::WAV;
+		return EAudioFormat::Wav;
 	}
-	else if (FPaths::GetExtension(filePath, false).Equals(TEXT("flac"), ESearchCase::IgnoreCase))
+	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("flac"), ESearchCase::IgnoreCase))
 	{
-		return AudioFormat::FLAC;
+		return EAudioFormat::Flac;
+	}
+	return EAudioFormat::Invalid;
+}
+
+FSoundQualityInfo URuntimeAudioImporterLibrary::GenerateSoundQualityInfo(USoundWave* SoundWaveToGetData) const
+{
+	FSoundQualityInfo SoundQualityInfo;
+	SoundQualityInfo.Duration = SoundWaveToGetData->Duration;
+	SoundQualityInfo.Quality = SoundWaveToGetData->CompressionQuality;
+	SoundQualityInfo.NumChannels = SoundWaveToGetData->NumChannels;
+
+	// since we cannot get the Sample Rate from the SoundWave, we will get it from the data of the initial PCM transcoding
+	SoundQualityInfo.SampleRate = TranscodingFillInfo.SoundWaveBasicInfo.SampleRate;
+
+	SoundQualityInfo.SampleDataSize = SoundWaveToGetData->RawPCMDataSize;
+	SoundQualityInfo.bStreaming = SoundWaveToGetData->IsStreaming(*FPlatformCompressionUtilities::GetCookOverrides());
+	SoundQualityInfo.DebugName = SoundWaveToGetData->GetFullName();
+	return SoundQualityInfo;
+}
+
+
+FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName Format)
+{
+	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
+
+	// Platforms that require compression overrides get concatenated formats.
+#if WITH_EDITOR
+	FName PlatformSpecificFormat;
+	if (CompressionOverrides)
+	{
+		FString HashedString = *Format.ToString();
+		FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+		PlatformSpecificFormat = *HashedString;
 	}
 	else
 	{
-		return AudioFormat::INVALID;
+		PlatformSpecificFormat = Format;
 	}
+
+#else
+	// Cache the concatenated hash:
+	static FName PlatformSpecificFormat;
+	static FName CachedFormat;
+	if (!Format.IsEqual(CachedFormat))
+	{
+		if (CompressionOverrides)
+		{
+			FString HashedString = *Format.ToString();
+			FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+			PlatformSpecificFormat = *HashedString;
+		}
+		else
+		{
+			PlatformSpecificFormat = Format;
+		}
+
+		CachedFormat = Format;
+	}
+
+#endif // WITH_EDITOR
+
+	return PlatformSpecificFormat;
 }
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
@@ -487,11 +635,12 @@ void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 	});
 }
 
-void URuntimeAudioImporterLibrary::OnResult_Internal(USoundWave* ReadySoundWave, TEnumAsByte<TranscodingStatus> Status)
+void URuntimeAudioImporterLibrary::OnResult_Internal(USoundWave* ReadySoundWave,
+                                                     const TEnumAsByte<ETranscodingStatus>& Status)
 {
 	AsyncTask(ENamedThreads::GameThread, [=]()
 	{
 		RemoveFromRoot();
-		OnResult.Broadcast(ReadySoundWave, Status);
+		OnResult.Broadcast(this, ReadySoundWave, Status);
 	});
 }
