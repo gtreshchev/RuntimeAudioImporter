@@ -20,16 +20,16 @@ public:
 
 	/** Information about the basic details of an audio file. Used only for convenience in the editor */
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(Category = FilePath, VisibleAnywhere, Meta = (DisplayName = "Source file path"))
+	UPROPERTY(Category = "File Path", VisibleAnywhere, Meta = (DisplayName = "Source file path"))
 	FString SourceFilePath;
 
-	UPROPERTY(Category = Info, VisibleAnywhere, Meta = (DisplayName = "Sound duration"))
+	UPROPERTY(Category = "Info", VisibleAnywhere, Meta = (DisplayName = "Sound duration"))
 	FString SoundDuration;
 
-	UPROPERTY(Category = Info, VisibleAnywhere, Meta = (DisplayName = "Number of channels"))
+	UPROPERTY(Category = "Info", VisibleAnywhere, Meta = (DisplayName = "Number of channels"))
 	int32 NumberOfChannels;
 
-	UPROPERTY(Category = Info, VisibleAnywhere, Meta = (DisplayName = "Sample rate"))
+	UPROPERTY(Category = "Info", VisibleAnywhere, Meta = (DisplayName = "Sample rate"))
 	int32 SampleRate;
 #endif
 };
