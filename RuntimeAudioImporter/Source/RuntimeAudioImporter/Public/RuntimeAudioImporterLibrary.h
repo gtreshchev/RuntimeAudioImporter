@@ -5,8 +5,6 @@
 #include "Sound/SoundWave.h"
 #include "Async/Async.h"
 
-#include "PreimportedSoundAsset.h"
-
 #include "RuntimeAudioImporterLibrary.generated.h"
 
 /** Possible audio importing results */
@@ -79,7 +77,7 @@ enum ECompressionFormat
 };
 
 /** Information about which buffers to fill */
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, Category = "RuntimeAudioImporter")
 struct FBuffersDetailsStruct
 {
 	GENERATED_BODY()
@@ -155,8 +153,27 @@ struct FTranscodingFillStruct
 	FCompressedStruct CompressedInfo;
 };
 
+/** Advanced CPP only structure which contains information about which buffers to fill */
+struct FAdvancedBuffersStruct
+{
+	/** Needed compression format. Do not select RawData here! If you want to fill Raw (Wav) Data, check the "FillRawData" parameter */
+	TEnumAsByte<ECompressionFormat> CompressionFormat;
+
+	/** Whether to fill the compressed data or not */
+	bool FillCompressedData = false;
+
+	/** Whether to fill PCM Data or not */
+	bool FillPCMData = false;
+
+	/** Whether to fill Raw (Wav) data */
+	bool FillRawData = false;
+};
+
 // Forward declaration of the FSoundQualityInfo structure
 struct FSoundQualityInfo;
+
+// Forward declaration of the UPreimportedSoundAsset class
+class UPreimportedSoundAsset;
 
 /**
  * Declare delegate which will be called during the transcoding process
@@ -201,6 +218,10 @@ public:
 	/** Buffers details info. CPP use only */
 	FBuffersDetailsStruct BuffersDetailsInfo = FBuffersDetailsStruct();
 
+	/** Advanced buffer details info. CPP use only (even as an input parameter) */
+	FAdvancedBuffersStruct AdvancedBuffersInfo = FAdvancedBuffersStruct();
+	bool bUseOfAdvancedBuffersInfo = false;
+
 	/**
 	 * Instantiates a RuntimeAudioImporter object
 	 *
@@ -210,6 +231,14 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category =
 		"RuntimeAudioImporter")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
+
+	/**
+	 * If you want to select a separate formats to fill (using of "FAdvancedBuffersStruct"), then use this method in CPP
+	 *
+	 * @param UseOfAdvancedBufferInfo Whether to use the advanced buffer info or not
+	 */
+	UFUNCTION()
+	static URuntimeAudioImporterLibrary* CreateAdvancedRuntimeAudioImporter(const bool UseOfAdvancedBufferInfo);
 
 	/**
 	 * Transcode audio file to SoundWave object
@@ -295,6 +324,13 @@ private:
 	 * @param SoundWaveRef SoundWave object reference
 	 */
 	void FillCompressedData(USoundWave* SoundWaveRef);
+
+	/**
+	 * Fill SoundWave PCM data buffer
+	 *
+	 * @param SoundWaveRef SoundWave object reference
+	 */
+	void FillPCMData(USoundWave* SoundWaveRef);
 
 	/**
 	 * Transcode Audio from PCM to 16-bit WAV data
