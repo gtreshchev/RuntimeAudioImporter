@@ -191,7 +191,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProgress, const int32, Percentage
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnResult, class URuntimeAudioImporterLibrary*,
                                                RuntimeAudioImporterObjectRef,
-                                               const USoundWave*, SoundWaveRef,
+                                               USoundWave*, SoundWaveRef,
                                                const TEnumAsByte < ETranscodingStatus >&, Status);
 
 /**
