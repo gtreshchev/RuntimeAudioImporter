@@ -277,7 +277,7 @@ void URuntimeAudioImporterLibrary::FillCompressedData(USoundWave* SoundWaveRef)
 
 	SoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
-	UE_LOG(LogTemp, Warning, TEXT("Compressed data has been filled successfully, Cmpressed data size: %d"),
+	UE_LOG(LogTemp, Warning, TEXT("Compressed data has been filled successfully, Compressed data size: %d"),
 	       TranscodingFillInfo.CompressedInfo.CompressedFormatData.Num());
 }
 
