@@ -83,14 +83,14 @@ struct FBuffersDetailsStruct
 	GENERATED_BODY()
 
 	/** Needed compression format */
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = "RuntimeAudioImporter")
 	TEnumAsByte<ECompressionFormat> CompressionFormat = OggVorbis;
 
 	/**
 	 * Sound compression quality. The range of numbers is from 0 to 100, in percent. How much to compress the sound, where 0 is the maximum loss, 100 is the minimum.
 	 * Not used if CompressionFormat is "RawData"
 	 */
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(BlueprintReadWrite, Category = "RuntimeAudioImporter")
 	int32 SoundCompressionQuality = 100;
 };
 
