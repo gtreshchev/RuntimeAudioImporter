@@ -15,6 +15,8 @@
 
 #include "Misc/FileHelper.h"
 
+#include "AudioCompressionSettingsUtils.h"
+
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
