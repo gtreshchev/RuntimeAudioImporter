@@ -15,8 +15,6 @@
 
 #include "Misc/FileHelper.h"
 
-#include "AudioCompressionSettingsUtils.h"
-
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -123,30 +121,31 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(
 		return;
 	}
 
-	// A ready USoundWave static object
-	USoundWave* ReadySoundWave = DefineSoundWave();
-
-	if (ReadySoundWave == nullptr)
+	AsyncTask(ENamedThreads::GameThread, [=]()
 	{
-		return;
-	}
+		USoundWave* SoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
+		if (!SoundWaveRef)
+		{
+			OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
+			return nullptr;
+		}
+		AsyncTask(ENamedThreads::AnyThread, [=]()
+		{
+			if (DefineSoundWave(SoundWaveRef))
+			{
+				// Callback Dispatcher OnProgress
+				OnProgress_Internal(100);
 
-	// Callback Dispatcher OnProgress
-	OnProgress_Internal(100);
-
-	// Callback Dispatcher OnResult, with the created SoundWave object
-	OnResult_Internal(ReadySoundWave, ETranscodingStatus::SuccessImporting);
+				// Callback Dispatcher OnResult, with the created SoundWave object
+				OnResult_Internal(SoundWaveRef, ETranscodingStatus::SuccessImporting);
+			}
+		});
+		return nullptr;
+	});
 }
 
-USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
+bool URuntimeAudioImporterLibrary::DefineSoundWave(USoundWave* SoundWaveRef)
 {
-	USoundWave* SoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
-	if (!SoundWaveRef)
-	{
-		OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
-		return nullptr;
-	}
-
 	// Callback Dispatcher OnProgress
 	OnProgress_Internal(40);
 
@@ -163,11 +162,12 @@ USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 		// Callback Dispatcher OnProgress
 		OnProgress_Internal(60);
 
+
 		// Transcode PCM to Raw (Wave) Data
 		if (!TranscodePCMToWAVData())
 		{
 			FMemory::Free(TranscodingFillInfo.PCMInfo.RawPCMData);
-			return nullptr;
+			return false;
 		}
 
 		if (!bUseOfAdvancedBuffersInfo || (bUseOfAdvancedBuffersInfo && !AdvancedBuffersInfo.FillPCMData))
@@ -191,9 +191,9 @@ USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 		// Callback Dispatcher OnProgress
 		OnProgress_Internal(95);
 
-		return SoundWaveRef;
+		return true;
 	}
-
+	
 
 	// Set a new sound compression quality
 	SoundWaveRef->CompressionQuality = BuffersDetailsInfo.SoundCompressionQuality;
@@ -210,7 +210,7 @@ USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 		// Transcode Raw PCM data to Compressed data
 		if (!TranscodePCMToCompressedData(SoundWaveRef))
 		{
-			return nullptr;
+			return false;
 		}
 
 		// Callback Dispatcher OnProgress
@@ -232,7 +232,7 @@ USoundWave* URuntimeAudioImporterLibrary::DefineSoundWave()
 	OnProgress_Internal(95);
 
 
-	return SoundWaveRef;
+	return true;
 }
 
 void URuntimeAudioImporterLibrary::FillSoundWaveBasicInfo(USoundWave* SoundWaveRef) const

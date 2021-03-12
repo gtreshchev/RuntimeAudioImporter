@@ -65,7 +65,7 @@ enum ECompressionFormat
 {
 	/** Raw (Wav) data format. Not recommended because it doesn't work on packaged build */
 	RawData UMETA(DisplayName = "Raw Data"),
-	
+
 	/** Ogg Vorbis format. It is used, for example, on Android and Windows */
 	OggVorbis UMETA(DisplayName = "Ogg Vorbis"),
 
@@ -83,14 +83,14 @@ struct FBuffersDetailsStruct
 	GENERATED_BODY()
 
 	/** Needed compression format */
-	UPROPERTY(BlueprintReadWrite, Category = "RuntimeAudioImporter")
+	UPROPERTY(BlueprintReadWrite)
 	TEnumAsByte<ECompressionFormat> CompressionFormat = OggVorbis;
 
 	/**
 	 * Sound compression quality. The range of numbers is from 0 to 100, in percent. How much to compress the sound, where 0 is the maximum loss, 100 is the minimum.
 	 * Not used if CompressionFormat is "RawData"
 	 */
-	UPROPERTY(BlueprintReadWrite, Category = "RuntimeAudioImporter")
+	UPROPERTY(BlueprintReadWrite)
 	int32 SoundCompressionQuality = 100;
 };
 
@@ -300,9 +300,10 @@ private:
 	/**
 	 * Define SoundWave object reference
 	 *
-	 * @return Returns a ready USoundWave object
+	 * @param SoundWaveRef SoundWave object reference to define
+	 * @return Whether the defining was successful or not
 	 */
-	USoundWave* DefineSoundWave();
+	bool DefineSoundWave(USoundWave* SoundWaveRef);
 
 	/**
 	 * Fill SoundWave basic information (e.g. duration, number of channels, etc)
@@ -368,6 +369,8 @@ private:
 
 	/**
 	 * Generate FSoundQualityInfo Enum based on SoundWave and already defined Sample Rate
+	 *
+	 * @param SoundWaveToGetData SoundWave object reference to get data from
 	 */
 	FSoundQualityInfo GenerateSoundQualityInfo(USoundWave* SoundWaveToGetData) const;
 
