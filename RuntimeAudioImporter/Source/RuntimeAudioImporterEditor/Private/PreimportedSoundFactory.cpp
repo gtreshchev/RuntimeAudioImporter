@@ -2,7 +2,7 @@
 
 #include "PreimportedSoundFactory.h"
 
-#include "PreimportedSoundAsset.h" //maybe #include "RuntimeAudioImporter/Public/PreimportedSoundAsset.h"
+#include "PreimportedSoundAsset.h"
 #include "Misc/FileHelper.h"
 
 /** Defining custom logging */
@@ -39,7 +39,6 @@ UPreimportedSoundFactory::UPreimportedSoundFactory()
 	bText = false;
 }
 
-
 bool UPreimportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	return FPaths::GetExtension(Filename).Equals(TEXT("mp3")) || FPaths::GetExtension(Filename).Equals(TEXT("imp"));
@@ -75,6 +74,10 @@ UObject* UPreimportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 		PreimportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(
 			static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
+		UE_LOG(LogPreimportedSoundFactory, Log, TEXT("Duration: %f"),
+		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
+		UE_LOG(LogTemp, Warning, TEXT("Duration: %f"),
+		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
 		PreimportedSoundAsset->NumberOfChannels = mp3.channels;
 		PreimportedSoundAsset->SampleRate = mp3.sampleRate;
 

@@ -2,9 +2,8 @@
 
 #pragma once
 
-#include "Sound/SoundWave.h"
 #include "Async/Async.h"
-
+#include "ImportedSoundWave.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
 /** Possible audio importing results */
@@ -27,21 +26,11 @@ enum ETranscodingStatus
 	AudioDoesNotExist UMETA(DisplayName = "Audio does not exist"),
 
 	/** Load file to array error */
-	LoadFileToArrayError UMETA(DisplayName = "Load file to array error"),
-
-	/** Transcoding PCM to Wav data error */
-	PCMToWavDataError UMETA(DisplayName = "PCM to Wav data error"),
-
-	/** Generate compressed data error */
-	GenerateCompressedDataError UMETA(DisplayName = "Generate compressed data error"),
-
-	/** Invalid compressed format error */
-	InvalidCompressedFormat UMETA(DisplayName = "Invalid compressed format")
+	LoadFileToArrayError UMETA(DisplayName = "Load file to array error")
 };
 
 /** Possible audio formats (extensions) */
-UENUM(BlueprintType, Category = "RuntimeAudioImporter")
-enum EAudioFormat
+UENUM(BlueprintType, Category = "RuntimeAudioImporter")enum EAudioFormat
 {
 	/** Determine format automatically */
 	Auto UMETA(DisplayName = "Determine format automatically"),
@@ -56,43 +45,7 @@ enum EAudioFormat
 	Flac UMETA(DisplayName = "flac"),
 
 	/** Invalid format */
-	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
-};
-
-/** List of all supported compression formats */
-UENUM(BlueprintType, Category = "RuntimeAudioImporter")
-enum ECompressionFormat
-{
-	/** Raw (Wav) data format. Not recommended because it doesn't work on packaged build */
-	RawData UMETA(DisplayName = "Raw Data"),
-
-	/** Ogg Vorbis format. It is used, for example, on Android and Windows */
-	OggVorbis UMETA(DisplayName = "Ogg Vorbis"),
-
-	/** ADPCM or LPCM formats. LPCM will be used if the compression quality is 100%, otherwise ADPCM */
-	ADPCMLPCM UMETA(DisplayName = "ADPCM/LPCM"),
-
-	/** Ogg Opus format. Mostly not used anywhere, but can be used for personal purposes */
-	OggOpus UMETA(DisplayName = "Ogg Opus")
-};
-
-/** Information about which buffers to fill */
-USTRUCT(BlueprintType, Category = "RuntimeAudioImporter")
-struct FBuffersDetailsStruct
-{
-	GENERATED_BODY()
-
-	/** Needed compression format */
-	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<ECompressionFormat> CompressionFormat = OggVorbis;
-
-	/**
-	 * Sound compression quality. The range of numbers is from 0 to 100, in percent. How much to compress the sound, where 0 is the maximum loss, 100 is the minimum.
-	 * Not used if CompressionFormat is "RawData"
-	 */
-	UPROPERTY(BlueprintReadWrite)
-	int32 SoundCompressionQuality = 100;
-};
+	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)};
 
 /** Basic SoundWave data. CPP use only. */
 struct FSoundWaveBasicStruct
@@ -107,70 +60,15 @@ struct FSoundWaveBasicStruct
 	float Duration;
 };
 
-/** Raw PCM Data */
-struct FPCMStruct
-{
-	/** Raw PCM data pointer */
-	uint8* RawPCMData;
-
-	/** Number of PCM frames */
-	uint64 RawPCMNumOfFrames;
-
-	/** Raw PCM data size */
-	uint32 RawPCMDataSize;
-};
-
-/** Wav (or Raw) Data */
-struct FWAVStruct
-{
-	/** Wave data pointer */
-	uint8* WaveData;
-
-	/** Wave data size */
-	int32 WaveDataSize;
-};
-
-/** Compressed Data (Ogg Vorbis, ADPCM, etc) */
-struct FCompressedStruct
-{
-	/** Array, which contains compressed format data */
-	TArray<uint8> CompressedFormatData;
-};
-
 /** Main, mostly in-memory information (like PCM, Wav, etc) */
 struct FTranscodingFillStruct
 {
 	/** SoundWave basic info (e.g. duration, number of channels, etc) */
 	FSoundWaveBasicStruct SoundWaveBasicInfo;
 
-	/** Raw PCM Data info */
+	/** float PCM info */
 	FPCMStruct PCMInfo;
-
-	/** Wav (or Raw) Data info */
-	FWAVStruct WAVInfo;
-
-	/** Compressed Data info (Ogg Vorbis, ADPCM, etc) */
-	FCompressedStruct CompressedInfo;
 };
-
-/** Advanced CPP only structure which contains information about which buffers to fill */
-struct FAdvancedBuffersStruct
-{
-	/** Needed compression format. Do not select RawData here! If you want to fill Raw (Wav) Data, check the "FillRawData" parameter */
-	TEnumAsByte<ECompressionFormat> CompressionFormat;
-
-	/** Whether to fill the compressed data or not */
-	bool FillCompressedData = false;
-
-	/** Whether to fill PCM Data or not */
-	bool FillPCMData = false;
-
-	/** Whether to fill Raw (Wav) data */
-	bool FillRawData = false;
-};
-
-// Forward declaration of the FSoundQualityInfo structure
-struct FSoundQualityInfo;
 
 // Forward declaration of the UPreimportedSoundAsset class
 class UPreimportedSoundAsset;
@@ -190,16 +88,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnProgress, const int32, Percentage
  * @param Status TranscodingStatus Enum in case an error occurs
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnResult, class URuntimeAudioImporterLibrary*,
-                                               RuntimeAudioImporterObjectRef,
-                                               USoundWave*, SoundWaveRef,
+                                               RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
                                                const TEnumAsByte < ETranscodingStatus >&, Status);
 
 /**
  * Runtime Audio Importer object
  * Allows you to do various things with audio files in real time, for example, import audio files into a SoundWave engine object
  */
-UCLASS(BlueprintType, Category = "RuntimeAudioImporter")
-class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
+UCLASS(BlueprintType, Category = "RuntimeAudioImporter")class RUNTIMEAUDIOIMPORTER_API
+	URuntimeAudioImporterLibrary : public UObject
 {
 	GENERATED_BODY()
 public:
@@ -215,87 +112,54 @@ public:
 	/** Transcoding fill info. CPP use only */
 	FTranscodingFillStruct TranscodingFillInfo = FTranscodingFillStruct();
 
-	/** Buffers details info. CPP use only */
-	FBuffersDetailsStruct BuffersDetailsInfo = FBuffersDetailsStruct();
-
-	/** Advanced buffer details info. CPP use only (even as an input parameter) */
-	FAdvancedBuffersStruct AdvancedBuffersInfo = FAdvancedBuffersStruct();
-	bool bUseOfAdvancedBuffersInfo = false;
-
 	/**
 	 * Instantiates a RuntimeAudioImporter object
 	 *
-	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult events to know when it is in the process of transcoding and imported
-	 * @note You must place the returned reference to the RuntimeAudioImporterLibrary in a separate variable so that the UObject is not removed during garbage collection
+	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
+	 * @note You must place the returned RuntimeAudioImporterLibrary reference in a separate variable so that this object will not be removed during the garbage collection
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category =
 		"RuntimeAudioImporter")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
 
 	/**
-	 * If you want to select a separate formats to fill (using of "FAdvancedBuffersStruct"), then use this method in CPP
-	 *
-	 * @param UseOfAdvancedBufferInfo Whether to use the advanced buffer info or not
-	 */
-	UFUNCTION()
-	static URuntimeAudioImporterLibrary* CreateAdvancedRuntimeAudioImporter(const bool UseOfAdvancedBufferInfo);
-
-	/**
-	 * Transcode audio file to SoundWave object
+	 * Import audio from file
 	 *
 	 * @param FilePath Path to the audio file to import
 	 * @param Format Audio file format (extension)
-	 * @param BuffersDetails Information about which buffers to fill
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "RuntimeAudioImporter")
-	void ImportAudioFromFile(const FString& FilePath, TEnumAsByte<EAudioFormat> Format,
-	                         const FBuffersDetailsStruct& BuffersDetails);
+	void ImportAudioFromFile(const FString& FilePath,
+	                         TEnumAsByte<EAudioFormat> Format);
 
 	/**
 	 * Import audio file from the preimported sound asset
 	 *
 	 * @param PreimportedSoundAssetRef PreimportedSoundAsset object reference. Should contains "BaseAudioDataArray" buffer
-	 * @param BuffersDetails Information about which buffers to fill
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"),
-		Category = "RuntimeAudioImporter")
-	void ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef,
-	                                     const FBuffersDetailsStruct& BuffersDetails);
-
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category =
+		"RuntimeAudioImporter")
+	void ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef);
 
 	/**
-	* Transcode audio file to USoundWave static object
+	* Import audio data to SoundWave static object
 	*
 	* @param AudioDataArray Array of Audio byte data
 	* @param Format Audio file format (extension)
-	* @param BuffersDetails Information about which buffers to fill
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "RuntimeAudioImporter")
-	void ImportAudioFromBuffer(const TArray<uint8>& AudioDataArray, const TEnumAsByte<EAudioFormat>& Format,
-	                           const FBuffersDetailsStruct& BuffersDetails);
-
-	/**
-	 * Destroy SoundWave object. After the SoundWave is no longer needed, you need to call this function to free memory
-	 *
-	 * @param ReadySoundWave SoundWave object reference need to be destroyed
-	 * @return Whether the destruction of the SoundWave was successful or not
-	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "MP3, FLAC, WAV, Destroy"), Category = "RuntimeAudioImporter")
-	static bool DestroySoundWave(USoundWave* ReadySoundWave);
-
+	void ImportAudioFromBuffer(const TArray<uint8>& AudioDataArray,
+	                           const TEnumAsByte<EAudioFormat>& Format);
 private:
 	/**
-	 * Internal main audio transcoding function
+	 * Internal main audio importing method
 	 *
 	 * @param AudioDataArray Array of Audio byte data
 	 * @param Format Audio file format (extension)
-	 * @param BuffersDetails Information about which buffers to fill
 	 */
-	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray,
-	                                    const TEnumAsByte<EAudioFormat>& Format,
-	                                    const FBuffersDetailsStruct& BuffersDetails);
+	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const TEnumAsByte<EAudioFormat>& Format);
 
 	/**
 	 * Define SoundWave object reference
@@ -303,42 +167,21 @@ private:
 	 * @param SoundWaveRef SoundWave object reference to define
 	 * @return Whether the defining was successful or not
 	 */
-	bool DefineSoundWave(USoundWave* SoundWaveRef);
+	bool DefineSoundWave(UImportedSoundWave* SoundWaveRef);
 
 	/**
 	 * Fill SoundWave basic information (e.g. duration, number of channels, etc)
 	 *
 	 * @param SoundWaveRef SoundWave object reference
 	 */
-	void FillSoundWaveBasicInfo(USoundWave* SoundWaveRef) const;
-
-	/**
-	 * Fill SoundWave Raw (Wave) data buffer
-	 *
-	 * @param SoundWaveRef SoundWave object reference
-	 */
-	void FillRawWaveData(USoundWave* SoundWaveRef) const;
-
-	/**
-	 * Fill SoundWave compressed data buffer
-	 *
-	 * @param SoundWaveRef SoundWave object reference
-	 */
-	void FillCompressedData(USoundWave* SoundWaveRef);
+	void FillSoundWaveBasicInfo(UImportedSoundWave* SoundWaveRef) const;
 
 	/**
 	 * Fill SoundWave PCM data buffer
 	 *
 	 * @param SoundWaveRef SoundWave object reference
 	 */
-	void FillPCMData(USoundWave* SoundWaveRef);
-
-	/**
-	 * Transcode Audio from PCM to 16-bit WAV data
-	 *
-	 * @return Whether the transcoding was successful or not 
-	 */
-	bool TranscodePCMToCompressedData(USoundWave* SoundWaveToGetData);
+	void FillPCMData(UImportedSoundWave* SoundWaveRef) const;
 
 	/**
 	 * Transcode Audio from Audio Data to PCM Data
@@ -352,46 +195,27 @@ private:
 	                                      TEnumAsByte<EAudioFormat> Format);
 
 	/**
-	 * Transcode Audio from PCM to 16-bit WAV data
-	 *
-	 * @return Whether the transcoding was successful or not 
-	 */
-	bool TranscodePCMToWAVData();
-
-	/**
-	 * Get Audio Format by extension
+	 * Get audio format by extension
 	 *
 	 * @param FilePath File path, where to find the format (by extension)
 	 * @return Returns the found audio format (e.g. mp3. flac, etc) by EAudioFormat Enum
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RuntimeAudioImporter")
-	static TEnumAsByte<EAudioFormat> GetAudioFormat(const FString& FilePath);
-
-	/**
-	 * Generate FSoundQualityInfo Enum based on SoundWave and already defined Sample Rate
-	 *
-	 * @param SoundWaveToGetData SoundWave object reference to get data from
-	 */
-	FSoundQualityInfo GenerateSoundQualityInfo(USoundWave* SoundWaveToGetData) const;
-
-	/**
-	 * Get the platform-specific format name based on the base format to find the compressed buffer to fill
-	 *
-	 * @param Format Base format name (it can be "OGG", "LPCM", etc)
-	 */
-	static FName GetPlatformSpecificFormat(const FName Format);
+	static TEnumAsByte<EAudioFormat> GetAudioFormat(
+		const FString& FilePath);
 
 	/**
 	 * Audio transcoding progress callback
+	 * 
 	 * @param Percentage Percentage of importing completion (0-100%)
 	 */
 	void OnProgress_Internal(int32 Percentage);
 
 	/**
-	 * Audio transcoding finished callback
+	 * Audio importing finished callback
 	 * 
-	 * @param ReadySoundWave A ready SoundWave object
-	 * @param Status TranscodingStatus Enum in case an error occurs
+	 * @param SoundWaveRef A ready SoundWave object
+	 * @param Status Importing status
 	 */
-	void OnResult_Internal(USoundWave* ReadySoundWave, const TEnumAsByte<ETranscodingStatus>& Status);
+	void OnResult_Internal(UImportedSoundWave* SoundWaveRef, const TEnumAsByte<ETranscodingStatus>& Status);
 };

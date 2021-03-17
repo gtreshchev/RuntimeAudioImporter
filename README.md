@@ -12,7 +12,7 @@ Plugin does not require any static libraries and external dependencies.
 - Automatic detection of audio format (by extension)
 - System for obtaining transcoding status for error detection
 - No any static libraries and external dependencies
-- Support for all available devices (tested on Windows and Android, but there are no restrictions to work on other devices)
+- Support for all available devices (Android, iOS, Windows, Mac, Linux, etc)
 
 ## Documentation
 Click on the following link to view the documentation - https://unreal.blog/runtime-audio-importer
