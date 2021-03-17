@@ -32,24 +32,8 @@ public class RuntimeAudioImporter : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"SignalProcessing"
+				"Engine"
 			}
 			);
-		
-		
-		
-		
-		
-			AddEngineThirdPartyPrivateStaticDependencies(Target,
-				"UEOgg",
-				"Vorbis",
-				"libOpus"
-			);
-		
-	
-		PublicDefinitions.Add("WITH_OGGVORBIS");
 	}
 }
