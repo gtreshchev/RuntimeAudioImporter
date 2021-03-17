@@ -35,7 +35,7 @@ public class RuntimeAudioImporter : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"AudioPlatformConfiguration"	
+				"SignalProcessing"
 			}
 			);
 		

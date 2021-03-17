@@ -8,28 +8,19 @@ public class RuntimeAudioImporterEditor : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		
-
-
 		PublicDefinitions.AddRange(
             new string[] {
 	            "DR_MP3_IMPLEMENTATION=1"
             }
             );
 
-
-		
-		
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
 				"RuntimeAudioImporter"
-				// ... add other public dependencies that you statically link with here ...
 			}
 		);
-
-       
 		
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
@@ -39,8 +30,6 @@ public class RuntimeAudioImporterEditor : ModuleRules
 				"UnrealEd"
 			}
 			);
-		
-
 		
 	}
 }
