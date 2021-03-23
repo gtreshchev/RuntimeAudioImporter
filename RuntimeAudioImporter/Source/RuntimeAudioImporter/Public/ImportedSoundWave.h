@@ -28,6 +28,11 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 public:
 
 	/**
+	 * Begin Destroy override method
+	 */
+	virtual void BeginDestroy() override;
+
+	/**
 	 * Release PCM data. After the SoundWave is no longer needed, you need to call this function to free memory
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RuntimeAudioImporter")
