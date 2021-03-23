@@ -2,9 +2,17 @@
 
 #include "ImportedSoundWave.h"
 
+void UImportedSoundWave::BeginDestroy()
+{
+	USoundWaveProcedural::BeginDestroy();
+	
+	// Releasing memory on sound wave destroy
+	ReleaseMemory();
+}
+
 void UImportedSoundWave::ReleaseMemory()
 {
-	if (PCMBufferInfo.PCMData)
+	if (PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0)
 	{
 		// Release PCM data on destruction
 		FMemory::Free(PCMBufferInfo.PCMData);
