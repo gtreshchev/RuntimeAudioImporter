@@ -1,4 +1,4 @@
-![GitHub](https://img.shields.io/github/license/Respirant/RuntimeAudioImporter)
+![GitHub](https://img.shields.io/github/license/gtreshchev/RuntimeAudioImporter)
 # RuntimeAudioImporter
 Open-source plugin to import audio files of MP3, WAV and FLAC formats into the game at runtime. It's easy to use in both C++ and Blueprints.
 Plugin does not require any static libraries and external dependencies.

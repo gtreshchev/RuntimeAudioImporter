@@ -1,4 +1,4 @@
-// Respirant 2020.
+// Georgy Treshchev 2021.
 
 #pragma once
 
