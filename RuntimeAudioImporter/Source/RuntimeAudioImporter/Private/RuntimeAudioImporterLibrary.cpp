@@ -8,6 +8,7 @@
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
 	URuntimeAudioImporterLibrary* Importer = NewObject<URuntimeAudioImporterLibrary>();
+	AddToRoot();
 	return Importer;
 }
 
