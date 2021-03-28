@@ -5,6 +5,8 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
+
 /** PCM Data buffer structure */
 struct FPCMStruct
 {
@@ -26,6 +28,12 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 {
 	GENERATED_BODY()
 public:
+
+	/**
+	 * Bind to this delegate to know when the audio playback is finished
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "RuntimeAudioImporter")
+	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
 
 	/**
 	 * Begin Destroy override method

@@ -61,10 +61,14 @@ bool UImportedSoundWave::IsPlaybackFinished()
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-	// Ensure there is enough number of frames
+	// Ensure there is enough number of frames. Looping otherwise
 	if (CurrentNumOfFrames >= static_cast<int32>(PCMBufferInfo.PCMNumOfFrames))
 	{
-		return 0;
+		if (OnAudioPlaybackFinished.IsBound())
+		{
+			OnAudioPlaybackFinished.Broadcast();
+		}
+		CurrentNumOfFrames = 0;
 	}
 
 	// Getting the remaining number of samples if the required number of samples is greater than the total available number
