@@ -5,7 +5,7 @@
 void UImportedSoundWave::BeginDestroy()
 {
 	USoundWaveProcedural::BeginDestroy();
-	
+
 	// Releasing memory on sound wave destroy
 	ReleaseMemory();
 }
@@ -61,6 +61,7 @@ bool UImportedSoundWave::IsPlaybackFinished()
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
+
 	// Ensure there is enough number of frames. Looping otherwise
 	if (CurrentNumOfFrames >= static_cast<int32>(PCMBufferInfo.PCMNumOfFrames))
 	{
@@ -68,18 +69,18 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 		{
 			OnAudioPlaybackFinished.Broadcast();
 		}
-		CurrentNumOfFrames = 0;
+		return 0;
 	}
 
 	// Getting the remaining number of samples if the required number of samples is greater than the total available number
-	if (CurrentNumOfFrames + NumSamples / NumChannels > PCMBufferInfo.PCMNumOfFrames)
+	if (CurrentNumOfFrames + NumSamples / NumChannels >= PCMBufferInfo.PCMNumOfFrames)
 	{
 		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
 	}
 
 	// Retrieving a part of PCM data 
 	const uint8* RetrievedPCMData = PCMBufferInfo.PCMData + (CurrentNumOfFrames * NumChannels * sizeof(float));
-	const int32 RetrievedPCMDataSize = NumSamples * NumChannels * sizeof(int32);
+	const int32 RetrievedPCMDataSize = NumSamples * NumChannels * sizeof(float);
 
 	// Ensure we got a valid PCM data
 	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
