@@ -7,16 +7,21 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLoggingAud, FString, StringMessage);
+
 /** PCM Data buffer structure */
+USTRUCT()
 struct FPCMStruct
 {
+	GENERATED_BODY()
+
 	/** Interleaved 32-bit IEEE floating point PCM */
 	uint8* PCMData;
 
 	/** Number of PCM frames */
 	uint64 PCMNumOfFrames;
 
-	/** Raw PCM data size */
+	/** PCM data size */
 	uint32 PCMDataSize;
 };
 
@@ -34,6 +39,12 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "RuntimeAudioImporter")
 	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
+
+	/**
+	 * Bool to control the behaviour of the OnAudioPlaybackFinished delegate
+	 */
+	UPROPERTY()
+	bool PlaybackFinishedBroadcast = false;
 
 	/**
 	 * Begin Destroy override method
@@ -107,6 +118,7 @@ public:
 	/**
 	 * PCM buffer. Will be cleared when the object is destroyed
 	 */
+	UPROPERTY()
 	FPCMStruct PCMBufferInfo;
 
 protected:

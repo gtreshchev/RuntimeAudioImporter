@@ -59,7 +59,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 		return;
 	}
 
-	// Transcoding importer Audio Data to PCM Data
+	// Transcoding the imported Audio Data to PCM Data
 	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format))
 	{
 		return;

@@ -36,6 +36,10 @@ bool UImportedSoundWave::ChangeCurrentFrameCount(const int32 NumOfFrames)
 		return false;
 	}
 	CurrentNumOfFrames = NumOfFrames;
+
+	// Setting "PlaybackFinishedBroadcast" to "false" in order to rebroadcast the "OnAudioPlaybackFinished" delegate again
+	PlaybackFinishedBroadcast = false;
+	
 	return true;
 }
 
@@ -56,38 +60,48 @@ float UImportedSoundWave::GetPlaybackPercentage()
 
 bool UImportedSoundWave::IsPlaybackFinished()
 {
-	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0;
+	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.
+		PCMDataSize > 0;
 }
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-
-	// Ensure there is enough number of frames. Looping otherwise
-	if (CurrentNumOfFrames >= static_cast<int32>(PCMBufferInfo.PCMNumOfFrames))
+	// Ensure there is enough number of frames. Lack of frames means audio playback has finished
+	if (CurrentNumOfFrames >= PCMBufferInfo.PCMNumOfFrames)
 	{
-		if (OnAudioPlaybackFinished.IsBound())
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
 		{
-			OnAudioPlaybackFinished.Broadcast();
-		}
+			if (!PlaybackFinishedBroadcast)
+			{
+				PlaybackFinishedBroadcast = true;
+				if (OnAudioPlaybackFinished.IsBound())
+				{
+					OnAudioPlaybackFinished.Broadcast();
+				}
+			}
+		});
+
 		return 0;
 	}
 
 	// Getting the remaining number of samples if the required number of samples is greater than the total available number
-	if (CurrentNumOfFrames + NumSamples / NumChannels >= PCMBufferInfo.PCMNumOfFrames)
+	if (CurrentNumOfFrames + NumSamples / NumChannels >= static_cast<int32>(PCMBufferInfo.PCMNumOfFrames))
 	{
-		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
+		NumSamples = (static_cast<int32>(PCMBufferInfo.PCMNumOfFrames) - CurrentNumOfFrames) * NumChannels;
 	}
+
 
 	// Retrieving a part of PCM data 
 	const uint8* RetrievedPCMData = PCMBufferInfo.PCMData + (CurrentNumOfFrames * NumChannels * sizeof(float));
-	const int32 RetrievedPCMDataSize = NumSamples * NumChannels * sizeof(float);
+	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
+
 
 	// Ensure we got a valid PCM data
 	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
 	{
 		return 0;
 	}
-
+	//OutAudio.Reset();
 	// Filling OutAudio array with the retrieved PCM data
 	OutAudio = TArray<uint8>(RetrievedPCMData, RetrievedPCMDataSize);
 
