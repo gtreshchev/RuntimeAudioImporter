@@ -38,9 +38,16 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreimportedSound(UPreimportedS
 	ImportAudioFromBuffer(PreimportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(const TArray<uint8>& AudioDataArray,
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
                                                          const TEnumAsByte<EAudioFormat>& Format)
 {
+	if (Format == EAudioFormat::Wav)
+	{
+		if (!CheckAndFixWavDurationErrors(AudioDataArray))
+		{
+			return;
+		}
+	}
 	AsyncTask(ENamedThreads::AnyThread, [=]()
 	{
 		ImportAudioFromBuffer_Internal(AudioDataArray, Format);
@@ -58,6 +65,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 		OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
 		return;
 	}
+
 
 	// Transcoding the imported Audio Data to PCM Data
 	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format))
@@ -106,7 +114,7 @@ bool URuntimeAudioImporterLibrary::DefineSoundWave(UImportedSoundWave* SoundWave
 
 	// Callback Dispatcher OnProgress
 	OnProgress_Internal(95);
-	
+
 	return true;
 }
 
@@ -143,6 +151,7 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 #include "ThirdParty/dr_mp3.h"
 #include "ThirdParty/dr_flac.h"
 
+
 /**
 * Replacing standard CPP memory functions (malloc, realloc, free) with memory management functions that are maintained by Epic as the engine evolves.
 */
@@ -160,6 +169,78 @@ void Unreal_Free(void* p, void* pUserData)
 {
 	FMemory::Free(p);
 }
+
+
+bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
+{
+	
+	drwav_allocation_callbacks allocationCallbacksDecoding;
+	allocationCallbacksDecoding.pUserData = nullptr;
+	allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+	allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+	allocationCallbacksDecoding.onFree = Unreal_Free;
+	drwav wav;
+	
+	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num() - 2, &allocationCallbacksDecoding))
+	{
+		// Callback Dispatcher OnResult
+		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+		return false;
+	}
+
+	// Check if the container is RIFF (not Wave64 or any other containers)
+	if (wav.container != drwav_container_riff)
+	{
+		drwav_uninit(&wav);
+		return true;
+	}
+
+	/*
+	* Get 4-byte field at byte 4, which is the overall file size as uint32, according to RIFF specification.
+	* If the field is set to nothing (hex FFFFFFFF), replace the incorrectly set field with the actual size.
+	* The field should be (size of file - 8 bytes), as the chunk identifier for the whole file (4 bytes spelling out RIFF at the start of the file), and the chunk length (4 bytes that we're replacing) are excluded.
+	*/
+	if (BytesToHex(WavData.GetData() + 4, 4) == "FFFFFFFF")
+	{
+		int32 ActualFileSize = WavData.Num() - 8;
+		FMemory::Memcpy(WavData.GetData() + 4, &ActualFileSize, 4);
+	}
+
+	/*
+	* Search for the place in the file after the chunk id "data", which is where the data length is stored.
+	* First 36 bytes are skipped, as they're always "RIFF", 4 bytes filesize, "WAVE", "fmt ", and 20 bytes of format data.
+	*/
+	int32 DataSizeLocation = INDEX_NONE;
+	for (int32 i = 36; i < WavData.Num() - 4; ++i)
+	{
+		if (BytesToHex(WavData.GetData() + i, 4) == "64617461" /* hex for string "data" */)
+		{
+			DataSizeLocation = i + 4;
+			break;
+		}
+	}
+	if (DataSizeLocation == INDEX_NONE) // should never happen but just in case
+	{
+		drwav_uninit(&wav);
+
+		// Callback Dispatcher OnResult
+		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+
+		return false;
+	}
+
+	// Same process as replacing full file size, except DataSize counts bytes from end of DataSize int to end of file.
+	if (BytesToHex(WavData.GetData() + DataSizeLocation, 4) == "FFFFFFFF")
+	{
+		int32 ActualDataSize = WavData.Num() - DataSizeLocation - 4 /*-4 to not include the DataSize int itself*/;
+		FMemory::Memcpy(WavData.GetData() + DataSizeLocation, &ActualDataSize, 4);
+	}
+
+	drwav_uninit(&wav);
+
+	return true;
+}
+
 
 bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8* AudioData, uint32 AudioDataSize,
                                                                     TEnumAsByte<EAudioFormat> Format)
@@ -184,19 +265,19 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(25);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
 				static_cast<size_t>(drmp3_get_pcm_frame_count(&mp3)) * mp3.channels * sizeof(float)));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(35);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(
 				&mp3, drmp3_get_pcm_frame_count(&mp3), reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				mp3.channels * sizeof(float));
 			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.
@@ -207,7 +288,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(55);
-			
+
 			return true;
 		}
 	case EAudioFormat::Wav:
@@ -226,6 +307,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 				return false;
 			}
 
+
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(25);
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
@@ -233,13 +315,13 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(35);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(
 				&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				wav.channels * sizeof(float));
 			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.
@@ -247,10 +329,10 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = wav.channels;
 			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
 			drwav_uninit(&wav);
-			
+
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(55);
-			
+
 			return true;
 		}
 	case EAudioFormat::Flac:
@@ -280,7 +362,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
-			
+
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				pFlac->channels * sizeof(float));
 			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->
@@ -291,7 +373,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(55);
-			
+
 			return true;
 		}
 	default:

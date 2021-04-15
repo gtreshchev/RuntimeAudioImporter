@@ -30,7 +30,8 @@ enum ETranscodingStatus
 };
 
 /** Possible audio formats (extensions) */
-UENUM(BlueprintType, Category = "RuntimeAudioImporter")enum EAudioFormat
+UENUM(BlueprintType, Category = "RuntimeAudioImporter")
+enum EAudioFormat
 {
 	/** Determine format automatically */
 	Auto UMETA(DisplayName = "Determine format automatically"),
@@ -95,7 +96,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnResult, class URuntimeAudioImp
  * Runtime Audio Importer object
  * Allows you to do various things with audio files in real time, for example, import audio files into a SoundWave engine object
  */
-UCLASS(BlueprintType, Category = "RuntimeAudioImporter")class RUNTIMEAUDIOIMPORTER_API
+UCLASS(BlueprintType, Category = "RuntimeAudioImporter")
+class RUNTIMEAUDIOIMPORTER_API
 	URuntimeAudioImporterLibrary : public UObject
 {
 	GENERATED_BODY()
@@ -150,7 +152,7 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "RuntimeAudioImporter")
-	void ImportAudioFromBuffer(const TArray<uint8>& AudioDataArray,
+	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
 	                           const TEnumAsByte<EAudioFormat>& Format);
 private:
 	/**
@@ -160,6 +162,7 @@ private:
 	 * @param Format Audio file format (extension)
 	 */
 	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const TEnumAsByte<EAudioFormat>& Format);
+
 
 	/**
 	 * Define SoundWave object reference
@@ -183,11 +186,20 @@ private:
 	 */
 	void FillPCMData(UImportedSoundWave* SoundWaveRef) const;
 
+
+	/**
+	 * Check if the WAV audio data with the RIFF container has a correct byte size.
+	 *
+	 * @author yourfriendkas
+	 * @param WavData Pointer to memory location of the Wav byte data
+	 */
+	bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
+
 	/**
 	 * Transcode Audio from Audio Data to PCM Data
 	 *
-	 * @param AudioData Pointer to memory location of Audio byte data
-	 * @param AudioDataSize Memory size allocated for Audio byte data
+	 * @param AudioData Pointer to memory location of the Audio byte data
+	 * @param AudioDataSize Memory size allocated for the Audio byte data
 	 * @param Format Format of the audio file (e.g. mp3. flac, etc)
 	 * @return Whether the transcoding was successful or not
 	 */
@@ -197,7 +209,7 @@ private:
 	/**
 	 * Get audio format by extension
 	 *
-	 * @param FilePath File path, where to find the format (by extension)
+	 * @param FilePath File path where to find the format (by extension)
 	 * @return Returns the found audio format (e.g. mp3. flac, etc) by EAudioFormat Enum
 	 */
 	UFUNCTION(BlueprintCallable, Category = "RuntimeAudioImporter")
