@@ -5,6 +5,8 @@
 #include "PreimportedSoundAsset.h"
 #include "Misc/FileHelper.h"
 
+#include "Async/Async.h"
+
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
 	URuntimeAudioImporterLibrary* Importer = NewObject<URuntimeAudioImporterLibrary>();

@@ -2,6 +2,8 @@
 
 #include "ImportedSoundWave.h"
 
+#include "Async/Async.h"
+
 void UImportedSoundWave::BeginDestroy()
 {
 	USoundWaveProcedural::BeginDestroy();
