@@ -188,8 +188,8 @@ private:
 
 	/**
 	 * Check if the WAV audio data with the RIFF container has a correct byte size.
+	 * This method was made by https://github.com/kass-kass
 	 *
-	 * @author yourfriendkas
 	 * @param WavData Pointer to memory location of the Wav byte data
 	 */
 	bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
