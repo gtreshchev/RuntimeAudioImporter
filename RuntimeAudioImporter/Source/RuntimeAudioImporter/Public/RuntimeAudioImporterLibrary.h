@@ -6,7 +6,7 @@
 #include "RuntimeAudioImporterLibrary.generated.h"
 
 /** Possible audio importing results */
-UENUM(BlueprintType, Category = "RuntimeAudioImporter")
+UENUM(BlueprintType, Category = "Runtime Audio Importer")
 enum ETranscodingStatus
 {
 	/** Success importing */
@@ -29,7 +29,7 @@ enum ETranscodingStatus
 };
 
 /** Possible audio formats (extensions) */
-UENUM(BlueprintType, Category = "RuntimeAudioImporter")
+UENUM(BlueprintType, Category = "Runtime Audio Importer")
 enum EAudioFormat
 {
 	/** Determine format automatically */
@@ -95,7 +95,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnResult, class URuntimeAudioImp
  * Runtime Audio Importer object
  * Allows you to do various things with audio files in real time, for example, import audio files into a SoundWave engine object
  */
-UCLASS(BlueprintType, Category = "RuntimeAudioImporter")
+UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API
 	URuntimeAudioImporterLibrary : public UObject
 {
@@ -103,11 +103,11 @@ class RUNTIMEAUDIOIMPORTER_API
 public:
 
 	/** Bind to know when the transcoding is on progress */
-	UPROPERTY(BlueprintAssignable, Category = "RuntimeAudioImporter")
+	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
 	FOnProgress OnProgress;
 
 	/** Bind to know when the transcoding is complete (even if it fails) */
-	UPROPERTY(BlueprintAssignable, Category = "RuntimeAudioImporter")
+	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
 	FOnResult OnResult;
 
 	/** Transcoding fill info. CPP use only */
@@ -120,7 +120,7 @@ public:
 	 * @note You must place the returned RuntimeAudioImporterLibrary reference in a separate variable so that this object will not be removed during the garbage collection
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category =
-		"RuntimeAudioImporter")
+		"Runtime Audio Importer")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
 
 	/**
@@ -130,7 +130,7 @@ public:
 	 * @param Format Audio file format (extension)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
-		Category = "RuntimeAudioImporter")
+		Category = "Runtime Audio Importer")
 	void ImportAudioFromFile(const FString& FilePath,
 	                         TEnumAsByte<EAudioFormat> Format);
 
@@ -140,7 +140,7 @@ public:
 	 * @param PreimportedSoundAssetRef PreimportedSoundAsset object reference. Should contains "BaseAudioDataArray" buffer
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category =
-		"RuntimeAudioImporter")
+		"Runtime Audio Importer")
 	void ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef);
 
 	/**
@@ -150,7 +150,7 @@ public:
 	* @param Format Audio file format (extension)
 	*/
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
-		Category = "RuntimeAudioImporter")
+		Category = "Runtime Audio Importer")
 	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
 	                           const TEnumAsByte<EAudioFormat>& Format);
 private:
@@ -211,7 +211,7 @@ private:
 	 * @param FilePath File path where to find the format (by extension)
 	 * @return Returns the found audio format (e.g. mp3. flac, etc) by EAudioFormat Enum
 	 */
-	UFUNCTION(BlueprintCallable, Category = "RuntimeAudioImporter")
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
 	static TEnumAsByte<EAudioFormat> GetAudioFormat(
 		const FString& FilePath);
 

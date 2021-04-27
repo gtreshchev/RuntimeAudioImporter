@@ -125,6 +125,7 @@ void URuntimeAudioImporterLibrary::FillSoundWaveBasicInfo(UImportedSoundWave* So
 	SoundWaveRef->RawPCMDataSize = TranscodingFillInfo.PCMInfo.PCMDataSize;
 	SoundWaveRef->Duration = TranscodingFillInfo.SoundWaveBasicInfo.Duration;
 	SoundWaveRef->SetSampleRate(TranscodingFillInfo.SoundWaveBasicInfo.SampleRate);
+	SoundWaveRef->SamplingRate = TranscodingFillInfo.SoundWaveBasicInfo.SampleRate;
 	SoundWaveRef->NumChannels = TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum;
 	SoundWaveRef->SoundGroup = ESoundGroup::SOUNDGROUP_Default;
 	if (SoundWaveRef->NumChannels >= 4)
