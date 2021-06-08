@@ -18,7 +18,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 {
 	if (!FPaths::FileExists(FilePath))
 	{
-		OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
+		OnResult_Internal(nullptr, AudioDoesNotExist);
 		return;
 	}
 	if (Format == EAudioFormat::Auto)
@@ -29,7 +29,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
 	{
 		// Callback Dispatcher OnResult
-		OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
+		OnResult_Internal(nullptr, LoadFileToArrayError);
 		return;
 	}
 	ImportAudioFromBuffer(AudioBuffer, Format);
@@ -64,7 +64,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 	if (Format == EAudioFormat::Auto || Format == EAudioFormat::Invalid)
 	{
 		// Callback Dispatcher OnResult
-		OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+		OnResult_Internal(nullptr, InvalidAudioFormat);
 		return;
 	}
 
@@ -82,7 +82,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 		UImportedSoundWave* SoundWaveRef = NewObject<UImportedSoundWave>(UImportedSoundWave::StaticClass());
 		if (!SoundWaveRef)
 		{
-			OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
+			OnResult_Internal(nullptr, SoundWaveDeclarationError);
 			return nullptr;
 		}
 		AsyncTask(ENamedThreads::AnyThread, [=]()
@@ -93,7 +93,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 				OnProgress_Internal(100);
 
 				// Callback Dispatcher OnResult, with the created SoundWave object
-				OnResult_Internal(SoundWaveRef, ETranscodingStatus::SuccessImporting);
+				OnResult_Internal(SoundWaveRef, SuccessfullImport);
 			}
 		});
 		return nullptr;
@@ -187,7 +187,7 @@ bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& W
 	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num() - 2, &allocationCallbacksDecoding))
 	{
 		// Callback Dispatcher OnResult
-		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+		OnResult_Internal(nullptr, FailedToReadAudioDataArray);
 		return false;
 	}
 
@@ -227,7 +227,7 @@ bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& W
 		drwav_uninit(&wav);
 
 		// Callback Dispatcher OnResult
-		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+		OnResult_Internal(nullptr, FailedToReadAudioDataArray);
 
 		return false;
 	}
@@ -262,7 +262,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			if (!drmp3_init_memory(&mp3, AudioData, AudioDataSize, &allocationCallbacksDecoding))
 			{
 				// Callback Dispatcher OnResult
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				OnResult_Internal(nullptr, FailedToReadAudioDataArray);
 				return false;
 			}
 
@@ -306,7 +306,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			{
 				// Callback Dispatcher OnResult
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				OnResult_Internal(nullptr, FailedToReadAudioDataArray);
 				return false;
 			}
 
@@ -349,7 +349,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			if (pFlac == nullptr)
 			{
 				// Callback Dispatcher OnResult
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+				OnResult_Internal(nullptr, FailedToReadAudioDataArray);
 				return false;
 			}
 
@@ -382,7 +382,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 	default:
 		{
 			// Callback Dispatcher OnResult
-			OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+			OnResult_Internal(nullptr, InvalidAudioFormat);
 			return false;
 		}
 	}
