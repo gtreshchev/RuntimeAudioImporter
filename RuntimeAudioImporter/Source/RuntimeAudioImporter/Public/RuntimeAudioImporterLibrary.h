@@ -9,8 +9,8 @@
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
 enum ETranscodingStatus
 {
-	/** Success importing */
-	SuccessImporting UMETA(DisplayName = "Success Importing"),
+	/** Successful import */
+	SuccessfullImport UMETA(DisplayName = "Success"),
 
 	/** Failed to read Audio Data Array */
 	FailedToReadAudioDataArray UMETA(DisplayName = "Failed to read Audio Data Array"),
@@ -45,7 +45,8 @@ enum EAudioFormat
 	Flac UMETA(DisplayName = "flac"),
 
 	/** Invalid format */
-	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)};
+	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
+};
 
 /** Basic SoundWave data. CPP use only. */
 struct FSoundWaveBasicStruct
@@ -101,7 +102,6 @@ class RUNTIMEAUDIOIMPORTER_API
 {
 	GENERATED_BODY()
 public:
-
 	/** Bind to know when the transcoding is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
 	FOnAudioImporterProgress OnProgress;
