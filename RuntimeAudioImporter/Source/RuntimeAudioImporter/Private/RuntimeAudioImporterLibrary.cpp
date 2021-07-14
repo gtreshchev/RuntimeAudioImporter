@@ -21,10 +21,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 		OnResult_Internal(nullptr, AudioDoesNotExist);
 		return;
 	}
-	if (Format == EAudioFormat::Auto)
-	{
-		Format = GetAudioFormat(FilePath);
-	}
+	
+	if (Format == EAudioFormat::Auto) Format = GetAudioFormat(FilePath);
+	
 	TArray<uint8> AudioBuffer;
 	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
 	{
@@ -45,11 +44,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDat
 {
 	if (Format == EAudioFormat::Wav)
 	{
-		if (!CheckAndFixWavDurationErrors(AudioDataArray))
-		{
-			return;
-		}
+		if (!CheckAndFixWavDurationErrors(AudioDataArray)) return;
 	}
+	TranscodingFillInfo = FTranscodingFillStruct();
 	AsyncTask(ENamedThreads::AnyThread, [=]()
 	{
 		ImportAudioFromBuffer_Internal(AudioDataArray, Format);
@@ -70,10 +67,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 
 
 	// Transcoding the imported Audio Data to PCM Data
-	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format))
-	{
-		return;
-	}
+	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format)) return;
 
 	// Callback Dispatcher OnProgress
 	OnProgress_Internal(65);
@@ -156,7 +150,7 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 
 
 /**
-* Replacing standard CPP memory functions (malloc, realloc, free) with memory management functions that are maintained by Epic as the engine evolves.
+* Replacing standard CPP memory methods (malloc, realloc, free) with engine ones
 */
 void* Unreal_Malloc(size_t sz, void* pUserData)
 {
@@ -179,11 +173,16 @@ bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& W
 	
 	drwav_allocation_callbacks allocationCallbacksDecoding;
 	allocationCallbacksDecoding.pUserData = nullptr;
-	allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
-	allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
-	allocationCallbacksDecoding.onFree = Unreal_Free;
-	drwav wav;
+
+	// Replacing standard methods for working with memory with engine ones
+	{
+		allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+		allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+		allocationCallbacksDecoding.onFree = Unreal_Free;
+	}
 	
+	drwav wav;
+	// Initializing transcoding of audio data in memory
 	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num() - 2, &allocationCallbacksDecoding))
 	{
 		// Callback Dispatcher OnResult
@@ -255,10 +254,16 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 		{
 			drmp3_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
-			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
-			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
-			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+			// Replacing standard methods for working with memory with engine ones
+			{
+				allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+				allocationCallbacksDecoding.onFree = Unreal_Free;
+			}
+			
 			drmp3 mp3;
+			// Initializing transcoding of audio data in memory
 			if (!drmp3_init_memory(&mp3, AudioData, AudioDataSize, &allocationCallbacksDecoding))
 			{
 				// Callback Dispatcher OnResult
@@ -269,24 +274,33 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(25);
 
+			// Getting PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
 				static_cast<size_t>(drmp3_get_pcm_frame_count(&mp3)) * mp3.channels * sizeof(float)));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(35);
 
+			// Getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(
 				&mp3, drmp3_get_pcm_frame_count(&mp3), reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
 
+			// Getting PCM data size
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				mp3.channels * sizeof(float));
-			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.
+
+			// Getting basic audio information
+			{
+				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.
 				sampleRate;
-			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = mp3.channels;
-			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
+				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = mp3.channels;
+				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
+			}
+
+			// Uninitializing transcoding of audio data in memory
 			drmp3_uninit(&mp3);
 
 			// Callback Dispatcher OnProgress
@@ -298,10 +312,16 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 		{
 			drwav_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
-			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
-			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
-			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+			// Replacing standard methods for working with memory with engine ones
+			{
+				allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+				allocationCallbacksDecoding.onFree = Unreal_Free;
+			}
+			
 			drwav wav;
+			// Initializing transcoding of audio data in memory
 			if (!drwav_init_memory(&wav, AudioData, AudioDataSize, &allocationCallbacksDecoding))
 
 			{
@@ -310,27 +330,36 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 				return false;
 			}
 
-
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(25);
+
+			// Getting PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
 				static_cast<size_t>(wav.totalPCMFrameCount) * wav.channels * sizeof(float)));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(35);
 
+			// Getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(
 				&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
 
+			// Getting PCM data size
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				wav.channels * sizeof(float));
-			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.
+
+			// Getting basic audio information
+			{
+				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.
 				sampleRate;
-			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = wav.channels;
-			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
+				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = wav.channels;
+				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
+			}
+
+			// Uninitializing transcoding of audio data in memory
 			drwav_uninit(&wav);
 
 			// Callback Dispatcher OnProgress
@@ -342,9 +371,15 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 		{
 			drflac_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
-			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
-			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
-			allocationCallbacksDecoding.onFree = Unreal_Free;
+
+			// Replacing standard methods for working with memory with engine ones
+			{
+				allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
+				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
+				allocationCallbacksDecoding.onFree = Unreal_Free;
+			}
+			
+			// Initializing transcoding of audio data in memory
 			drflac* pFlac = drflac_open_memory(AudioData, AudioDataSize, &allocationCallbacksDecoding);
 			if (pFlac == nullptr)
 			{
@@ -355,23 +390,34 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(25);
+
+			// Getting PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
 				static_cast<size_t>(pFlac->totalPCMFrameCount) * pFlac->channels * sizeof(float)));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(35);
+
+			// Getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(
 				pFlac, pFlac->totalPCMFrameCount, reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
 			// Callback Dispatcher OnProgress
 			OnProgress_Internal(45);
 
+			// Getting PCM data size
 			TranscodingFillInfo.PCMInfo.PCMDataSize = static_cast<uint32>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames *
 				pFlac->channels * sizeof(float));
-			TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->
+
+			// Getting basic audio information
+			{
+				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->
 				sampleRate;
-			TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = pFlac->channels;
-			TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = pFlac->sampleRate;
+				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = pFlac->channels;
+				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = pFlac->sampleRate;
+			}
+
+			// Uninitializing transcoding of audio data in memory
 			drflac_close(pFlac);
 
 			// Callback Dispatcher OnProgress
