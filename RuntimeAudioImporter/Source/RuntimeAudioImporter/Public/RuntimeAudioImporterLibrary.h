@@ -94,7 +94,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URu
 
 /**
  * Runtime Audio Importer object
- * Allows you to do various things with audio files in real time, for example, import audio files into a SoundWave engine object
+ * Designed primarily for importing audio files in real time
  */
 UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API
@@ -111,7 +111,7 @@ public:
 	FOnAudioImporterResult OnResult;
 
 	/** Transcoding fill info. CPP use only */
-	FTranscodingFillStruct TranscodingFillInfo = FTranscodingFillStruct();
+	FTranscodingFillStruct TranscodingFillInfo;
 
 	/**
 	 * Instantiates a RuntimeAudioImporter object
@@ -209,11 +209,10 @@ private:
 	 * Get audio format by extension
 	 *
 	 * @param FilePath File path where to find the format (by extension)
-	 * @return Returns the found audio format (e.g. mp3. flac, etc) by EAudioFormat Enum
+	 * @return Returns the found audio format (e.g. mp3. flac, etc) by AudioFormat Enum
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
-	static TEnumAsByte<EAudioFormat> GetAudioFormat(
-		const FString& FilePath);
+	static TEnumAsByte<EAudioFormat> GetAudioFormat(const FString& FilePath);
 
 	/**
 	 * Audio transcoding progress callback
