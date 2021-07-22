@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PreimportedSoundAsset.generated.h"
+#include "PreImportedSoundAsset.generated.h"
 
 /**
  * Pre-imported asset which collects MP3 audio data. Used if you want to load the MP3 file into the editor in advance
  */
-UCLASS(BlueprintType, Category = "RuntimeAudioImporter")
-class RUNTIMEAUDIOIMPORTER_API UPreimportedSoundAsset : public UObject
+UCLASS(BlueprintType, Category = "Runtime Audio Importer")
+class RUNTIMEAUDIOIMPORTER_API UPreImportedSoundAsset : public UObject
 {
 	GENERATED_BODY()
 public:

@@ -10,7 +10,7 @@ UENUM(BlueprintType, Category = "Runtime Audio Importer")
 enum ETranscodingStatus
 {
 	/** Successful import */
-	SuccessfullImport UMETA(DisplayName = "Success"),
+	SuccessfulImport UMETA(DisplayName = "Success"),
 
 	/** Failed to read Audio Data Array */
 	FailedToReadAudioDataArray UMETA(DisplayName = "Failed to read Audio Data Array"),
@@ -71,8 +71,8 @@ struct FTranscodingFillStruct
 	FPCMStruct PCMInfo;
 };
 
-// Forward declaration of the UPreimportedSoundAsset class
-class UPreimportedSoundAsset;
+// Forward declaration of the UPreImportedSoundAsset class
+class UPreImportedSoundAsset;
 
 /**
  * Declare delegate which will be called during the transcoding process
@@ -137,11 +137,11 @@ public:
 	/**
 	 * Import audio file from the preimported sound asset
 	 *
-	 * @param PreimportedSoundAssetRef PreimportedSoundAsset object reference. Should contains "BaseAudioDataArray" buffer
+	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference. Should contain "BaseAudioDataArray" buffer
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category =
 		"Runtime Audio Importer")
-	void ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef);
+	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
 	* Import audio data to SoundWave static object
@@ -188,7 +188,7 @@ private:
 
 	/**
 	 * Check if the WAV audio data with the RIFF container has a correct byte size.
-	 * This method was made by https://github.com/kass-kass
+	 * Made by https://github.com/kass-kass
 	 *
 	 * @param WavData Pointer to memory location of the Wav byte data
 	 */

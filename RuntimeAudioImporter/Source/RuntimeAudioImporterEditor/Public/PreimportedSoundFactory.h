@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Factories/Factory.h"
-#include "PreimportedSoundFactory.generated.h"
+#include "PreImportedSoundFactory.generated.h"
 
 /** Declaring custom logging */
 DECLARE_LOG_CATEGORY_EXTERN(LogPreimportedSoundFactory, Error, All);
@@ -13,13 +13,13 @@ DECLARE_LOG_CATEGORY_EXTERN(LogPreimportedSoundFactory, Error, All);
  * Factory for pre-importing audio files. Only MP3 is available for pre-import because it takes up the least amount of memory.
  */
 UCLASS()
-class RUNTIMEAUDIOIMPORTEREDITOR_API UPreimportedSoundFactory : public UFactory
+class RUNTIMEAUDIOIMPORTEREDITOR_API UPreImportedSoundFactory : public UFactory
 {
 	GENERATED_BODY()
 
 public:
 
-	UPreimportedSoundFactory();
+	UPreImportedSoundFactory();
 
 	/**
 	 * Check whether the audio file can be imported.
