@@ -41,7 +41,7 @@ bool UImportedSoundWave::ChangeCurrentFrameCount(const int32 NumOfFrames)
 
 	// Setting "PlaybackFinishedBroadcast" to "false" in order to rebroadcast the "OnAudioPlaybackFinished" delegate again
 	PlaybackFinishedBroadcast = false;
-	
+
 	return true;
 }
 
@@ -76,6 +76,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 			if (!PlaybackFinishedBroadcast)
 			{
 				PlaybackFinishedBroadcast = true;
+
 				if (OnAudioPlaybackFinished.IsBound())
 				{
 					OnAudioPlaybackFinished.Broadcast();

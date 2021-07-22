@@ -21,9 +21,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 		OnResult_Internal(nullptr, AudioDoesNotExist);
 		return;
 	}
-	
+
 	if (Format == EAudioFormat::Auto) Format = GetAudioFormat(FilePath);
-	
+
 	TArray<uint8> AudioBuffer;
 	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
 	{
@@ -34,15 +34,15 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	ImportAudioFromBuffer(AudioBuffer, Format);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromPreimportedSound(UPreimportedSoundAsset* PreimportedSoundAssetRef)
+void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)
 {
-	ImportAudioFromBuffer(PreimportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
+	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, Mp3);
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
                                                          const TEnumAsByte<EAudioFormat>& Format)
 {
-	if (Format == EAudioFormat::Wav)
+	if (Format == Wav)
 	{
 		if (!CheckAndFixWavDurationErrors(AudioDataArray)) return;
 	}
@@ -58,7 +58,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 {
 	// Callback Dispatcher OnProgress
 	OnProgress_Internal(5);
-	if (Format == EAudioFormat::Auto || Format == EAudioFormat::Invalid)
+	if (Format == Auto || Format == Invalid)
 	{
 		// Callback Dispatcher OnResult
 		OnResult_Internal(nullptr, InvalidAudioFormat);
@@ -87,7 +87,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 				OnProgress_Internal(100);
 
 				// Callback Dispatcher OnResult, with the created SoundWave object
-				OnResult_Internal(SoundWaveRef, SuccessfullImport);
+				OnResult_Internal(SoundWaveRef, SuccessfulImport);
 			}
 		});
 		return nullptr;
@@ -170,7 +170,6 @@ void Unreal_Free(void* p, void* pUserData)
 
 bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 {
-	
 	drwav_allocation_callbacks allocationCallbacksDecoding;
 	allocationCallbacksDecoding.pUserData = nullptr;
 
@@ -180,7 +179,7 @@ bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& W
 		allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
 		allocationCallbacksDecoding.onFree = Unreal_Free;
 	}
-	
+
 	drwav wav;
 	// Initializing transcoding of audio data in memory
 	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num() - 2, &allocationCallbacksDecoding))
@@ -250,7 +249,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 	OnProgress_Internal(10);
 	switch (Format)
 	{
-	case EAudioFormat::Mp3:
+	case Mp3:
 		{
 			drmp3_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
@@ -261,7 +260,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
 				allocationCallbacksDecoding.onFree = Unreal_Free;
 			}
-			
+
 			drmp3 mp3;
 			// Initializing transcoding of audio data in memory
 			if (!drmp3_init_memory(&mp3, AudioData, AudioDataSize, &allocationCallbacksDecoding))
@@ -294,8 +293,9 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Getting basic audio information
 			{
-				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.
-				sampleRate;
+				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) /
+					mp3.
+					sampleRate;
 				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = mp3.channels;
 				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
 			}
@@ -308,7 +308,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			return true;
 		}
-	case EAudioFormat::Wav:
+	case Wav:
 		{
 			drwav_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
@@ -319,7 +319,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
 				allocationCallbacksDecoding.onFree = Unreal_Free;
 			}
-			
+
 			drwav wav;
 			// Initializing transcoding of audio data in memory
 			if (!drwav_init_memory(&wav, AudioData, AudioDataSize, &allocationCallbacksDecoding))
@@ -354,7 +354,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			// Getting basic audio information
 			{
 				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.
-				sampleRate;
+					sampleRate;
 				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = wav.channels;
 				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
 			}
@@ -367,7 +367,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			return true;
 		}
-	case EAudioFormat::Flac:
+	case Flac:
 		{
 			drflac_allocation_callbacks allocationCallbacksDecoding;
 			allocationCallbacksDecoding.pUserData = nullptr;
@@ -378,7 +378,7 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 				allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
 				allocationCallbacksDecoding.onFree = Unreal_Free;
 			}
-			
+
 			// Initializing transcoding of audio data in memory
 			drflac* pFlac = drflac_open_memory(AudioData, AudioDataSize, &allocationCallbacksDecoding);
 			if (pFlac == nullptr)
@@ -411,8 +411,9 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 
 			// Getting basic audio information
 			{
-				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->
-				sampleRate;
+				TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac
+					->
+					sampleRate;
 				TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = pFlac->channels;
 				TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = pFlac->sampleRate;
 			}
@@ -438,24 +439,27 @@ TEnumAsByte<EAudioFormat> URuntimeAudioImporterLibrary::GetAudioFormat(const FSt
 {
 	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("mp3"), ESearchCase::IgnoreCase))
 	{
-		return EAudioFormat::Mp3;
+		return Mp3;
 	}
 	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("wav"), ESearchCase::IgnoreCase))
 	{
-		return EAudioFormat::Wav;
+		return Wav;
 	}
 	if (FPaths::GetExtension(FilePath, false).Equals(TEXT("flac"), ESearchCase::IgnoreCase))
 	{
-		return EAudioFormat::Flac;
+		return Flac;
 	}
-	return EAudioFormat::Invalid;
+	return Invalid;
 }
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 {
 	AsyncTask(ENamedThreads::GameThread, [=]()
 	{
-		OnProgress.Broadcast(Percentage);
+		if (OnProgress.IsBound())
+		{
+			OnProgress.Broadcast(Percentage);
+		}
 	});
 }
 
@@ -464,7 +468,10 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWa
 {
 	AsyncTask(ENamedThreads::GameThread, [=]()
 	{
+		if (OnResult.IsBound())
+		{
+			OnResult.Broadcast(this, SoundWaveRef, Status);
+		}
 		RemoveFromRoot();
-		OnResult.Broadcast(this, SoundWaveRef, Status);
 	});
 }

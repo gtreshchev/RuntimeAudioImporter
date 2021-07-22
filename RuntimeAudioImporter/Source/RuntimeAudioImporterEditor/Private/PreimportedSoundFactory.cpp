@@ -2,7 +2,8 @@
 
 #include "PreimportedSoundFactory.h"
 
-#include "PreimportedSoundAsset.h"
+#include "PreImportedSoundAsset.h"
+
 #include "Misc/FileHelper.h"
 
 /** Defining custom logging */
@@ -28,27 +29,27 @@ void Unreal_Free(void* p, void* pUserData)
 	FMemory::Free(p);
 }
 
-UPreimportedSoundFactory::UPreimportedSoundFactory()
+UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
 	Formats.Add(TEXT("mp3;MP3 Preimported Audio Format"));
 	Formats.Add(TEXT("imp;IMP (the same as MP3) Preimported Audio Format"));
-	SupportedClass = UPreimportedSoundAsset::StaticClass();
+	SupportedClass = StaticClass();
 	bCreateNew = false; // turned off for import
 	bEditAfterNew = false; // turned off for import
 	bEditorImport = true;
 	bText = false;
 }
 
-bool UPreimportedSoundFactory::FactoryCanImport(const FString& Filename)
+bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	return FPaths::GetExtension(Filename).Equals(TEXT("mp3")) || FPaths::GetExtension(Filename).Equals(TEXT("imp"));
 }
 
-UObject* UPreimportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName,
+UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName,
                                                      EObjectFlags Flags, const FString& Filename, const TCHAR* Parms,
                                                      FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	UPreimportedSoundAsset* PreimportedSoundAsset = nullptr;
+	UPreImportedSoundAsset* PreImportedSoundAsset;
 
 	TArray<uint8> AudioDataArray;
 
@@ -68,18 +69,18 @@ UObject* UPreimportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 			return nullptr;
 		}
 
-		PreimportedSoundAsset = NewObject<UPreimportedSoundAsset>(InParent, InClass, InName, Flags);
-		PreimportedSoundAsset->AudioDataArray = AudioDataArray;
-		PreimportedSoundAsset->SourceFilePath = Filename;
+		PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, InClass, InName, Flags);
+		PreImportedSoundAsset->AudioDataArray = AudioDataArray;
+		PreImportedSoundAsset->SourceFilePath = Filename;
 
-		PreimportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(
+		PreImportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(
 			static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
 		UE_LOG(LogPreimportedSoundFactory, Log, TEXT("Duration: %f"),
 		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
 		UE_LOG(LogTemp, Warning, TEXT("Duration: %f"),
 		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
-		PreimportedSoundAsset->NumberOfChannels = mp3.channels;
-		PreimportedSoundAsset->SampleRate = mp3.sampleRate;
+		PreImportedSoundAsset->NumberOfChannels = mp3.channels;
+		PreImportedSoundAsset->SampleRate = mp3.sampleRate;
 
 		drmp3_uninit(&mp3);
 	}
@@ -91,10 +92,10 @@ UObject* UPreimportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 	bOutOperationCanceled = false;
 
-	return PreimportedSoundAsset;
+	return PreImportedSoundAsset;
 }
 
-FString UPreimportedSoundFactory::ConvertSecToFormattedDuration(int32 Seconds)
+FString UPreImportedSoundFactory::ConvertSecToFormattedDuration(int32 Seconds)
 {
 	FString FinalString;
 
