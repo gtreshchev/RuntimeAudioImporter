@@ -67,7 +67,7 @@ struct FTranscodingFillStruct
 	/** SoundWave basic info (e.g. duration, number of channels, etc) */
 	FSoundWaveBasicStruct SoundWaveBasicInfo;
 
-	/** float PCM info */
+	/** PCM Data buffer */
 	FPCMStruct PCMInfo;
 };
 
@@ -75,14 +75,14 @@ struct FTranscodingFillStruct
 class UPreImportedSoundAsset;
 
 /**
- * Declare delegate which will be called during the transcoding process
+ * Delegate broadcast to get the audio importer progress
  *
  * @param Percentage Percentage of importing completed (0-100%)
  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
 
 /**
- * Declare a delegate that will be called on the transcoding result
+ * Delegate broadcast to get the audio importer result
  * 
  * @param RuntimeAudioImporterObject Runtime Audio Importer object reference
  * @param ReadySoundWave Ready SoundWave object reference
@@ -97,8 +97,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URu
  * Designed primarily for importing audio files in real time
  */
 UCLASS(BlueprintType, Category = "Runtime Audio Importer")
-class RUNTIMEAUDIOIMPORTER_API
-	URuntimeAudioImporterLibrary : public UObject
+class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 {
 	GENERATED_BODY()
 public:
@@ -117,7 +116,6 @@ public:
 	 * Instantiates a RuntimeAudioImporter object
 	 *
 	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
-	 * @note You must place the returned RuntimeAudioImporterLibrary reference in a separate variable so that this object will not be removed during the garbage collection
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category =
 		"Runtime Audio Importer")
