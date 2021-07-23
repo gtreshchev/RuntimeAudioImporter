@@ -5,9 +5,8 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
+/**  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLoggingAud, FString, StringMessage);
 
 /** PCM Data buffer structure */
 USTRUCT()
@@ -39,7 +38,6 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 {
 	GENERATED_BODY()
 public:
-
 	/**
 	 * Bind to this delegate to know when the audio playback is finished
 	 */
@@ -78,20 +76,19 @@ public:
 	 * @param NumOfFrames The new number of frames from which to continue playing sound
 	 * @return Whether the frames were changed or not
 	 */
-	UFUNCTION(Category = "Imported Sound Wave")
 	bool ChangeCurrentFrameCount(const int32 NumOfFrames);
 
 	/**
-	 * Get the current sound playback time, in seconds
+	 * Get the current sound wave playback time, in seconds
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
 	float GetPlaybackTime() const;
 
 	/**
-	 * Get duration of a sound, in seconds
+	 * Get the length of the sound wave, in seconds
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
-	float GetDuration() override;
+	virtual float GetDuration() override;
 
 	/**
 	 * Get the current sound playback percentage, 0-100%
@@ -134,7 +131,6 @@ public:
 	FPCMStruct PCMBufferInfo;
 
 protected:
-
 	/**
 	 * The current number of frames
 	 */
