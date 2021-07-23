@@ -74,20 +74,10 @@ struct FTranscodingFillStruct
 // Forward declaration of the UPreImportedSoundAsset class
 class UPreImportedSoundAsset;
 
-/**
- * Delegate broadcast to get the audio importer progress
- *
- * @param Percentage Percentage of importing completed (0-100%)
- */
+/** Delegate broadcast to get the audio importer progress */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
 
-/**
- * Delegate broadcast to get the audio importer result
- * 
- * @param RuntimeAudioImporterObject Runtime Audio Importer object reference
- * @param ReadySoundWave Ready SoundWave object reference
- * @param Status TranscodingStatus Enum in case an error occurs
- */
+/** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*,
                                                RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
                                                const TEnumAsByte < ETranscodingStatus >&, Status);
@@ -117,8 +107,8 @@ public:
 	 *
 	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category =
-		"Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"),
+		Category = "Runtime Audio Importer")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
 
 	/**
@@ -129,16 +119,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "Runtime Audio Importer")
-	void ImportAudioFromFile(const FString& FilePath,
-	                         TEnumAsByte<EAudioFormat> Format);
+	void ImportAudioFromFile(const FString& FilePath, TEnumAsByte<EAudioFormat> Format);
 
 	/**
 	 * Import audio file from the preimported sound asset
 	 *
 	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference. Should contain "BaseAudioDataArray" buffer
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category =
-		"Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"),
+		Category = "Runtime Audio Importer")
 	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
