@@ -7,7 +7,7 @@
 
 /** Possible audio importing results */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum ETranscodingStatus
+enum class ETranscodingStatus : uint8
 {
 	/** Successful import */
 	SuccessfulImport UMETA(DisplayName = "Success"),
@@ -30,7 +30,7 @@ enum ETranscodingStatus
 
 /** Possible audio formats (extensions) */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum EAudioFormat
+enum class EAudioFormat : uint8
 {
 	/** Determine format automatically */
 	Auto UMETA(DisplayName = "Determine format automatically"),
@@ -80,7 +80,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int3
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*,
                                                RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
-                                               const TEnumAsByte < ETranscodingStatus >&, Status);
+                                               const ETranscodingStatus&, Status);
 
 /**
  * Runtime Audio Importer object
@@ -119,7 +119,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "Runtime Audio Importer")
-	void ImportAudioFromFile(const FString& FilePath, TEnumAsByte<EAudioFormat> Format);
+	void ImportAudioFromFile(const FString& FilePath, EAudioFormat Format);
 
 	/**
 	 * Import audio file from the preimported sound asset
@@ -139,7 +139,7 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
 		Category = "Runtime Audio Importer")
 	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
-	                           const TEnumAsByte<EAudioFormat>& Format);
+	                           const EAudioFormat& Format);
 private:
 	/**
 	 * Internal main audio importing method
@@ -147,7 +147,7 @@ private:
 	 * @param AudioDataArray Array of Audio byte data
 	 * @param Format Audio file format (extension)
 	 */
-	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const TEnumAsByte<EAudioFormat>& Format);
+	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const EAudioFormat& Format);
 
 
 	/**
@@ -189,8 +189,7 @@ private:
 	 * @param Format Format of the audio file (e.g. mp3. flac, etc)
 	 * @return Whether the transcoding was successful or not
 	 */
-	bool TranscodeAudioDataArrayToPCMData(const uint8* AudioData, uint32 AudioDataSize,
-	                                      TEnumAsByte<EAudioFormat> Format);
+	bool TranscodeAudioDataArrayToPCMData(const uint8* AudioData, uint32 AudioDataSize, const EAudioFormat& Format);
 
 	/**
 	 * Get audio format by extension
@@ -199,14 +198,14 @@ private:
 	 * @return Returns the found audio format (e.g. mp3. flac, etc) by AudioFormat Enum
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
-	static TEnumAsByte<EAudioFormat> GetAudioFormat(const FString& FilePath);
+	static EAudioFormat GetAudioFormat(const FString& FilePath);
 
 	/**
 	 * Audio transcoding progress callback
 	 * 
 	 * @param Percentage Percentage of importing completion (0-100%)
 	 */
-	void OnProgress_Internal(int32 Percentage);
+	void OnProgress_Internal(const int32& Percentage);
 
 	/**
 	 * Audio importing finished callback
@@ -214,5 +213,5 @@ private:
 	 * @param SoundWaveRef A ready SoundWave object
 	 * @param Status Importing status
 	 */
-	void OnResult_Internal(UImportedSoundWave* SoundWaveRef, const TEnumAsByte<ETranscodingStatus>& Status);
+	void OnResult_Internal(UImportedSoundWave* SoundWaveRef, const ETranscodingStatus& Status);
 };
