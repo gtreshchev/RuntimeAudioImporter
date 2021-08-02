@@ -69,7 +69,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 			return nullptr;
 		}
 
-		PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, InClass, InName, Flags);
+		PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
 		PreImportedSoundAsset->AudioDataArray = AudioDataArray;
 		PreImportedSoundAsset->SourceFilePath = Filename;
 
