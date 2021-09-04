@@ -39,6 +39,11 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
 }
 
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioDataArray, EAudioFormat Format)
+{
+	ImportAudioFromBuffer(AudioDataArray, Format);
+}
+
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
                                                          const EAudioFormat& Format)
 {
