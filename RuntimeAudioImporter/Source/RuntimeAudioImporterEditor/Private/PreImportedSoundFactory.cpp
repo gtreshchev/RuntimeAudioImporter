@@ -5,6 +5,7 @@
 #include "PreImportedSoundAsset.h"
 
 #include "Misc/FileHelper.h"
+#include "Serialization/ArchiveSaveCompressedProxy.h"
 
 /** Defining custom logging */
 DEFINE_LOG_CATEGORY(LogPreimportedSoundFactory)
@@ -75,10 +76,6 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 		PreImportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(
 			static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
-		UE_LOG(LogPreimportedSoundFactory, Log, TEXT("Duration: %f"),
-		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
-		UE_LOG(LogTemp, Warning, TEXT("Duration: %f"),
-		       (static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate));
 		PreImportedSoundAsset->NumberOfChannels = mp3.channels;
 		PreImportedSoundAsset->SampleRate = mp3.sampleRate;
 
