@@ -90,6 +90,7 @@ UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 {
 	GENERATED_BODY()
+
 public:
 	/** Bind to know when the transcoding is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
@@ -131,16 +132,25 @@ public:
 	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
-	* Import audio data to SoundWave static object
-	*
-	* @param AudioDataArray Array of Audio byte data
-	* @param Format Audio file format (extension)
-	*/
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
-		Category = "Runtime Audio Importer")
-	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
-	                           const EAudioFormat& Format);
+	 * Import audio data to SoundWave object
+	 *
+	 * @param AudioDataArray Array of Audio byte data
+	 * @param Format Audio file format (extension)
+	 */
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords =
+		"Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
+	void ImportAudioFromBuffer_BP(TArray<uint8> AudioDataArray, EAudioFormat Format);
+
+	/**
+	 * Import audio data to SoundWave object
+	 *
+	 * @param AudioDataArray Array of Audio byte data
+	 * @param Format Audio file format (extension)
+	 */
+	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray, const EAudioFormat& Format);
+
 private:
+
 	/**
 	 * Internal main audio importing method
 	 *
@@ -148,7 +158,6 @@ private:
 	 * @param Format Audio file format (extension)
 	 */
 	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const EAudioFormat& Format);
-
 
 	/**
 	 * Define SoundWave object reference
