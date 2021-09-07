@@ -4,7 +4,6 @@
 
 #include "PreimportedSoundAsset.h"
 #include "Misc/FileHelper.h"
-
 #include "Async/Async.h"
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
@@ -16,13 +15,39 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 
 void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, EAudioFormat Format)
 {
+	// Checking if the file exists
 	if (!FPaths::FileExists(FilePath))
 	{
 		OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
 		return;
 	}
 
+	// Getting the audio format
 	if (Format == EAudioFormat::Auto) Format = GetAudioFormat(FilePath);
+
+	TArray<uint8> AudioBuffer;
+
+	// Filling AudioBuffer with a binary file 
+	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
+	{
+		OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
+		return;
+	}
+
+	ImportAudioFromBuffer(AudioBuffer, Format);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format,
+                                                          const int32 SampleRate, const int32 NumOfChannels)
+{
+	if (!FPaths::FileExists(FilePath))
+	{
+		OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
+		return;
+	}
+
+	// OnProgress Callback
+	OnProgress_Internal(5);
 
 	TArray<uint8> AudioBuffer;
 	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
@@ -31,7 +56,131 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 		OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
 		return;
 	}
-	ImportAudioFromBuffer(AudioBuffer, Format);
+
+	// OnProgress Callback
+	OnProgress_Internal(35);
+
+	AsyncTask(ENamedThreads::AnyThread, [&, AudioBuffer, Format, SampleRate, NumOfChannels]()
+	{
+		ImportAudioFromRAWBuffer(AudioBuffer, Format, SampleRate, NumOfChannels);
+	});
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format,
+                                                            const int32 SampleRate, const int32 NumOfChannels)
+{
+	uint8* RAWData = RAWBuffer.GetData();
+	const uint32 RAWDataSize = RAWBuffer.Num() - 2;
+
+	uint8* PCMData = nullptr;
+	uint32 PCMDataSize = 0;
+
+	// Transcoding RAW data to 32-bit float Data
+	{
+		switch (Format)
+		{
+		case ERAWAudioFormat::Int16:
+			{
+				TranscodeRAWDataTo32FloatData<int16>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERAWAudioFormat::Int32:
+			{
+				TranscodeRAWDataTo32FloatData<int32>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERAWAudioFormat::UInt8:
+			{
+				TranscodeRAWDataTo32FloatData<uint8>(RAWData, RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERAWAudioFormat::Float32:
+			{
+				PCMDataSize = RAWDataSize;
+				PCMData = static_cast<uint8*>(FMemory::Malloc(PCMDataSize));
+				FMemory::Memcpy(PCMData, RAWData, RAWDataSize);
+				break;
+			}
+		}
+	}
+
+	if (!PCMData || PCMDataSize < 0)
+	{
+		// OnResult Callback
+		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+		return;
+	}
+
+	// Clearing the RAW Buffer
+	RAWBuffer.Empty();
+
+	ImportAudioFromFloat32Buffer(PCMData, PCMDataSize, SampleRate, NumOfChannels);
+}
+
+template <typename IntegralType>
+void URuntimeAudioImporterLibrary::TranscodeRAWDataTo32FloatData(IntegralType* RAWData, uint32 RAWDataSize, uint8*& PCMData,
+                                                             uint32& PCMDataSize)
+{
+	// Getting the required number of samples to transcode
+	const int32& NumSamples = RAWDataSize / sizeof(IntegralType);
+
+	// Getting the required PCM size
+	PCMDataSize = NumSamples * sizeof(float);
+
+	// Creating an empty PCM buffer
+	float* TempPCMData = static_cast<float*>(FMemory::MallocZeroed(PCMDataSize));
+
+	// Iterating through the RAW Data to transcode values using a divisor
+	for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+	{
+		TempPCMData[SampleIndex] = static_cast<float>(RAWData[SampleIndex]) / GetRawToPcmDivisor<IntegralType>();
+	}
+
+	// Returning the transcoded data as bytes
+	PCMData = reinterpret_cast<uint8*>(TempPCMData);
+}
+
+template <typename IntegralType>
+float URuntimeAudioImporterLibrary::GetRawToPcmDivisor()
+{
+	if (TIsSame<IntegralType, int16>::Value)
+	{
+		return 32767.0f;
+	}
+
+	if (TIsSame<IntegralType, int32>::Value)
+	{
+		return 2147483647.0f;
+	}
+
+	if (TIsSame<IntegralType, uint8>::Value)
+	{
+		return 255.0f;
+	}
+
+	return 1;
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize,
+                                                                const int32 SampleRate, const int32 NumOfChannels)
+{
+	// Filling all the required information
+	{
+		TranscodingFillInfo.PCMInfo.PCMData = PCMData;
+		TranscodingFillInfo.PCMInfo.PCMDataSize = PCMDataSize;
+		TranscodingFillInfo.PCMInfo.PCMNumOfFrames = PCMDataSize / sizeof(float) / NumOfChannels;
+
+		TranscodingFillInfo.SoundWaveBasicInfo.ChannelsNum = NumOfChannels;
+		TranscodingFillInfo.SoundWaveBasicInfo.SampleRate = SampleRate;
+		TranscodingFillInfo.SoundWaveBasicInfo.Duration = static_cast<float>(TranscodingFillInfo.PCMInfo.PCMNumOfFrames)
+			/ SampleRate;
+	}
+
+	// OnProgress Callback
+	OnProgress_Internal(50);
+
+	// Finalizing import
+	CreateSoundWaveAndFinishImport();
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)
@@ -39,30 +188,29 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioDataArray, EAudioFormat Format)
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioDataBuffer, EAudioFormat Format)
 {
-	ImportAudioFromBuffer(AudioDataArray, Format);
+	ImportAudioFromBuffer(AudioDataBuffer, Format);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataArray,
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer,
                                                          const EAudioFormat& Format)
 {
-	if (Format == EAudioFormat::Wav)
-	{
-		if (!CheckAndFixWavDurationErrors(AudioDataArray)) return;
-	}
+	if (Format == EAudioFormat::Wav) if (!CheckAndFixWavDurationErrors(AudioDataBuffer)) return;
+
 	TranscodingFillInfo = FTranscodingFillStruct();
-	AsyncTask(ENamedThreads::AnyThread, [=]()
+	AsyncTask(ENamedThreads::AnyThread, [&, AudioDataBuffer, Format]()
 	{
-		ImportAudioFromBuffer_Internal(AudioDataArray, Format);
+		ImportAudioFromBuffer_Internal(AudioDataBuffer, Format);
 	});
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray,
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer,
                                                                   const EAudioFormat& Format)
 {
 	// OnProgress Callback
 	OnProgress_Internal(5);
+
 	if (Format == EAudioFormat::Auto || Format == EAudioFormat::Invalid)
 	{
 		// OnResult Callback
@@ -70,13 +218,15 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 		return;
 	}
 
-
 	// Transcoding the imported Audio Data to PCM Data
-	if (!TranscodeAudioDataArrayToPCMData(AudioDataArray.GetData(), AudioDataArray.Num() - 2, Format)) return;
+	if (!TranscodeAudioDataArrayToPCMData(AudioDataBuffer.GetData(), AudioDataBuffer.Num() - 2, Format)) return;
 
-	// OnProgress Callback
-	OnProgress_Internal(65);
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
+	CreateSoundWaveAndFinishImport();
+}
+
+void URuntimeAudioImporterLibrary::CreateSoundWaveAndFinishImport()
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [&]()
 	{
 		UImportedSoundWave* SoundWaveRef = NewObject<UImportedSoundWave>(UImportedSoundWave::StaticClass());
 		if (!SoundWaveRef)
@@ -278,14 +428,14 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			// OnProgress Callback
 			OnProgress_Internal(25);
 
-			// Getting PCM data
+			// Allocating memory for PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
-				static_cast<size_t>(drmp3_get_pcm_frame_count(&mp3)) * mp3.channels * sizeof(float)));
+				drmp3_get_pcm_frame_count(&mp3) * mp3.channels * sizeof(float)));
 
 			// OnProgress Callback
 			OnProgress_Internal(35);
 
-			// Getting the number of frames
+			// Filling PCM data and getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(
 				&mp3, drmp3_get_pcm_frame_count(&mp3), reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
@@ -328,7 +478,6 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			drwav wav;
 			// Initializing transcoding of audio data in memory
 			if (!drwav_init_memory(&wav, AudioData, AudioDataSize, &allocationCallbacksDecoding))
-
 			{
 				// OnResult Callback
 				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
@@ -338,14 +487,14 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			// OnProgress Callback
 			OnProgress_Internal(25);
 
-			// Getting PCM data
+			// Allocating memory for PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
-				static_cast<size_t>(wav.totalPCMFrameCount) * wav.channels * sizeof(float)));
+				wav.totalPCMFrameCount * wav.channels * sizeof(float)));
 
 			// OnProgress Callback
 			OnProgress_Internal(35);
 
-			// Getting the number of frames
+			// Filling PCM data and getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(
 				&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
@@ -396,14 +545,14 @@ bool URuntimeAudioImporterLibrary::TranscodeAudioDataArrayToPCMData(const uint8*
 			// OnProgress Callback
 			OnProgress_Internal(25);
 
-			// Getting PCM data
+			// Allocating memory for PCM data
 			TranscodingFillInfo.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
-				static_cast<size_t>(pFlac->totalPCMFrameCount) * pFlac->channels * sizeof(float)));
+				pFlac->totalPCMFrameCount * pFlac->channels * sizeof(float)));
 
 			// OnProgress Callback
 			OnProgress_Internal(35);
 
-			// Getting the number of frames
+			// Filling PCM data and getting the number of frames
 			TranscodingFillInfo.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(
 				pFlac, pFlac->totalPCMFrameCount, reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData));
 
@@ -450,7 +599,7 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePat
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(const int32& Percentage)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [&, Percentage]()
 	{
 		if (OnProgress.IsBound()) OnProgress.Broadcast(Percentage);
 	});
@@ -458,7 +607,7 @@ void URuntimeAudioImporterLibrary::OnProgress_Internal(const int32& Percentage)
 
 void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWaveRef, const ETranscodingStatus& Status)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [&, SoundWaveRef, Status]()
 	{
 		if (OnResult.IsBound())
 		{
