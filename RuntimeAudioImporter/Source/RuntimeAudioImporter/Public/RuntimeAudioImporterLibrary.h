@@ -48,6 +48,15 @@ enum class EAudioFormat : uint8
 	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
 };
 
+UENUM(BlueprintType, Category = "Runtime Audio Importer")
+enum class ERAWAudioFormat : uint8
+{
+	Int16 UMETA(DisplayName = "Signed 16-bit PCM"),
+	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
+	UInt8 UMETA(DisplayName = "Unsigned 8-bit PCM"),
+	Float32 UMETA(DisplayName = "32-bit float")
+};
+
 /** Basic SoundWave data. CPP use only. */
 struct FSoundWaveBasicStruct
 {
@@ -123,7 +132,7 @@ public:
 	void ImportAudioFromFile(const FString& FilePath, EAudioFormat Format);
 
 	/**
-	 * Import audio file from the preimported sound asset
+	 * Import audio file from the pre-imported sound asset
 	 *
 	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference. Should contain "BaseAudioDataArray" buffer
 	 */
@@ -132,32 +141,73 @@ public:
 	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
-	 * Import audio data to SoundWave object
+	 * Import audio from buffer
 	 *
-	 * @param AudioDataArray Array of Audio byte data
+	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords =
 		"Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
-	void ImportAudioFromBuffer_BP(TArray<uint8> AudioDataArray, EAudioFormat Format);
+	void ImportAudioFromBuffer_BP(TArray<uint8> AudioDataBuffer, EAudioFormat Format);
 
 	/**
-	 * Import audio data to SoundWave object
+	 * Import audio from buffer
 	 *
-	 * @param AudioDataArray Array of Audio byte data
+	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
-	void ImportAudioFromBuffer(TArray<uint8>& AudioDataArray, const EAudioFormat& Format);
+	void ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format);
+
+	/**
+	 * Import audio from RAW file. Audio data must not have headers and must be uncompressed
+	 *
+	 * @param FilePath Path to the audio file to import
+	 * @param Format RAW audio format
+	 * @param SampleRate The number of samples per second
+	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100,
+								const int32 NumOfChannels = 1);
+
+	/**
+	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed
+	 *
+	 * @param RAWBuffer RAW audio buffer
+	 * @param Format RAW audio format
+	 * @param SampleRate The number of samples per second
+	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100,
+								const int32 NumOfChannels = 1);
+	/**
+	 * Import audio from 32-bit float PCM data
+	 *
+	 * @param PCMData Pointer to memory location of the PCM data
+	 * @param PCMDataSize Memory size allocated for the PCM data
+	 * @param SampleRate The number of samples per second
+	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
+	 */
+	void ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate = 44100,
+									const int32 NumOfChannels = 1);
 
 private:
-
 	/**
 	 * Internal main audio importing method
 	 *
-	 * @param AudioDataArray Array of Audio byte data
+	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
-	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataArray, const EAudioFormat& Format);
+	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format);
+
+
+	/**
+	 * Create Imported Sound Wave and finish importing.
+	 *
+	 * @note At this point, TranscodingFillInfo should be filled
+	 */
+	void CreateSoundWaveAndFinishImport();
 
 	/**
 	 * Define SoundWave object reference
@@ -186,15 +236,35 @@ private:
 	 * Check if the WAV audio data with the RIFF container has a correct byte size.
 	 * Made by https://github.com/kass-kass
 	 *
-	 * @param WavData Pointer to memory location of the Wav byte data
+	 * @param WavData Buffer of the wav data
 	 */
 	bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
+
+
+	/**
+	 * Transcoding RAW data to interleaved 32-bit floating point data
+	 *
+	 * @param RAWData Pointer to memory location of the RAW data
+	 * @param RAWDataSize Memory size allocated for the RAW data
+	 * @param PCMData Returning pointer to memory location of the 32-bit float data
+	 * @param PCMDataSize Returning memory size allocated for the 32-bit float data
+	 */
+	template <typename IntegralType>
+	void TranscodeRAWDataTo32FloatData(IntegralType* RAWData, uint32 RAWDataSize, uint8*& PCMData, uint32& PCMDataSize);
+
+	/**
+	 * Getting a divisor to transcode data to 32-bit float
+	 *
+	 * @return Divisor to transcode from the IntegralType to the interleaved 32-bit floating point
+	 */
+	template <typename IntegralType>
+	float GetRawToPcmDivisor();
 
 	/**
 	 * Transcode Audio from Audio Data to PCM Data
 	 *
-	 * @param AudioData Pointer to memory location of the Audio byte data
-	 * @param AudioDataSize Memory size allocated for the Audio byte data
+	 * @param AudioData Pointer to memory location of the audio data
+	 * @param AudioDataSize Memory size allocated for the audio data
 	 * @param Format Format of the audio file (e.g. mp3. flac, etc)
 	 * @return Whether the transcoding was successful or not
 	 */
