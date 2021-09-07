@@ -14,7 +14,7 @@ struct FPCMStruct
 {
 	GENERATED_BODY()
 
-	/** Interleaved 32-bit IEEE floating point PCM */
+	/** 32-bit float PCM data */
 	uint8* PCMData;
 
 	/** Number of PCM frames */
@@ -120,7 +120,7 @@ public:
 	/**
 	 * Getting the format of the retrieved PCM data.
 	 *
-	 * @note Since we are using Interleaved 32-bit IEEE floating point PCM, there will be no PCM transcoding in the engine, which will improve audio processing performance
+	 * @note Since we are using 32-bit float, there will be no PCM transcoding in the engine, which will improve audio processing performance
 	 */
 	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
 
