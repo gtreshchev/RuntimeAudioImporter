@@ -10,7 +10,7 @@ Typically, this plugin is used to create an advanced audio player.
 ## Features
 - Low library size (≈ 1 mb)
 - Fast transcoding speed (≈ 200-900 ms)
-- Supported for major audio formats: MP3, WAV and FLAC
+- Supported for major audio formats: MP3, WAV and FLAC (also RAW data: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float)
 - Automatic detection of audio format (by extension)
 - System for obtaining transcoding status for error detection
 - No any static libraries and external dependencies
