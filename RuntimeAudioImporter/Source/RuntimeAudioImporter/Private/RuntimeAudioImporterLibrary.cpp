@@ -2,7 +2,7 @@
 
 #include "RuntimeAudioImporterLibrary.h"
 
-#include "PreimportedSoundAsset.h"
+#include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
 
