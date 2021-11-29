@@ -192,6 +192,50 @@ public:
 	void ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate = 44100,
 									const int32 NumOfChannels = 1);
 
+	/**
+	 * Transcoding one RAW Data format to another
+	 *
+	 * @param RAWData_From RAW data for transcoding
+	 * @param RAWData_To Transcoded RAW data with the specified format
+	 */
+	template <typename IntegralTypeFrom, typename IntegralTypeTo>
+	void TranscodeRAWData(TArray<uint8> RAWData_From, TArray<uint8>& RAWData_To);
+
+	/**
+	 * Transcoding one RAW Data format to another
+	 *
+	 * @param RAWData_From Pointer to memory location of the RAW data for transcoding
+	 * @param RAWDataSize_From Memory size allocated for the RAW data
+	 * @param RAWData_To Pointer to memory location of the transcoded RAW data with the specified format
+	 * @param RAWDataSize_To Memory size allocated for the RAW data
+	 */
+	template <typename IntegralTypeFrom, typename IntegralTypeTo>
+	void TranscodeRAWData(IntegralTypeFrom* RAWData_From, uint32 RAWDataSize_From, IntegralTypeTo*& RAWData_To, uint32& RAWDataSize_To);
+
+
+	/**
+	 * Transcoding one RAW Data format to another
+	 *
+	 * @param RAWData_From RAW data for transcoding
+	 * @param FormatFrom Original format
+	 * @param RAWData_To Transcoded RAW data with the specified format
+	 * @param FormatTo Required format
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	void TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat FormatTo);
+
+	/**
+	 * Transcoding one RAW Data format to another
+	 *
+	 * @param FilePathFrom Path to file with RAW data for transcoding
+	 * @param FormatFrom Original format
+	 * @param FilePathTo File path for saving RAW data
+	 * @param FormatTo Required format
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	bool TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo);
+	
+
 private:
 	/**
 	 * Internal main audio importing method
@@ -240,25 +284,13 @@ private:
 	 */
 	bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
 
-
 	/**
-	 * Transcoding RAW data to interleaved 32-bit floating point data
+	 * Getting the minimum and maximum values of the specified RAW format
 	 *
-	 * @param RAWData Pointer to memory location of the RAW data
-	 * @param RAWDataSize Memory size allocated for the RAW data
-	 * @param PCMData Returning pointer to memory location of the 32-bit float data
-	 * @param PCMDataSize Returning memory size allocated for the 32-bit float data
+	 * @note Key - Minimum, Value - Maximum
 	 */
 	template <typename IntegralType>
-	void TranscodeRAWDataTo32FloatData(IntegralType* RAWData, uint32 RAWDataSize, uint8*& PCMData, uint32& PCMDataSize);
-
-	/**
-	 * Getting a divisor to transcode data to 32-bit float
-	 *
-	 * @return Divisor to transcode from the IntegralType to the interleaved 32-bit floating point
-	 */
-	template <typename IntegralType>
-	float GetRawToPcmDivisor();
+	TPair<double, double> GetRawMinAndMaxValues();
 
 	/**
 	 * Transcode Audio from Audio Data to PCM Data

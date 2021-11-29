@@ -72,7 +72,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 	uint8* RAWData = RAWBuffer.GetData();
 	const uint32 RAWDataSize = RAWBuffer.Num() - 2;
 
-	uint8* PCMData = nullptr;
+	float* PCMData = nullptr;
 	uint32 PCMDataSize = 0;
 
 	// Transcoding RAW data to 32-bit float Data
@@ -81,23 +81,23 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		{
 		case ERAWAudioFormat::Int16:
 			{
-				TranscodeRAWDataTo32FloatData<int16>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERAWAudioFormat::Int32:
 			{
-				TranscodeRAWDataTo32FloatData<int32>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERAWAudioFormat::UInt8:
 			{
-				TranscodeRAWDataTo32FloatData<uint8>(RAWData, RAWDataSize, PCMData, PCMDataSize);
+				TranscodeRAWData<uint8, float>(RAWData, RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERAWAudioFormat::Float32:
 			{
 				PCMDataSize = RAWDataSize;
-				PCMData = static_cast<uint8*>(FMemory::Malloc(PCMDataSize));
+				PCMData = static_cast<float*>(FMemory::Malloc(PCMDataSize));
 				FMemory::Memcpy(PCMData, RAWData, RAWDataSize);
 				break;
 			}
@@ -114,51 +114,98 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 	// Clearing the RAW Buffer
 	RAWBuffer.Empty();
 
-	ImportAudioFromFloat32Buffer(PCMData, PCMDataSize, SampleRate, NumOfChannels);
+	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
 }
 
-template <typename IntegralType>
-void URuntimeAudioImporterLibrary::TranscodeRAWDataTo32FloatData(IntegralType* RAWData, uint32 RAWDataSize, uint8*& PCMData,
-                                                             uint32& PCMDataSize)
+template <typename IntegralTypeFrom, typename IntegralTypeTo>
+void URuntimeAudioImporterLibrary::TranscodeRAWData(TArray<uint8> RAWData_From, TArray<uint8>& RAWData_To)
+{
+	IntegralTypeFrom* DataFrom = reinterpret_cast<IntegralTypeFrom*>(RAWData_From.GetData());
+	const uint32 DataFrom_Size = RAWData_From.Num() - 2;
+
+	IntegralTypeTo* DataTo = nullptr;
+	uint32 DataTo_Size = 0;
+
+	TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
+
+	RAWData_To = TArray<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
+}
+
+float NormalizeToRange(float Value, float RangeMin, float RangeMax)
+{
+	if (RangeMin == RangeMax)
+	{
+		if (Value < RangeMin)
+		{
+			return 0.f;
+		}
+		return 1.f;
+	}
+
+	if (RangeMin > RangeMax)
+	{
+		Swap(RangeMin, RangeMax);
+	}
+	return (Value - RangeMin) / (RangeMax - RangeMin);
+}
+
+template <typename IntegralTypeFrom, typename IntegralTypeTo>
+void URuntimeAudioImporterLibrary::TranscodeRAWData(IntegralTypeFrom* RAWData_From, uint32 RAWDataSize_From,
+                                                    IntegralTypeTo*& RAWData_To, uint32& RAWDataSize_To)
 {
 	// Getting the required number of samples to transcode
-	const int32& NumSamples = RAWDataSize / sizeof(IntegralType);
+	const int32 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
 
 	// Getting the required PCM size
-	PCMDataSize = NumSamples * sizeof(float);
+	RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);
 
 	// Creating an empty PCM buffer
-	float* TempPCMData = static_cast<float*>(FMemory::MallocZeroed(PCMDataSize));
+	IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::MallocZeroed(RAWDataSize_To));
+
+	const TPair<double, double> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
+	const TPair<double, double> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
 
 	// Iterating through the RAW Data to transcode values using a divisor
 	for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 	{
-		TempPCMData[SampleIndex] = static_cast<float>(RAWData[SampleIndex]) / GetRawToPcmDivisor<IntegralType>();
+		const float NormalizedValue = NormalizeToRange(RAWData_From[SampleIndex], MinAndMaxValuesFrom.Key,
+		                                         MinAndMaxValuesFrom.Value);
+
+		TempPCMData[SampleIndex] = static_cast<IntegralTypeTo>(NormalizedValue * MinAndMaxValuesTo.Value);
 	}
 
 	// Returning the transcoded data as bytes
-	PCMData = reinterpret_cast<uint8*>(TempPCMData);
+	RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
 }
 
 template <typename IntegralType>
-float URuntimeAudioImporterLibrary::GetRawToPcmDivisor()
+TPair<double, double> URuntimeAudioImporterLibrary::GetRawMinAndMaxValues()
 {
+	/** Signed 16-bit PCM */
 	if (TIsSame<IntegralType, int16>::Value)
 	{
-		return 32767.0f;
+		return TPair<double, double>(-32767, 32768);
 	}
 
+	/** Signed 32-bit PCM */
 	if (TIsSame<IntegralType, int32>::Value)
 	{
-		return 2147483647.0f;
+		return TPair<double, double>(-2147483648.0, 2147483647.0);
 	}
 
+	/** Unsigned 8-bit PCM */
 	if (TIsSame<IntegralType, uint8>::Value)
 	{
-		return 255.0f;
+		return TPair<double, double>(-128.0, 127.0);
 	}
 
-	return 1;
+	/** 32-bit float */
+	if (TIsSame<IntegralType, float>::Value)
+	{
+		return TPair<double, double>(-1.0, 1.0);
+	}
+
+	return TPair<double, double>(-1.0, 1.0);
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize,
@@ -203,6 +250,97 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDat
 	{
 		ImportAudioFromBuffer_Internal(AudioDataBuffer, Format);
 	});
+}
+
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From,
+                                                              ERAWAudioFormat RAWFrom, TArray<uint8>& RAWData_To,
+                                                              ERAWAudioFormat RAWTo)
+{
+	TArray<uint8> IntermediateRAWBuffer;
+
+	/** Transcoding of all formats to unsigned 8-bit PCM format (intermediate) */
+	switch (RAWFrom)
+	{
+	case ERAWAudioFormat::Int16:
+		{
+			TranscodeRAWData<int16, uint8>(RAWData_From, IntermediateRAWBuffer);
+			break;
+		}
+	case ERAWAudioFormat::Int32:
+		{
+			TranscodeRAWData<int32, uint8>(RAWData_From, IntermediateRAWBuffer);
+			break;
+		}
+	case ERAWAudioFormat::UInt8:
+		{
+			IntermediateRAWBuffer = RAWData_From;
+			break;
+		}
+	case ERAWAudioFormat::Float32:
+		{
+			TranscodeRAWData<float, uint8>(RAWData_From, IntermediateRAWBuffer);
+			break;
+		}
+	}
+
+	/** Clearing unused buffer */
+	RAWData_From.Empty();
+
+	/** Transcoding unsigned 8-bit PCM to the specified format */
+	switch (RAWTo)
+	{
+	case ERAWAudioFormat::Int16:
+		{
+			TranscodeRAWData<uint8, int16>(IntermediateRAWBuffer, RAWData_To);
+			break;
+		}
+	case ERAWAudioFormat::Int32:
+		{
+			TranscodeRAWData<uint8, int32>(IntermediateRAWBuffer, RAWData_To);
+			break;
+		}
+	case ERAWAudioFormat::UInt8:
+		{
+			RAWData_To = IntermediateRAWBuffer;
+			break;
+		}
+	case ERAWAudioFormat::Float32:
+		{
+			TranscodeRAWData<uint8, float>(IntermediateRAWBuffer, RAWData_To);
+			break;
+		}
+	}
+}
+
+bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom,
+                                                            const FString& FilePathTo, ERAWAudioFormat FormatTo)
+{
+	/** Loading a file into a byte array */
+	TArray<uint8> RAWBufferFrom;
+	if (!FFileHelper::LoadFileToArray(RAWBufferFrom, *FilePathFrom))
+	{
+		return false;
+	}
+
+	TArray<uint8> RAWBufferTo;
+	TranscodeRAWDataFromBuffer(RAWBufferFrom, FormatFrom, RAWBufferTo, FormatTo);
+
+	/** Clearing unused buffer */
+	RAWBufferFrom.Empty();
+
+	/** Writing a file to a specified location */
+	if (!FFileHelper::SaveArrayToFile(RAWBufferTo, *FilePathTo))
+	{
+		/** Clearing unused buffer */
+		RAWBufferTo.Empty();
+
+		return false;
+	}
+
+	/** Clearing unused buffer */
+	RAWBufferTo.Empty();
+
+	return true;
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer,
@@ -290,7 +428,7 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 	/*SoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(SoundWaveRef->RawPCMDataSize));
 	FMemory::Memmove(SoundWaveRef->RawPCMData, TranscodingFillInfo.PCMInfo.RawPCMData,
 	                 SoundWaveRef->RawPCMDataSize);*/
-	// We do not need to fill a standard PCM buffer since we have a custom sound wave with custom buffer. But if you want to fill the standard PCM buffer, just uncomment the code above.
+	// We do not need to fill a standard PCM buffer since we have a custom sound wave with custom buffer. But if you want to fill the standard PCM buffer, just uncomment the code above (you should also transcode 32-bit float to Signed 16-bit PCM) 
 
 	SoundWaveRef->PCMBufferInfo = TranscodingFillInfo.PCMInfo;
 }
