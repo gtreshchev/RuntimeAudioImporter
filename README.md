@@ -5,8 +5,6 @@ Plugin does not require any static libraries and external dependencies.
 
 Typically, this plugin is used to create an advanced audio player.
 
-![Runtime Audio Importer](image/runtimeaudioimporter.png "RuntimeAudioImporter Unreal Engine Plugin Logo")
-
 ## Features
 - Low library size (≈ 1 mb)
 - Fast transcoding speed (≈ 200-900 ms)
