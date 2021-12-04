@@ -44,6 +44,9 @@ enum class EAudioFormat : uint8
 	/** FLAC format */
 	Flac UMETA(DisplayName = "flac"),
 
+	/** OGG Vorbis format */
+	OggVorbis UMETA(DisplayName = "ogg vorbis"),
+
 	/** Invalid format */
 	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
 };
