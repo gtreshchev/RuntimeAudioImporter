@@ -3,7 +3,7 @@
   "Version": 1,
   "VersionName": "1.0",
   "FriendlyName": "RuntimeAudioImporter",
-  "Description": "Runtime Audio Importer plugin for Unreal Engine 4. Supports mp3, wav and flac formats.",
+  "Description": "Runtime Audio Importer plugin for Unreal Engine 4. Supports mp3, wav, flac and ogg vorbis formats.",
   "Category": "Audio",
   "CreatedBy": "Georgy Treshchev",
   "CreatedByURL": "https://github.com/gtreshchev",
@@ -14,7 +14,7 @@
   "IsBetaVersion": false,
   "IsExperimentalVersion": false,
   "Installed": true,
-  "EngineVersion": "4.26.0",
+  "EngineVersion": "4.27.0",
   "Modules": [
     {
       "Name": "RuntimeAudioImporter",

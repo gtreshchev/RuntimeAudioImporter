@@ -1,14 +1,14 @@
 ![GitHub](https://img.shields.io/github/license/gtreshchev/RuntimeAudioImporter)
 ![Runtime Audio Importer](image/runtimeaudioimporter.png "RuntimeAudioImporter Unreal Engine Plugin Logo")
 Open-source plugin to import audio files of MP3, WAV and FLAC formats into the game at runtime. It's easy to use in both C++ and Blueprints.
-Plugin does not require any static libraries and external dependencies.
 
 Typically, this plugin is used to create an advanced audio player.
 
 ## Features
 - Low library size (≈ 1 mb)
 - Fast transcoding speed (≈ 200-900 ms)
-- Supported for major audio formats: MP3, WAV and FLAC (also RAW data: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float)
+- Supported for major audio formats: MP3, WAV, FLAC and OGG Vorbis
+- Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float)
 - Automatic detection of audio format (by extension)
 - System for obtaining transcoding status for error detection
 - No any static libraries and external dependencies
@@ -18,7 +18,7 @@ Typically, this plugin is used to create an advanced audio player.
 Click on the following link to view the documentation - https://unreal.blog/runtime-audio-importer
 
 ## Additional information
-The in-memory audio transcoding operation is based on [dr_libs](https://github.com/mackron/dr_libs).
+The in-memory audio transcoding operation is based on [dr_libs](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb/blob/master/stb_vorbis.c).
 
 ## Legal info
 
