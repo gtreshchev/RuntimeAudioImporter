@@ -7,7 +7,7 @@
 #include "PreImportedSoundFactory.generated.h"
 
 /** Declaring custom logging */
-DECLARE_LOG_CATEGORY_EXTERN(LogPreimportedSoundFactory, Error, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogPreImportedSoundFactory, Error, All);
 
 /**
  * Factory for pre-importing audio files. Only MP3 is available for pre-import because it takes up the least amount of memory.
