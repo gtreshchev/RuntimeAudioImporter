@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/gtreshchev/runtimeaudioimporter">
-    <img src="Resources/Icon128.png" alt="Logo" width="80" height="80">
+    <img src="Resources/Icon128.png" alt="Logo" width="128" height="128">
   </a>
 
   <h3 align="center">Runtime Audio Importer</h3>
@@ -15,7 +15,7 @@
     <br/>
     <a href="https://unrealengine.com/marketplace/product/runtime-audio-importer">Marketplace</a>
     .
-    <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
+    <a href="https://github.com/gtreshchev/runtimeaudioimporter/releases">Releases</a>
     .
     <a href="https://github.com/gtreshchev/runtimeaudioimporter/issues">Report Bug</a>
   </p>
