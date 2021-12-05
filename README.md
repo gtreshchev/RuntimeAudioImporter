@@ -17,7 +17,7 @@
     .
     <a href="https://github.com/gtreshchev/runtimeaudioimporter/releases">Releases</a>
     .
-    <a href="https://github.com/gtreshchev/runtimeaudioimporter/issues">Report Bug</a>
+    <a href="https://t.me/unrealblog">Support Chat</a>
   </p>
 </p>
 
