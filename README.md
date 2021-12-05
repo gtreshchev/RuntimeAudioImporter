@@ -1,8 +1,25 @@
-![GitHub](https://img.shields.io/github/license/gtreshchev/RuntimeAudioImporter)
-![Runtime Audio Importer](image/runtimeaudioimporter.png "RuntimeAudioImporter Unreal Engine Plugin Logo")
-Open-source plugin to import audio files of MP3, WAV and FLAC formats into the game at runtime. It's easy to use in both C++ and Blueprints.
+<br/>
+<p align="center">
+  <a href="https://github.com/gtreshchev/runtimeaudioimporter">
+    <img src="Resources/Icon128.png" alt="Logo" width="80" height="80">
+  </a>
 
-Typically, this plugin is used to create an advanced audio player.
+  <h3 align="center">Runtime Audio Importer</h3>
+
+  <p align="center">
+    Importing audio of various formats at runtime
+    <br/>
+    <br/>
+    <a href="https://unreal.blog/runtime-audio-importer"><strong>Explore the docs »</strong></a>
+    <br/>
+    <br/>
+    <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
+    .
+    <a href="https://github.com/gtreshchev/runtimeaudioimporter/issues">Report Bug</a>
+    .
+    <a href="https://github.com/gtreshchev/runtimeaudioimporter/issues">Request Feature</a>
+  </p>
+</p>
 
 ## Features
 - Low library size (≈ 1 mb)
