@@ -433,12 +433,6 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 	SoundWaveRef->PCMBufferInfo = TranscodingFillInfo.PCMInfo;
 }
 
-
-#pragma warning( push )
-#pragma warning( disable : 4456)
-#pragma warning( disable : 4457)
-#pragma warning( disable : 4701)
-
 /**
 * Replacing standard CPP memory methods (malloc, realloc, free) with engine ones
 */
@@ -454,8 +448,6 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 #undef malloc
 #undef free
 #undef realloc
-#undef int
-#pragma warning( pop )
 
 
 bool URuntimeAudioImporterLibrary::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
