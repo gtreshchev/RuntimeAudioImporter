@@ -8,7 +8,7 @@
 #include "Serialization/ArchiveSaveCompressedProxy.h"
 
 /** Defining custom logging */
-DEFINE_LOG_CATEGORY(LogPreimportedSoundFactory)
+DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory)
 
 #include "ThirdParty/dr_mp3.h"
 
@@ -43,7 +43,8 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 
 bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
-	return FPaths::GetExtension(Filename).Equals(TEXT("mp3")) || FPaths::GetExtension(Filename).Equals(TEXT("imp"));
+	const FString& FileExtension{FPaths::GetExtension(Filename).ToLower()};
+	return FileExtension == "mp3" || FileExtension == "imp";
 }
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName,
@@ -66,7 +67,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 		if (!drmp3_init_memory(&mp3, AudioDataArray.GetData(), AudioDataArray.Num() - 2, &allocationCallbacksDecoding))
 		{
-			UE_LOG(LogPreimportedSoundFactory, Log, TEXT("The file you are trying to import is not an MP3 file."));
+			UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The file you are trying to import is not an MP3 file."));
 			return nullptr;
 		}
 
@@ -83,7 +84,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 	else
 	{
-		UE_LOG(LogPreimportedSoundFactory, Log, TEXT("Unable to read the audio file. Check file permissions."));
+		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Unable to read the audio file. Check file permissions."));
 		return nullptr;
 	}
 
