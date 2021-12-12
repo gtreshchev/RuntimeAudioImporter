@@ -3,85 +3,8 @@
 #pragma once
 
 #include "ImportedSoundWave.h"
+#include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
-
-/** Possible audio importing results */
-UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class ETranscodingStatus : uint8
-{
-	/** Successful import */
-	SuccessfulImport UMETA(DisplayName = "Success"),
-
-	/** Failed to read Audio Data Array */
-	FailedToReadAudioDataArray UMETA(DisplayName = "Failed to read Audio Data Array"),
-
-	/** SoundWave declaration error */
-	SoundWaveDeclarationError UMETA(DisplayName = "SoundWave declaration error"),
-
-	/** Invalid audio format (Can't determine the format of the audio file) */
-	InvalidAudioFormat UMETA(DisplayName = "Invalid audio format"),
-
-	/** The audio file does not exist */
-	AudioDoesNotExist UMETA(DisplayName = "Audio does not exist"),
-
-	/** Load file to array error */
-	LoadFileToArrayError UMETA(DisplayName = "Load file to array error")
-};
-
-/** Possible audio formats (extensions) */
-UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class EAudioFormat : uint8
-{
-	/** Determine format automatically */
-	Auto UMETA(DisplayName = "Determine format automatically"),
-
-	/** MP3 format */
-	Mp3 UMETA(DisplayName = "mp3"),
-
-	/** WAV format */
-	Wav UMETA(DisplayName = "wav"),
-
-	/** FLAC format */
-	Flac UMETA(DisplayName = "flac"),
-
-	/** OGG Vorbis format */
-	OggVorbis UMETA(DisplayName = "ogg vorbis"),
-
-	/** Invalid format */
-	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
-};
-
-UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class ERAWAudioFormat : uint8
-{
-	Int16 UMETA(DisplayName = "Signed 16-bit PCM"),
-	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
-	UInt8 UMETA(DisplayName = "Unsigned 8-bit PCM"),
-	Float32 UMETA(DisplayName = "32-bit float")
-};
-
-/** Basic SoundWave data. CPP use only. */
-struct FSoundWaveBasicStruct
-{
-	/** Number of channels */
-	int32 ChannelsNum;
-
-	/** Sample rate (samples per second, sampling frequency) */
-	uint32 SampleRate;
-
-	/** Sound wave duration, sec */
-	float Duration;
-};
-
-/** Main, mostly in-memory information (like PCM, Wav, etc) */
-struct FTranscodingFillStruct
-{
-	/** SoundWave basic info (e.g. duration, number of channels, etc) */
-	FSoundWaveBasicStruct SoundWaveBasicInfo;
-
-	/** PCM Data buffer */
-	FPCMStruct PCMInfo;
-};
 
 // Forward declaration of the UPreImportedSoundAsset class
 class UPreImportedSoundAsset;
@@ -91,8 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int3
 
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*,
-                                               RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
-                                               const ETranscodingStatus&, Status);
+											   RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
+											   const ETranscodingStatus&, Status);
 
 /**
  * Runtime Audio Importer object
@@ -112,8 +35,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
 	FOnAudioImporterResult OnResult;
 
-	/** Transcoding fill info. CPP use only */
-	FTranscodingFillStruct TranscodingFillInfo;
+	/** Decoded audio info. CPP use only */
+	FDecodedAudioStruct DecodedAudioInfo;
 
 	/**
 	 * Instantiates a RuntimeAudioImporter object
@@ -195,26 +118,6 @@ public:
 	void ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate = 44100,
 									const int32 NumOfChannels = 1);
 
-	/**
-	 * Transcoding one RAW Data format to another
-	 *
-	 * @param RAWData_From RAW data for transcoding
-	 * @param RAWData_To Transcoded RAW data with the specified format
-	 */
-	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	void TranscodeRAWData(TArray<uint8> RAWData_From, TArray<uint8>& RAWData_To);
-
-	/**
-	 * Transcoding one RAW Data format to another
-	 *
-	 * @param RAWData_From Pointer to memory location of the RAW data for transcoding
-	 * @param RAWDataSize_From Memory size allocated for the RAW data
-	 * @param RAWData_To Pointer to memory location of the transcoded RAW data with the specified format
-	 * @param RAWDataSize_To Memory size allocated for the RAW data
-	 */
-	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	void TranscodeRAWData(IntegralTypeFrom* RAWData_From, uint32 RAWDataSize_From, IntegralTypeTo*& RAWData_To, uint32& RAWDataSize_To);
-
 
 	/**
 	 * Transcoding one RAW Data format to another
@@ -278,32 +181,13 @@ private:
 	 */
 	void FillPCMData(UImportedSoundWave* SoundWaveRef) const;
 
-
-	/**
-	 * Check if the WAV audio data with the RIFF container has a correct byte size.
-	 * Made by https://github.com/kass-kass
-	 *
-	 * @param WavData Buffer of the wav data
-	 */
-	bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
-
-	/**
-	 * Getting the minimum and maximum values of the specified RAW format
-	 *
-	 * @note Key - Minimum, Value - Maximum
-	 */
-	template <typename IntegralType>
-	TPair<double, double> GetRawMinAndMaxValues();
-
 	/**
 	 * Transcode Audio from Audio Data to PCM Data
 	 *
-	 * @param AudioData Pointer to memory location of the audio data
-	 * @param AudioDataSize Memory size allocated for the audio data
-	 * @param Format Format of the audio file (e.g. mp3. flac, etc)
+	 * @param EncodedAudioInfo Encoded audio data
 	 * @return Whether the transcoding was successful or not
 	 */
-	bool TranscodeAudioDataArrayToPCMData(const uint8* AudioData, uint32 AudioDataSize, const EAudioFormat& Format);
+	bool DecodeAudioData(const FEncodedAudioStruct& EncodedAudioInfo);
 
 	/**
 	 * Get audio format by extension
