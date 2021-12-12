@@ -2,33 +2,15 @@
 
 #pragma once
 
+
+#include "RuntimeAudioImporterTypes.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
 /**  */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
 
-/** PCM Data buffer structure */
-USTRUCT()
-struct FPCMStruct
-{
-	GENERATED_BODY()
 
-	/** 32-bit float PCM data */
-	uint8* PCMData;
-
-	/** Number of PCM frames */
-	uint64 PCMNumOfFrames;
-
-	/** PCM data size */
-	uint32 PCMDataSize;
-
-	/** Base constructor */
-	FPCMStruct()
-		: PCMData(nullptr), PCMNumOfFrames(0), PCMDataSize(0)
-	{
-	}
-};
 
 /**
  * The main sound wave class used to play imported audio from the Runtime Audio Importer
@@ -127,7 +109,6 @@ public:
 	/**
 	 * PCM buffer. Will be cleared when the object is destroyed
 	 */
-	UPROPERTY()
 	FPCMStruct PCMBufferInfo;
 
 protected:
