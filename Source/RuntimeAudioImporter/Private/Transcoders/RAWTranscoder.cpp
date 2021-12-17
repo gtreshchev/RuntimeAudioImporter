@@ -1,4 +1,6 @@
-﻿#include "Transcoders/RAWTranscoder.h"
+﻿// Georgy Treshchev 2021.
+
+#include "Transcoders/RAWTranscoder.h"
 
 template <typename IntegralType>
 TPair<double, double> RAWTranscoder::GetRawMinAndMaxValues()

@@ -1,4 +1,6 @@
-﻿/**
+﻿// Georgy Treshchev 2021.
+
+/**
 * Replacing standard CPP memory methods (malloc, realloc, free) with engine ones
 */
 #undef malloc

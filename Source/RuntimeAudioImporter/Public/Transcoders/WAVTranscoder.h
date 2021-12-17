@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿// Georgy Treshchev 2021.
+
+#pragma once
 
 #include "CoreMinimal.h"
 
