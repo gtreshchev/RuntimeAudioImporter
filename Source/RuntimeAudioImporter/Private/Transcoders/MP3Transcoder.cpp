@@ -1,4 +1,6 @@
-﻿#include "Transcoders/MP3Transcoder.h"
+﻿// Georgy Treshchev 2021.
+
+#include "Transcoders/MP3Transcoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_DR_MP3

@@ -1,4 +1,6 @@
-﻿#include "Transcoders/OGGVorbisTranscoder.h"
+﻿// Georgy Treshchev 2021.
+
+#include "Transcoders/OGGVorbisTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_STB_VORBIS

@@ -1,4 +1,6 @@
-﻿#include "Transcoders/WAVTranscoder.h"
+﻿// Georgy Treshchev 2021.
+
+#include "Transcoders/WAVTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_DR_WAV

@@ -1,4 +1,8 @@
-﻿#pragma once
+﻿// Georgy Treshchev 2021.
+
+#pragma once
+
+#include "CoreMinimal.h"
 
 /** Possible audio importing results */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")

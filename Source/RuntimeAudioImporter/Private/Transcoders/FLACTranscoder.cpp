@@ -1,4 +1,6 @@
-﻿#include "Transcoders/FLACTranscoder.h"
+﻿// Georgy Treshchev 2021.
+
+#include "Transcoders/FLACTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_DR_FLAC
