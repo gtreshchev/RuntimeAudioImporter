@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "Engine/EngineBaseTypes.h"
+
+#include "RuntimeAudioImporterTypes.generated.h"
 
 /** Possible audio importing results */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
