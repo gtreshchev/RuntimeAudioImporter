@@ -10,7 +10,7 @@
     Importing audio of various formats at runtime
     <br/>
     <br/>
-    <a href="https://unreal.blog/runtime-audio-importer"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/gtreshchev/RuntimeAudioImporter/wiki"><strong>Explore the docs »</strong></a>
     <br/>
     <br/>
     <a href="https://unrealengine.com/marketplace/product/runtime-audio-importer">Marketplace</a>
