@@ -24,7 +24,7 @@
 ## Features
 - Fast transcoding speed (≈ 200-900 ms)
 - Supported for major audio formats: MP3, WAV, FLAC and OGG Vorbis
-- Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float)
+- Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float
 - Automatic detection of audio format (by extension)
 - System for obtaining transcoding status for error detection
 - No any static libraries and external dependencies
