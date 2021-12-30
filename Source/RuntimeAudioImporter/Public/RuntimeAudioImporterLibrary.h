@@ -1,4 +1,4 @@
-// Georgy Treshchev 2021.
+// Georgy Treshchev 2022.
 
 #pragma once
 
@@ -14,8 +14,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int3
 
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*,
-											   RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
-											   const ETranscodingStatus&, Status);
+                                               RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
+                                               const ETranscodingStatus&, Status);
 
 /**
  * Runtime Audio Importer object
@@ -43,8 +43,7 @@ public:
 	 *
 	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"),
-		Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
 
 	/**
@@ -53,8 +52,7 @@ public:
 	 * @param FilePath Path to the audio file to import
 	 * @param Format Audio file format (extension)
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"),
-		Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
 	void ImportAudioFromFile(const FString& FilePath, EAudioFormat Format);
 
 	/**
@@ -62,8 +60,7 @@ public:
 	 *
 	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference. Should contain "BaseAudioDataArray" buffer
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"),
-		Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category = "Runtime Audio Importer")
 	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
@@ -72,8 +69,7 @@ public:
 	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords =
-		"Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
 	void ImportAudioFromBuffer_BP(TArray<uint8> AudioDataBuffer, EAudioFormat Format);
 
 	/**
@@ -93,8 +89,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
-	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100,
-								const int32 NumOfChannels = 1);
+	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 
 	/**
 	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed
@@ -105,8 +100,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
-	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100,
-								const int32 NumOfChannels = 1);
+	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 	/**
 	 * Import audio from 32-bit float PCM data
 	 *
@@ -115,8 +109,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate = 44100,
-									const int32 NumOfChannels = 1);
+	void ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 
 
 	/**
@@ -140,7 +133,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
 	bool TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo);
-	
+
 
 private:
 	/**
