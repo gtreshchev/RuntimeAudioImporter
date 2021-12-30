@@ -50,20 +50,24 @@ float UImportedSoundWave::GetPlaybackTime() const
 	return static_cast<float>(CurrentNumOfFrames) / SampleRate;
 }
 
-float UImportedSoundWave::GetDuration()
+float UImportedSoundWave::GetDurationConst() const
 {
 	return static_cast<float>(PCMBufferInfo.PCMNumOfFrames) / SampleRate;
 }
 
-float UImportedSoundWave::GetPlaybackPercentage()
+float UImportedSoundWave::GetDuration()
 {
-	return (GetPlaybackTime() / GetDuration()) * 100;
+	return GetDurationConst();
+}
+
+float UImportedSoundWave::GetPlaybackPercentage() const
+{
+	return (GetPlaybackTime() / GetDurationConst()) * 100;
 }
 
 bool UImportedSoundWave::IsPlaybackFinished()
 {
-	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.
-		PCMDataSize > 0;
+	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0;
 }
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
@@ -104,7 +108,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	{
 		return 0;
 	}
-	//OutAudio.Reset();
+	
 	// Filling OutAudio array with the retrieved PCM data
 	OutAudio = TArray<uint8>(RetrievedPCMData, RetrievedPCMDataSize);
 
