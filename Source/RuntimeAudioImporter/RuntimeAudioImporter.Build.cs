@@ -1,4 +1,4 @@
-// Georgy Treshchev 2021.
+// Georgy Treshchev 2022.
 
 using UnrealBuildTool;
 
