@@ -7,7 +7,7 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
-/**  */
+/** Delegate broadcast to track the end of audio playback */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
 
 
@@ -67,6 +67,12 @@ public:
 	float GetPlaybackTime() const;
 
 	/**
+	 * Constant alternative for getting the length of the sound wave, in seconds
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave", meta = (DisplayName = "Get Duration"))
+	float GetDurationConst() const;
+	
+	/**
 	 * Get the length of the sound wave, in seconds
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
@@ -76,7 +82,7 @@ public:
 	 * Get the current sound playback percentage, 0-100%
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
-	float GetPlaybackPercentage();
+	float GetPlaybackPercentage() const;
 
 	/**
 	 * Sampling Rate (samples per second)
