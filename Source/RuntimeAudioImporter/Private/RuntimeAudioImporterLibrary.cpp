@@ -8,7 +8,7 @@
 #include "Async/Async.h"
 #include "Transcoders/FLACTranscoder.h"
 #include "Transcoders/MP3Transcoder.h"
-#include "Transcoders/OGGVorbisTranscoder.h"
+#include "Transcoders/VorbisTranscoder.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "Transcoders/WAVTranscoder.h"
 
@@ -43,8 +43,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	ImportAudioFromBuffer(AudioBuffer, Format);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format,
-                                                          const int32 SampleRate, const int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate, const int32 NumOfChannels)
 {
 	if (!FPaths::FileExists(FilePath))
 	{
@@ -72,14 +71,13 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 	});
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format,
-                                                            const int32 SampleRate, const int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate, const int32 NumOfChannels)
 {
-	uint8* RAWData = RAWBuffer.GetData();
-	const uint32 RAWDataSize = RAWBuffer.Num() - 2;
+	uint8* RAWData{RAWBuffer.GetData()};
+	const uint32 RAWDataSize{static_cast<const uint32>(RAWBuffer.Num() - 2)};
 
-	float* PCMData = nullptr;
-	uint32 PCMDataSize = 0;
+	float* PCMData{nullptr};
+	uint32 PCMDataSize{0};
 
 	/** Transcoding RAW data to 32-bit float Data */
 	{
@@ -87,14 +85,12 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		{
 		case ERAWAudioFormat::Int16:
 			{
-				RAWTranscoder::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData,
-				                                              PCMDataSize);
+				RAWTranscoder::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERAWAudioFormat::Int32:
 			{
-				RAWTranscoder::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData,
-				                                              PCMDataSize);
+				RAWTranscoder::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERAWAudioFormat::UInt8:
@@ -125,8 +121,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize,
-                                                                const int32 SampleRate, const int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, const uint32 PCMDataSize, const int32 SampleRate, const int32 NumOfChannels)
 {
 	/** Filling all the required information */
 	{
@@ -136,8 +131,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, 
 
 		DecodedAudioInfo.SoundWaveBasicInfo.ChannelsNum = NumOfChannels;
 		DecodedAudioInfo.SoundWaveBasicInfo.SampleRate = SampleRate;
-		DecodedAudioInfo.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedAudioInfo.PCMInfo.PCMNumOfFrames) /
-			SampleRate;
+		DecodedAudioInfo.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedAudioInfo.PCMInfo.PCMNumOfFrames) / SampleRate;
 	}
 
 	/** OnProgress Callback */
@@ -157,8 +151,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioD
 	ImportAudioFromBuffer(AudioDataBuffer, Format);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer,
-                                                         const EAudioFormat& Format)
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format)
 {
 	if (Format == EAudioFormat::Wav) if (!WAVTranscoder::CheckAndFixWavDurationErrors(AudioDataBuffer)) return;
 
@@ -169,9 +162,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDat
 	});
 }
 
-void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From,
-                                                              ERAWAudioFormat RAWFrom, TArray<uint8>& RAWData_To,
-                                                              ERAWAudioFormat RAWTo)
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat RAWFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat RAWTo)
 {
 	TArray<uint8> IntermediateRAWBuffer;
 
@@ -229,8 +220,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 	}
 }
 
-bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom,
-                                                            const FString& FilePathTo, ERAWAudioFormat FormatTo)
+bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo)
 {
 	/** Loading a file into a byte array */
 	TArray<uint8> RAWBufferFrom;
@@ -260,8 +250,7 @@ bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 	return true;
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer,
-                                                                  const EAudioFormat& Format)
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format)
 {
 	/** OnProgress Callback */
 	OnProgress_Internal(5);
@@ -273,9 +262,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<u
 		return;
 	}
 
-	const FEncodedAudioStruct& EncodedAudioInfo{
-		FEncodedAudioStruct(const_cast<uint8*>(AudioDataBuffer.GetData()), AudioDataBuffer.Num() - 2, Format)
-	};
+	const FEncodedAudioStruct& EncodedAudioInfo{FEncodedAudioStruct(const_cast<uint8*>(AudioDataBuffer.GetData()), AudioDataBuffer.Num() - 2, Format)};
 
 	/** Transcoding the imported Audio Data to PCM Data */
 	if (!DecodeAudioData(EncodedAudioInfo)) return;
@@ -347,8 +334,7 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 {
 	/*int16* RawPCMData;
 	uint32 RawPCMDataSize;
-	RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData),
-	                                              TranscodingFillInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
+	RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData), TranscodingFillInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
 	SoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(SoundWaveRef->RawPCMDataSize));
 	FMemory::Memmove(SoundWaveRef->RawPCMData, RawPCMData, RawPCMDataSize);*/
 	// We do not need to fill a standard PCM buffer since we have a custom sound wave with custom buffer. But if you want to fill the standard PCM buffer, just uncomment the code above
@@ -392,7 +378,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(const FEncodedAudioStruct& En
 		}
 	case EAudioFormat::OggVorbis:
 		{
-			if (!OGGVorbisTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!VorbisTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
 			{
 				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 				return false;
@@ -412,19 +398,19 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePat
 {
 	const FString& Extension{FPaths::GetExtension(FilePath, false).ToLower()};
 
-	if (Extension == "mp3")
+	if (Extension == TEXT("mp3"))
 	{
 		return EAudioFormat::Mp3;
 	}
-	if (Extension == "wav" || Extension == "wave")
+	if (Extension == TEXT("wav") || Extension == TEXT("wave"))
 	{
 		return EAudioFormat::Wav;
 	}
-	if (Extension == "flac")
+	if (Extension == TEXT("flac"))
 	{
 		return EAudioFormat::Flac;
 	}
-	if (Extension == "ogg" || Extension == "oga" || Extension == "sb0")
+	if (Extension == TEXT("ogg") || Extension == TEXT("oga") || Extension == TEXT("sb0"))
 	{
 		return EAudioFormat::OggVorbis;
 	}

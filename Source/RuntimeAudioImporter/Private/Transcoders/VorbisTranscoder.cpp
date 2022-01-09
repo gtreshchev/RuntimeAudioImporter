@@ -1,13 +1,13 @@
 ﻿// Georgy Treshchev 2022.
 
-#include "Transcoders/OGGVorbisTranscoder.h"
+#include "Transcoders/VorbisTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
-#define INCLUDE_STB_VORBIS
-#include "RuntimeAudioImporterDefines.h"
-#undef INCLUDE_STB_VORBIS
+#define INCLUDE_VORBIS
+#include "RuntimeAudioImporterIncludes.h"
+#undef INCLUDE_VORBIS
 
-bool OGGVorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
+bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	stb_vorbis* STB_Vorbis{stb_vorbis_open_memory(EncodedData.AudioData, EncodedData.AudioDataSize, nullptr, nullptr)};
 
@@ -29,8 +29,8 @@ bool OGGVorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioS
 	while (true)
 	{
 		float** DecodedBufferInFrame;
-		const int32 NumOfSamplesInFrame =
-			stb_vorbis_get_frame_float(STB_Vorbis, nullptr, &DecodedBufferInFrame);
+		const int32 NumOfSamplesInFrame = stb_vorbis_get_frame_float(STB_Vorbis, nullptr, &DecodedBufferInFrame);
+
 		if (NumOfSamplesInFrame == 0)
 		{
 			break;
@@ -57,13 +57,11 @@ bool OGGVorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioS
 	stb_vorbis_close(STB_Vorbis);
 
 	/** Getting PCM data size */
-	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(DecodedData.PCMInfo.PCMNumOfFrames *
-		info.channels * sizeof(float));
+	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(DecodedData.PCMInfo.PCMNumOfFrames * info.channels * sizeof(float));
 
 	/** Getting basic audio information */
 	{
-		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedData.PCMInfo.PCMNumOfFrames) / info.
-			sample_rate;
+		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedData.PCMInfo.PCMNumOfFrames) / info.sample_rate;
 		DecodedData.SoundWaveBasicInfo.ChannelsNum = info.channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = info.sample_rate;
 	}
