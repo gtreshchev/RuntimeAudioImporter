@@ -7,7 +7,7 @@
 struct FDecodedAudioStruct;
 struct FEncodedAudioStruct;
 
-class RUNTIMEAUDIOIMPORTER_API OGGVorbisTranscoder
+class RUNTIMEAUDIOIMPORTER_API VorbisTranscoder
 {
 public:
 	/*static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData);*/

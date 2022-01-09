@@ -7,8 +7,7 @@
 #include "Misc/FileHelper.h"
 #include "Serialization/ArchiveSaveCompressedProxy.h"
 
-/** Defining custom logging */
-DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory)
+DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
 #include "ThirdParty/dr_mp3.h"
 
@@ -47,9 +46,7 @@ bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 	return FileExtension == "mp3" || FileExtension == "imp";
 }
 
-UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName,
-                                                     EObjectFlags Flags, const FString& Filename, const TCHAR* Parms,
-                                                     FFeedbackContext* Warn, bool& bOutOperationCanceled)
+UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
 	UPreImportedSoundAsset* PreImportedSoundAsset;
 
@@ -67,7 +64,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 		if (!drmp3_init_memory(&mp3, AudioDataArray.GetData(), AudioDataArray.Num() - 2, &allocationCallbacksDecoding))
 		{
-			UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The file you are trying to import is not an MP3 file."));
+			UE_LOG(LogPreImportedSoundFactory, Error, TEXT("The file you are trying to import is not an MP3 file."));
 			return nullptr;
 		}
 
@@ -75,8 +72,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 		PreImportedSoundAsset->AudioDataArray = AudioDataArray;
 		PreImportedSoundAsset->SourceFilePath = Filename;
 
-		PreImportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(
-			static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
+		PreImportedSoundAsset->SoundDuration = ConvertSecToFormattedDuration(static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
 		PreImportedSoundAsset->NumberOfChannels = mp3.channels;
 		PreImportedSoundAsset->SampleRate = mp3.sampleRate;
 
@@ -84,7 +80,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 	else
 	{
-		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Unable to read the audio file. Check file permissions."));
+		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file. Check file permissions."));
 		return nullptr;
 	}
 
@@ -100,8 +96,7 @@ FString UPreImportedSoundFactory::ConvertSecToFormattedDuration(int32 Seconds)
 	const int32 NewHours = Seconds / 3600;
 	if (NewHours > 0)
 	{
-		FinalString += ((NewHours < 10) ? TEXT("0") + FString::FromInt(NewHours) : FString::FromInt(NewHours)) +
-			TEXT(":");
+		FinalString += ((NewHours < 10) ? TEXT("0") + FString::FromInt(NewHours) : FString::FromInt(NewHours)) + TEXT(":");
 	}
 
 	Seconds = Seconds % 3600;
@@ -109,8 +104,7 @@ FString UPreImportedSoundFactory::ConvertSecToFormattedDuration(int32 Seconds)
 	const int32 NewMinutes = Seconds / 60;
 	if (NewMinutes > 0)
 	{
-		FinalString += ((NewMinutes < 10) ? TEXT("0") + FString::FromInt(NewMinutes) : FString::FromInt(NewMinutes)) +
-			TEXT(":");
+		FinalString += ((NewMinutes < 10) ? TEXT("0") + FString::FromInt(NewMinutes) : FString::FromInt(NewMinutes)) + TEXT(":");
 	}
 
 	const int32 NewSeconds = Seconds % 60;

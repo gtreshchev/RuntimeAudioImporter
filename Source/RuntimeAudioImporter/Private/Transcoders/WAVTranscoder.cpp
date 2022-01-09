@@ -3,9 +3,9 @@
 #include "Transcoders/WAVTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 
-#define INCLUDE_DR_WAV
-#include "RuntimeAudioImporterDefines.h"
-#undef INCLUDE_DR_WAV
+#define INCLUDE_WAV
+#include "RuntimeAudioImporterIncludes.h"
+#undef INCLUDE_WAV
 
 bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 {
@@ -69,6 +69,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	drwav wav;
+
 	/** Initializing transcoding of audio data in memory */
 	if (!drwav_init_memory(&wav, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
 	{
@@ -76,16 +77,13 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	}
 
 	/** Allocating memory for PCM data */
-	DecodedData.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(
-		wav.totalPCMFrameCount * wav.channels * sizeof(float)));
+	DecodedData.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(wav.totalPCMFrameCount * wav.channels * sizeof(float)));
 
 	/** Filling PCM data and getting the number of frames */
-	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(
-		&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
+	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
 
 	/** Getting PCM data size */
-	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(
-		DecodedData.PCMInfo.PCMNumOfFrames * wav.channels * sizeof(float));
+	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(DecodedData.PCMInfo.PCMNumOfFrames * wav.channels * sizeof(float));
 
 	/** Getting basic audio information */
 	{
