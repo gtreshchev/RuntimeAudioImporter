@@ -3,6 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "Logging/LogCategory.h"
+#include "Logging/LogMacros.h"
+#include "Logging/LogVerbosity.h"
+
 #include "Factories/Factory.h"
 #include "PreImportedSoundFactory.generated.h"
 
@@ -18,7 +23,6 @@ class RUNTIMEAUDIOIMPORTEREDITOR_API UPreImportedSoundFactory : public UFactory
 	GENERATED_BODY()
 
 public:
-
 	UPreImportedSoundFactory();
 
 	/**
@@ -29,12 +33,9 @@ public:
 	 */
 	virtual bool FactoryCanImport(const FString& Filename) override;
 
-	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags,
-	                                   const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn,
-	                                   bool& bOutOperationCanceled) override;
+	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 
 private:
-
 	/**
 	 * Convert sound duration from seconds to formatted string (hh:mm:ss)
 	 *

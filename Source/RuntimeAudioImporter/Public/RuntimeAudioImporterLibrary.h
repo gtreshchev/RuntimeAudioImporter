@@ -13,9 +13,7 @@ class UPreImportedSoundAsset;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
 
 /** Delegate broadcast to get the audio importer result */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*,
-                                               RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef,
-                                               const ETranscodingStatus&, Status);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, const ETranscodingStatus&, Status);
 
 /**
  * Runtime Audio Importer object
@@ -88,7 +86,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW File"), Category = "Runtime Audio Importer")
 	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 
 	/**
@@ -120,7 +118,7 @@ public:
 	 * @param RAWData_To Transcoded RAW data with the specified format
 	 * @param FormatTo Required format
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer")
 	void TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat FormatTo);
 
 	/**
@@ -131,7 +129,7 @@ public:
 	 * @param FilePathTo File path for saving RAW data
 	 * @param FormatTo Required format
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From File"), Category = "Runtime Audio Importer")
 	bool TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo);
 
 
