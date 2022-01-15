@@ -2,12 +2,12 @@
 
 #include "PreImportedSoundFactory.h"
 
+#include "RuntimeAudioImporterEditor.h"
+
 #include "PreImportedSoundAsset.h"
 
 #include "Misc/FileHelper.h"
 #include "Serialization/ArchiveSaveCompressedProxy.h"
-
-DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
 #include "ThirdParty/dr_mp3.h"
 

@@ -12,24 +12,24 @@ public class RuntimeAudioImporterEditor : ModuleRules
             new string[] {
 	            "DR_MP3_IMPLEMENTATION=1"
             }
-            );
+		);
 
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-				"RuntimeAudioImporter"
+				"RuntimeAudioImporter",
+				"CoreUObject",
+				"Engine"
 			}
 		);
 		
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"CoreUObject",
-				"Engine",
 				"UnrealEd"
 			}
-			);
+		);
 		
 	}
 }
