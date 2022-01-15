@@ -14,4 +14,6 @@ void FRuntimeAudioImporterEditorModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 
+DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
+
 IMPLEMENT_MODULE(FRuntimeAudioImporterEditorModule, RuntimeAudioImporterEditor)
