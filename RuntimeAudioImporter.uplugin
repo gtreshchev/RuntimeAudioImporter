@@ -19,19 +19,7 @@
     {
       "Name": "RuntimeAudioImporter",
       "Type": "Runtime",
-      "LoadingPhase": "Default",
-      "WhitelistPlatforms": [
-        "Win64",
-        "Mac",
-        "Android",
-        "IOS",
-        "Linux"
-      ],
-      "BlacklistPlatforms": [
-        "PS4",
-        "TVOS",
-        "Switch"
-      ]
+      "LoadingPhase": "Default"
     },
     {
       "Name": "RuntimeAudioImporterEditor",
