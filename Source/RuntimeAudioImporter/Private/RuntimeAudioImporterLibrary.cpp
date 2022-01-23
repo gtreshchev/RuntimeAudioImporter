@@ -2,15 +2,17 @@
 
 #include "RuntimeAudioImporterLibrary.h"
 
-#include "PreImportedSoundAsset.h"
 #include "RuntimeAudioImporterTypes.h"
-#include "Misc/FileHelper.h"
-#include "Async/Async.h"
+#include "PreImportedSoundAsset.h"
+
 #include "Transcoders/FLACTranscoder.h"
 #include "Transcoders/MP3Transcoder.h"
 #include "Transcoders/VorbisTranscoder.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "Transcoders/WAVTranscoder.h"
+
+#include "Misc/FileHelper.h"
+#include "Async/Async.h"
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -29,7 +31,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	}
 
 	/** Getting the audio format */
-	if (Format == EAudioFormat::Auto) Format = GetAudioFormat(FilePath);
+	Format = Format != EAudioFormat::Auto ? Format : GetAudioFormat(FilePath);
 
 	TArray<uint8> AudioBuffer;
 
@@ -50,19 +52,16 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 		OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
 		return;
 	}
-
-	/** OnProgress Callback */
+	
 	OnProgress_Internal(5);
 
 	TArray<uint8> AudioBuffer;
 	if (!FFileHelper::LoadFileToArray(AudioBuffer, *FilePath))
 	{
-		/** OnResult Callback */
 		OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
 		return;
 	}
-
-	/** OnProgress Callback */
+	
 	OnProgress_Internal(35);
 
 	AsyncTask(ENamedThreads::AnyThread, [&, AudioBuffer, Format, SampleRate, NumOfChannels]()
@@ -110,13 +109,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 
 	if (!PCMData || PCMDataSize < 0)
 	{
-		/** OnResult Callback */
 		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 		return;
 	}
-
-	/** Clearing the RAW Buffer */
-	RAWBuffer.Empty();
 
 	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
 }
@@ -133,8 +128,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, 
 		DecodedAudioInfo.SoundWaveBasicInfo.SampleRate = SampleRate;
 		DecodedAudioInfo.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedAudioInfo.PCMInfo.PCMNumOfFrames) / SampleRate;
 	}
-
-	/** OnProgress Callback */
+	
 	OnProgress_Internal(50);
 
 	/** Finalizing import */
@@ -151,7 +145,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioD
 	ImportAudioFromBuffer(AudioDataBuffer, Format);
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format)
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, EAudioFormat Format)
 {
 	if (Format == EAudioFormat::Wav) if (!WAVTranscoder::CheckAndFixWavDurationErrors(AudioDataBuffer)) return;
 
@@ -190,8 +184,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 			break;
 		}
 	}
-
-	/** Clearing unused buffer */
+	
 	RAWData_From.Empty();
 
 	/** Transcoding unsigned 8-bit PCM to the specified format */
@@ -231,20 +224,16 @@ bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 
 	TArray<uint8> RAWBufferTo;
 	TranscodeRAWDataFromBuffer(RAWBufferFrom, FormatFrom, RAWBufferTo, FormatTo);
-
-	/** Clearing unused buffer */
+	
 	RAWBufferFrom.Empty();
 
 	/** Writing a file to a specified location */
 	if (!FFileHelper::SaveArrayToFile(RAWBufferTo, *FilePathTo))
 	{
-		/** Clearing unused buffer */
 		RAWBufferTo.Empty();
-
 		return false;
 	}
-
-	/** Clearing unused buffer */
+	
 	RAWBufferTo.Empty();
 
 	return true;
@@ -252,12 +241,10 @@ bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format)
 {
-	/** OnProgress Callback */
 	OnProgress_Internal(5);
 
 	if (Format == EAudioFormat::Auto || Format == EAudioFormat::Invalid)
 	{
-		/** OnResult Callback */
 		OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
 		return;
 	}
@@ -284,10 +271,8 @@ void URuntimeAudioImporterLibrary::CreateSoundWaveAndFinishImport()
 		{
 			if (DefineSoundWave(SoundWaveRef))
 			{
-				/** OnProgress Callback */
 				OnProgress_Internal(100);
-
-				/** OnResult Callback, with the created SoundWave object */
+				
 				OnResult_Internal(SoundWaveRef, ETranscodingStatus::SuccessfulImport);
 			}
 		});
@@ -297,19 +282,16 @@ void URuntimeAudioImporterLibrary::CreateSoundWaveAndFinishImport()
 
 bool URuntimeAudioImporterLibrary::DefineSoundWave(UImportedSoundWave* SoundWaveRef)
 {
-	/** OnProgress Callback */
 	OnProgress_Internal(70);
 
 	/** Fill SoundWave basic information (e.g. duration, number of channels, etc) */
 	FillSoundWaveBasicInfo(SoundWaveRef);
-
-	/** OnProgress Callback */
+	
 	OnProgress_Internal(75);
 
 	/** Fill PCM data buffer */
 	FillPCMData(SoundWaveRef);
-
-	/** OnProgress Callback */
+	
 	OnProgress_Internal(95);
 
 	return true;
@@ -387,7 +369,6 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(const FEncodedAudioStruct& En
 		}
 	default:
 		{
-			/** OnResult Callback */
 			OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
 			return false;
 		}
@@ -402,14 +383,17 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePat
 	{
 		return EAudioFormat::Mp3;
 	}
+	
 	if (Extension == TEXT("wav") || Extension == TEXT("wave"))
 	{
 		return EAudioFormat::Wav;
 	}
+	
 	if (Extension == TEXT("flac"))
 	{
 		return EAudioFormat::Flac;
 	}
+	
 	if (Extension == TEXT("ogg") || Extension == TEXT("oga") || Extension == TEXT("sb0"))
 	{
 		return EAudioFormat::OggVorbis;
@@ -418,17 +402,20 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePat
 	return EAudioFormat::Invalid;
 }
 
-void URuntimeAudioImporterLibrary::OnProgress_Internal(const int32& Percentage)
+void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 {
-	AsyncTask(ENamedThreads::GameThread, [&, Percentage]()
+	AsyncTask(ENamedThreads::GameThread, [this, Percentage]()
 	{
-		if (OnProgress.IsBound()) OnProgress.Broadcast(Percentage);
+		if (OnProgress.IsBound())
+		{
+			OnProgress.Broadcast(Percentage);
+		}
 	});
 }
 
-void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWaveRef, const ETranscodingStatus& Status)
+void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status)
 {
-	AsyncTask(ENamedThreads::GameThread, [&, SoundWaveRef, Status]()
+	AsyncTask(ENamedThreads::GameThread, [this, SoundWaveRef, Status]()
 	{
 		if (OnResult.IsBound())
 		{
