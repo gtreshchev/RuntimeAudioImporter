@@ -2,14 +2,12 @@
 
 #pragma once
 
-
 #include "RuntimeAudioImporterTypes.h"
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
 /** Delegate broadcast to track the end of audio playback */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
-
 
 
 /**
@@ -21,26 +19,14 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 	GENERATED_BODY()
 public:
 	/**
-	 * Bind to this delegate to know when the audio playback is finished
-	 */
-	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave")
-	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
-
-	/**
-	 * Bool to control the behaviour of the OnAudioPlaybackFinished delegate
-	 */
-	UPROPERTY()
-	bool PlaybackFinishedBroadcast = false;
-
-	/**
-	 * Begin Destroy override method
+	 * ImportedSoundWave destruction
 	 */
 	virtual void BeginDestroy() override;
 
 	/**
 	 * Release PCM data. After the SoundWave is no longer needed, you need to call this function to free memory
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
 	void ReleaseMemory();
 
 	/**
@@ -49,7 +35,7 @@ public:
 	 * @param PlaybackTime How long to rewind the sound
 	 * @return Whether the sound was rewound or not
 	 */
-	UFUNCTION(BlueprintCallable, Category = "RuntimeAudioImporter")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
 	bool RewindPlaybackTime(const float PlaybackTime);
 
 	/**
@@ -63,64 +49,80 @@ public:
 	/**
 	 * Get the current sound wave playback time, in seconds
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	float GetPlaybackTime() const;
 
 	/**
 	 * Constant alternative for getting the length of the sound wave, in seconds
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave", meta = (DisplayName = "Get Duration"))
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get Duration"))
 	float GetDurationConst() const;
-	
+
 	/**
 	 * Get the length of the sound wave, in seconds
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	virtual float GetDuration() override;
 
 	/**
 	 * Get the current sound playback percentage, 0-100%
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	float GetPlaybackPercentage() const;
 
 	/**
 	 * Sampling Rate (samples per second)
 	 */
-	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave")
+	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
 	int32 SamplingRate;
 
 	/**
 	 * Check if audio playback has finished or not
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Utility")
 	bool IsPlaybackFinished();
 
 	/**
-	 * Method for splitting sound into frames and a piece of of PCM data, and returning them to the audio render thread 
+	 * Bind to this delegate to know when the audio playback is finished
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
+	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
+
+private:
+	/**
+	 * Bool to control the behaviour of the OnAudioPlaybackFinished delegate
+	 */
+	bool PlaybackFinishedBroadcast = false;
+
+public:
+	//~ Begin UProceduralSoundWave Interface
+
+	/**
+	 * Generating PCM data by splitting it into samples
 	 *
 	 * @param OutAudio Retrieved PCM data array
-	 * @param NumSamples Required number of samples for retrieval
+	 * @param NumSamples Required number of samples
 	 * @return Number of retrieved samples (usually equals to NumSamples)
 	 */
 	virtual int32 OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
 
 	/**
-	 * Getting the format of the retrieved PCM data.
+	 * Getting the format of the retrieved PCM data
 	 *
 	 * @note Since we are using 32-bit float, there will be no PCM transcoding in the engine, which will improve audio processing performance
 	 */
 	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
 
+	//~ End UProceduralSoundWave Interface
+
 	/**
-	 * PCM buffer. Will be cleared when the object is destroyed
+	 * The current number of processed frames
+	 */
+	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
+	int32 CurrentNumOfFrames = 0;
+
+	/**
+	 * Contains PCM data for sound wave playback
 	 */
 	FPCMStruct PCMBufferInfo;
-
-protected:
-	/**
-	 * The current number of frames
-	 */
-	UPROPERTY()
-	int32 CurrentNumOfFrames = 0;
 };
