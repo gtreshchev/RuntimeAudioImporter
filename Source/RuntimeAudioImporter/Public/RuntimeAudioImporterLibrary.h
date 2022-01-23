@@ -26,7 +26,7 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 
 public:
 	/** Bind to know when the transcoding is on progress */
-	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer")
+	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
 
 	/** Bind to know when the transcoding is complete (even if it fails) */
@@ -41,7 +41,7 @@ public:
 	 *
 	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV, OGG, VORBIS, OPUS, IMPORT"), Category = "Runtime Audio Importer")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
 
 	/**
@@ -50,7 +50,7 @@ public:
 	 * @param FilePath Path to the audio file to import
 	 * @param Format Audio file format (extension)
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromFile(const FString& FilePath, EAudioFormat Format);
 
 	/**
@@ -58,7 +58,7 @@ public:
 	 *
 	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference. Should contain "BaseAudioDataArray" buffer
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
@@ -67,7 +67,7 @@ public:
 	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV"), Category = "Runtime Audio Importer|Advanced")
 	void ImportAudioFromBuffer_BP(TArray<uint8> AudioDataBuffer, EAudioFormat Format);
 
 	/**
@@ -76,7 +76,7 @@ public:
 	 * @param AudioDataBuffer Buffer of the audio data
 	 * @param Format Audio file format (extension)
 	 */
-	void ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, const EAudioFormat& Format);
+	void ImportAudioFromBuffer(TArray<uint8>& AudioDataBuffer, EAudioFormat Format);
 
 	/**
 	 * Import audio from RAW file. Audio data must not have headers and must be uncompressed
@@ -86,7 +86,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW File"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW File"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 
 	/**
@@ -97,7 +97,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW Buffer"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 	/**
 	 * Import audio from 32-bit float PCM data
@@ -118,7 +118,7 @@ public:
 	 * @param RAWData_To Transcoded RAW data with the specified format
 	 * @param FormatTo Required format
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer")
+		UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer|Transcode")
 	void TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat FormatTo);
 
 	/**
@@ -129,7 +129,7 @@ public:
 	 * @param FilePathTo File path for saving RAW data
 	 * @param FormatTo Required format
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From File"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From File"), Category = "Runtime Audio Importer|Transcode")
 	bool TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo);
 
 
@@ -186,7 +186,7 @@ private:
 	 * @param FilePath File path where to find the format (by extension)
 	 * @return Returns the found audio format (e.g. mp3. flac, etc) by AudioFormat Enum
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utility")
 	static EAudioFormat GetAudioFormat(const FString& FilePath);
 
 	/**
@@ -194,7 +194,7 @@ private:
 	 * 
 	 * @param Percentage Percentage of importing completion (0-100%)
 	 */
-	void OnProgress_Internal(const int32& Percentage);
+	void OnProgress_Internal(int32 Percentage);
 
 	/**
 	 * Audio importing finished callback
@@ -202,5 +202,5 @@ private:
 	 * @param SoundWaveRef A ready SoundWave object
 	 * @param Status Importing status
 	 */
-	void OnResult_Internal(UImportedSoundWave* SoundWaveRef, const ETranscodingStatus& Status);
+	void OnResult_Internal(UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status);
 };

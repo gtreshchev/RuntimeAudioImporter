@@ -97,11 +97,9 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 		NumSamples = (static_cast<int32>(PCMBufferInfo.PCMNumOfFrames) - CurrentNumOfFrames) * NumChannels;
 	}
 
-
 	/** Retrieving a part of PCM data */
 	const uint8* RetrievedPCMData = PCMBufferInfo.PCMData + (CurrentNumOfFrames * NumChannels * sizeof(float));
 	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
-
 
 	/** Ensure we got a valid PCM data */
 	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)

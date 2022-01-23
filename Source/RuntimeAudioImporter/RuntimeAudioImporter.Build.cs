@@ -17,8 +17,7 @@ public class RuntimeAudioImporter : ModuleRules
 			}
 		);
 
-
-		PublicDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"CoreUObject",
