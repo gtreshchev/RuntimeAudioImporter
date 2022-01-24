@@ -316,7 +316,7 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef)
 {
 	/*int16* RawPCMData;
 	uint32 RawPCMDataSize;
-	RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(TranscodingFillInfo.PCMInfo.PCMData), TranscodingFillInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
+	RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
 	SoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(SoundWaveRef->RawPCMDataSize));
 	FMemory::Memmove(SoundWaveRef->RawPCMData, RawPCMData, RawPCMDataSize);*/
 	// We do not need to fill a standard PCM buffer since we have a custom sound wave with custom buffer. But if you want to fill the standard PCM buffer, just uncomment the code above
