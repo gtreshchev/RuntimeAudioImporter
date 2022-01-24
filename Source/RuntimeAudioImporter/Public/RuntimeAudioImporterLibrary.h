@@ -99,6 +99,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW Buffer"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
+	
 	/**
 	 * Import audio from 32-bit float PCM data
 	 *
@@ -118,7 +119,7 @@ public:
 	 * @param RAWData_To Transcoded RAW data with the specified format
 	 * @param FormatTo Required format
 	 */
-		UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer|Transcode")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer|Transcode")
 	void TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat FormatTo);
 
 	/**

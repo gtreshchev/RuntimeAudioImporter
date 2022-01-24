@@ -9,6 +9,9 @@
 /** Delegate broadcast to track the end of audio playback */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
 
+/** Delegate broadcast PCM data during a generation request */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMData, const TArray<float>&, PCMData);
+
 
 /**
  * The main sound wave class used to play imported audio from the Runtime Audio Importer
@@ -87,6 +90,12 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
+
+	/**
+	 * Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data)
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
+	FOnGeneratePCMData OnGeneratePCMData;
 
 private:
 	/**
