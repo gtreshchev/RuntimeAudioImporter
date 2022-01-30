@@ -29,17 +29,17 @@ public:
 	 * Check whether the audio file can be imported.
 	 *
 	 * @param Filename The name of the importing audio file
-	 * @note Only MP3 is available for pre-import because it takes up the least amount of memory.
+	 * @note Only MP3 is available for pre-import because it takes up the least amount of memory
 	 */
 	virtual bool FactoryCanImport(const FString& Filename) override;
 
-	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Parms, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
+	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
 
 private:
 	/**
-	 * Convert sound duration from seconds to formatted string (hh:mm:ss)
+	 * Convert seconds to string (hh:mm:ss or mm:ss depending on the number of seconds)
 	 *
 	 * @param Seconds Audio duration in seconds
 	 */
-	static FString ConvertSecToFormattedDuration(int32 Seconds);
+	static FString ConvertSecondsToString(int32 Seconds);
 };

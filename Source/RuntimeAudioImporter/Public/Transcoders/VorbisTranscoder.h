@@ -10,6 +10,7 @@ struct FEncodedAudioStruct;
 class RUNTIMEAUDIOIMPORTER_API VorbisTranscoder
 {
 public:
+	static bool CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize);
 	/*static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData);*/
 	static bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData);
 };
