@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RuntimeAudioImporterDefines.h"
 
 class RUNTIMEAUDIOIMPORTER_API RAWTranscoder
 {
@@ -13,33 +14,33 @@ public:
 	 * @note Key - Minimum, Value - Maximum
 	 */
 	template <typename IntegralType>
-	static TPair<double, double> GetRawMinAndMaxValues()
+	static TTuple<float, float> GetRawMinAndMaxValues()
 	{
 		/** Signed 16-bit PCM */
 		if (TIsSame<IntegralType, int16>::Value)
 		{
-			return TPair<double, double>(-32767, 32768);
+			return TTuple<float, float>(-32767, 32768);
 		}
 
 		/** Signed 32-bit PCM */
 		if (TIsSame<IntegralType, int32>::Value)
 		{
-			return TPair<double, double>(-2147483648.0, 2147483647.0);
+			return TTuple<float, float>(-2147483648.0, 2147483647.0);
 		}
 
 		/** Unsigned 8-bit PCM */
 		if (TIsSame<IntegralType, uint8>::Value)
 		{
-			return TPair<double, double>(-128.0, 127.0);
+			return TTuple<float, float>(0, 255);
 		}
 
 		/** 32-bit float */
 		if (TIsSame<IntegralType, float>::Value)
 		{
-			return TPair<double, double>(-1.0, 1.0);
+			return TTuple<float, float>(-1.0, 1.0);
 		}
 
-		return TPair<double, double>(-1.0, 1.0);
+		return TTuple<float, float>(-1.0, 1.0);
 	}
 
 	/**
@@ -52,10 +53,10 @@ public:
 	static void TranscodeRAWData(TArray<uint8> RAWData_From, TArray<uint8>& RAWData_To)
 	{
 		IntegralTypeFrom* DataFrom = reinterpret_cast<IntegralTypeFrom*>(RAWData_From.GetData());
-		const uint32 DataFrom_Size = RAWData_From.Num() - 2;
+		const int32 DataFrom_Size = RAWData_From.Num();
 
 		IntegralTypeTo* DataTo = nullptr;
-		uint32 DataTo_Size = 0;
+		int32 DataTo_Size = 0;
 
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
 
@@ -89,7 +90,7 @@ public:
 	 * @param RAWDataSize_To Memory size allocated for the RAW data
 	 */
 	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	static void TranscodeRAWData(IntegralTypeFrom* RAWData_From, uint32 RAWDataSize_From, IntegralTypeTo*& RAWData_To, uint32& RAWDataSize_To)
+	static void TranscodeRAWData(IntegralTypeFrom* RAWData_From, int32 RAWDataSize_From, IntegralTypeTo*& RAWData_To, int32& RAWDataSize_To)
 	{
 		/** Getting the required number of samples to transcode */
 		const int32 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
@@ -100,8 +101,8 @@ public:
 		/** Creating an empty PCM buffer */
 		IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::MallocZeroed(RAWDataSize_To));
 
-		const TPair<double, double> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
-		const TPair<double, double> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
+		const TTuple<float, float> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
+		const TTuple<float, float> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
 
 		/** Iterating through the RAW Data to transcode values using a divisor */
 		for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
@@ -113,5 +114,7 @@ public:
 
 		/** Returning the transcoded data as bytes */
 		RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
+
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%d' (min: %f, max: %f) to size '%d' (min: %f, max: %f)"), static_cast<int32>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<int32>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
 	}
 };

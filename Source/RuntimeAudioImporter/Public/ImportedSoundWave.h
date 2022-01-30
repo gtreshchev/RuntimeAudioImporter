@@ -27,7 +27,7 @@ public:
 	virtual void BeginDestroy() override;
 
 	/**
-	 * Release PCM data. After the SoundWave is no longer needed, you need to call this function to free memory
+	 * Release PCM data. You should only call this function if you are sure of it (it is called automatically by the garbage collector)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
 	void ReleaseMemory();
