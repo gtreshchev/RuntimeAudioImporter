@@ -1,6 +1,7 @@
 ﻿// Georgy Treshchev 2022.
 
 #include "Transcoders/WAVTranscoder.h"
+#include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_WAV
@@ -11,8 +12,9 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 {
 	drwav wav;
 	/** Initializing transcoding of audio data in memory */
-	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num() - 2, nullptr))
+	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num(), nullptr))
 	{
+		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
@@ -66,6 +68,52 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	return true;
 }
 
+bool WAVTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
+{
+	drwav wav;
+	
+	if (!drwav_init_memory(&wav, AudioData, AudioDataSize, nullptr))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData)
+{
+	drwav WAV_Encode;
+
+	drwav_data_format WAV_Format;
+	{
+		WAV_Format.container = drwav_container_riff;
+		WAV_Format.format = DR_WAVE_FORMAT_IEEE_FLOAT;
+		WAV_Format.channels = DecodedData.SoundWaveBasicInfo.ChannelsNum;
+		WAV_Format.sampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
+		WAV_Format.bitsPerSample = 32;
+	}
+
+	void* AudioData = nullptr;
+	size_t AudioDataSize;
+
+	if (!drwav_init_memory_write(&WAV_Encode, &AudioData, &AudioDataSize, &WAV_Format, nullptr))
+	{
+		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
+		return false;
+	}
+
+	drwav_write_pcm_frames(&WAV_Encode, DecodedData.PCMInfo.PCMNumOfFrames, DecodedData.PCMInfo.PCMData);
+	drwav_uninit(&WAV_Encode);
+
+	{
+		EncodedData.AudioData = static_cast<uint8*>(AudioData);
+		EncodedData.AudioDataSize = AudioDataSize;
+		EncodedData.AudioFormat = EAudioFormat::Wav;
+	}
+
+	return true;
+}
+
 bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	drwav wav;
@@ -73,6 +121,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	/** Initializing transcoding of audio data in memory */
 	if (!drwav_init_memory(&wav, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
 	{
+		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
@@ -83,7 +132,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&wav, wav.totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
 
 	/** Getting PCM data size */
-	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(DecodedData.PCMInfo.PCMNumOfFrames * wav.channels * sizeof(float));
+	DecodedData.PCMInfo.PCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * wav.channels * sizeof(float));
 
 	/** Getting basic audio information */
 	{

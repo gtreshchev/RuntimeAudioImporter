@@ -1,18 +1,33 @@
 ﻿// Georgy Treshchev 2022.
 
 #include "Transcoders/FLACTranscoder.h"
+#include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_FLAC
 #include "RuntimeAudioImporterIncludes.h"
 #undef INCLUDE_FLAC
 
+bool FLACTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
+{
+	drflac* pFlac{drflac_open_memory(AudioData, AudioDataSize, nullptr)};
+
+	if (pFlac == nullptr)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool FLACTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	/** Initializing transcoding of audio data in memory */
 	drflac* pFlac{drflac_open_memory(EncodedData.AudioData, EncodedData.AudioDataSize, nullptr)};
+
 	if (pFlac == nullptr)
 	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize FLAC Decoder"));
 		return false;
 	}
 
@@ -23,7 +38,7 @@ bool FLACTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct
 	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(pFlac, pFlac->totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
 
 	/** Getting PCM data size */
-	DecodedData.PCMInfo.PCMDataSize = static_cast<uint32>(DecodedData.PCMInfo.PCMNumOfFrames * pFlac->channels * sizeof(float));
+	DecodedData.PCMInfo.PCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * pFlac->channels * sizeof(float));
 
 	/** Getting basic audio information */
 	{

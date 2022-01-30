@@ -1,33 +1,40 @@
 // Georgy Treshchev 2022.
 
 #include "ImportedSoundWave.h"
+#include "RuntimeAudioImporterDefines.h"
 
 #include "Async/Async.h"
 
 void UImportedSoundWave::BeginDestroy()
 {
-	USoundWaveProcedural::BeginDestroy();
+	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
 
-	// Releasing memory on sound wave destroy
+	/** Releasing memory on sound wave destroy */
 	ReleaseMemory();
+
+	Super::BeginDestroy();
 }
 
 void UImportedSoundWave::ReleaseMemory()
 {
+	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
+
 	if (PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0)
 	{
-		// Release PCM data on destruction
 		FMemory::Free(PCMBufferInfo.PCMData);
 	}
+	
 	PCMBufferInfo = FPCMStruct();
 }
 
 bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
 {
-	if (PlaybackTime > GetDuration())
+	if (PlaybackTime > Duration)
 	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to rewind playback time for the imported sound wave '%s' by time '%f' because total length is '%f'"), *GetName(), PlaybackTime, Duration);
 		return false;
 	}
+	
 	return ChangeCurrentFrameCount(PlaybackTime * SampleRate);
 }
 
@@ -35,11 +42,13 @@ bool UImportedSoundWave::ChangeCurrentFrameCount(const int32 NumOfFrames)
 {
 	if (NumOfFrames < 0 || NumOfFrames > PCMBufferInfo.PCMNumOfFrames)
 	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Cannot change the current frame for the imported sound wave '%s' to frame '%d' because the total number of frames is '%d'"), *GetName(), NumOfFrames, PCMBufferInfo.PCMNumOfFrames);
 		return false;
 	}
+
 	CurrentNumOfFrames = NumOfFrames;
 
-	// Setting "PlaybackFinishedBroadcast" to "false" in order to rebroadcast the "OnAudioPlaybackFinished" delegate again
+	/** Setting "PlaybackFinishedBroadcast" to "false" in order to rebroadcast the "OnAudioPlaybackFinished" delegate again */
 	PlaybackFinishedBroadcast = false;
 
 	return true;
@@ -52,7 +61,7 @@ float UImportedSoundWave::GetPlaybackTime() const
 
 float UImportedSoundWave::GetDurationConst() const
 {
-	return static_cast<float>(PCMBufferInfo.PCMNumOfFrames) / SampleRate;
+	return Duration;
 }
 
 float UImportedSoundWave::GetDuration()
@@ -75,10 +84,12 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	/** Ensure there is enough number of frames. Lack of frames means audio playback has finished */
 	if (CurrentNumOfFrames >= PCMBufferInfo.PCMNumOfFrames)
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
 		{
 			if (!PlaybackFinishedBroadcast)
 			{
+				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
+				
 				PlaybackFinishedBroadcast = true;
 
 				if (OnAudioPlaybackFinished.IsBound())
@@ -92,9 +103,9 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	}
 
 	/** Getting the remaining number of samples if the required number of samples is greater than the total available number */
-	if (CurrentNumOfFrames + NumSamples / NumChannels >= static_cast<int32>(PCMBufferInfo.PCMNumOfFrames))
+	if (CurrentNumOfFrames + NumSamples / NumChannels >= PCMBufferInfo.PCMNumOfFrames)
 	{
-		NumSamples = (static_cast<int32>(PCMBufferInfo.PCMNumOfFrames) - CurrentNumOfFrames) * NumChannels;
+		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
 	}
 
 	/** Retrieving a part of PCM data */
@@ -111,9 +122,9 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	OutAudio = TArray<uint8>(RetrievedPCMData, RetrievedPCMDataSize);
 
 	/** Increasing CurrentFrameCount for correct iteration sequence */
-	CurrentNumOfFrames = CurrentNumOfFrames + NumSamples / NumChannels;
+	CurrentNumOfFrames = CurrentNumOfFrames + (NumSamples / NumChannels);
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [=]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RetrievedPCMData, RetrievedPCMDataSize]()
 	{
 		if (OnGeneratePCMData.IsBound())
 		{

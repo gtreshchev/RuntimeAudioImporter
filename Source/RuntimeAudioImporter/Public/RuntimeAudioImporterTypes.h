@@ -68,10 +68,20 @@ struct FSoundWaveBasicStruct
 	int32 ChannelsNum;
 
 	/** Sample rate (samples per second, sampling frequency) */
-	uint32 SampleRate;
+	int32 SampleRate;
 
 	/** Sound wave duration, sec */
 	float Duration;
+
+	/**
+	 * Converts Sound Wave Basic Struct to a readable format
+	 *
+	 * @return String representation of the Sound Wave Basic Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("Number of channels: %d, sample rate: %d, duration: %f"), ChannelsNum, SampleRate, Duration);
+	}
 };
 
 /** PCM Data buffer structure */
@@ -81,15 +91,26 @@ struct FPCMStruct
 	uint8* PCMData;
 
 	/** Number of PCM frames */
-	uint64 PCMNumOfFrames;
+	int32 PCMNumOfFrames;
 
 	/** PCM data size */
-	uint32 PCMDataSize;
+	int32 PCMDataSize;
 
 	/** Base constructor */
 	FPCMStruct()
-		: PCMData(nullptr), PCMNumOfFrames(0), PCMDataSize(0)
+		: PCMData{nullptr}, PCMNumOfFrames{0}, PCMDataSize{0}
 	{
+	}
+
+	/**
+	 * Converts PCM Struct to a readable format
+	 *
+	 * @return String representation of the PCM Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %d"),
+		                       PCMData != nullptr ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, PCMDataSize);
 	}
 };
 
@@ -101,6 +122,16 @@ struct FDecodedAudioStruct
 
 	/** PCM Data buffer */
 	FPCMStruct PCMInfo;
+
+	/**
+	 * Converts Decoded Audio Struct to a readable format
+	 *
+	 * @return String representation of the Decoded Audio Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("SoundWave Basic Info:\n%s\n\nPCM Info:\n%s"), *SoundWaveBasicInfo.ToString(), *PCMInfo.ToString());
+	}
 };
 
 /** Encoded audio information */
@@ -110,7 +141,7 @@ struct FEncodedAudioStruct
 	uint8* AudioData;
 
 	/** Memory size allocated for the audio data */
-	uint32 AudioDataSize;
+	int32 AudioDataSize;
 
 	/** Format of the audio data (e.g. mp3, flac, etc) */
 	EAudioFormat AudioFormat;
@@ -121,8 +152,19 @@ struct FEncodedAudioStruct
 	{
 	}
 
-	FEncodedAudioStruct(uint8* InAudioData, uint32 InAudioDataSize, EAudioFormat InAudioFormat)
-		: AudioData(InAudioData), AudioDataSize(InAudioDataSize), AudioFormat(InAudioFormat)
+	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
+		: AudioData{AudioData}, AudioDataSize{AudioDataSize}, AudioFormat{AudioFormat}
 	{
+	}
+
+	/**
+	 * Converts Encoded Audio Struct to a readable format
+	 *
+	 * @return String representation of the Encoded Audio Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"),
+		                       AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize, *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };

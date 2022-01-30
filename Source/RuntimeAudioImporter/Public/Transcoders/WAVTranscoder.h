@@ -18,6 +18,7 @@ public:
 	 */
 	static bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
 
-	/*static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData);*/
+	static bool CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize);
+	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData);
 	static bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData);
 };
