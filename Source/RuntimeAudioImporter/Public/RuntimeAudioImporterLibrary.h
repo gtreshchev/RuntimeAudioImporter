@@ -65,10 +65,7 @@ public:
 	 * @param Format Audio file format (extension)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
-	FORCEINLINE void ImportAudioFromBuffer_BP(TArray<uint8> AudioData, EAudioFormat Format)
-	{
-		ImportAudioFromBuffer(AudioData, Format);
-	}
+	void ImportAudioFromBuffer_BP(TArray<uint8> AudioData, EAudioFormat Format);
 
 	/**
 	 * Import audio from buffer
