@@ -137,6 +137,11 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
 }
 
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer_BP(TArray<uint8> AudioData, EAudioFormat Format)
+{
+	ImportAudioFromBuffer(AudioData, Format);
+}
+
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8>& AudioData, EAudioFormat AudioFormat)
 {
 	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
