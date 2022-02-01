@@ -14,7 +14,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	/** Initializing transcoding of audio data in memory */
 	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num(), nullptr))
 	{
-		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
+		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
@@ -121,7 +121,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	/** Initializing transcoding of audio data in memory */
 	if (!drwav_init_memory(&wav, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
 	{
-		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
+		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 

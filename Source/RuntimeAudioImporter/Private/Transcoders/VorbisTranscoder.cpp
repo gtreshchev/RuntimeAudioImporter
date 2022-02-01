@@ -29,7 +29,7 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStru
 
 	if (STBVorbis == nullptr)
 	{
-		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize OGG Vorbis Decoder"));
+		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize OGG Vorbis Decoder"));
 		return false;
 	}
 
@@ -45,7 +45,7 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStru
 	int16* Int16RAWBuffer = static_cast<int16*>(FMemory::Malloc(TotalSamples * sizeof(int16)));
 	if (Int16RAWBuffer == nullptr)
 	{
-		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
+		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 		stb_vorbis_close(STBVorbis);
 		return false;
 	}
@@ -67,7 +67,7 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStru
 
 			if (Int16RAWBufferFrame == nullptr)
 			{
-				UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
+				//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 
 				FMemory::Free(Int16RAWBuffer);
 				stb_vorbis_close(STBVorbis);
