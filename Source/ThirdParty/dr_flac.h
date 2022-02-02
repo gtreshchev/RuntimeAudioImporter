@@ -1,6 +1,6 @@
 /*
 FLAC audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_flac - v0.12.33 - 2021-12-22
+dr_flac - v0.12.34 - 2022-01-07
 
 David Reid - mackron@gmail.com
 
@@ -232,7 +232,7 @@ extern "C" {
 
 #define DRFLAC_VERSION_MAJOR     0
 #define DRFLAC_VERSION_MINOR     12
-#define DRFLAC_VERSION_REVISION  33
+#define DRFLAC_VERSION_REVISION  34
 #define DRFLAC_VERSION_STRING    DRFLAC_XSTRINGIFY(DRFLAC_VERSION_MAJOR) "." DRFLAC_XSTRINGIFY(DRFLAC_VERSION_MINOR) "." DRFLAC_XSTRINGIFY(DRFLAC_VERSION_REVISION)
 
 #include <stddef.h> /* For size_t. */
@@ -1909,6 +1909,12 @@ static DRFLAC_INLINE drflac_uint32 drflac__be2host_32(drflac_uint32 n)
     return n;
 }
 
+static DRFLAC_INLINE drflac_uint32 drflac__be2host_32_ptr_unaligned(const void* pData)
+{
+    const drflac_uint8* pNum = (drflac_uint8*)pData;
+    return *(pNum) << 24 | *(pNum+1) << 16 | *(pNum+2) << 8 | *(pNum+3);
+}
+
 static DRFLAC_INLINE drflac_uint64 drflac__be2host_64(drflac_uint64 n)
 {
     if (drflac__is_little_endian()) {
@@ -1926,6 +1932,12 @@ static DRFLAC_INLINE drflac_uint32 drflac__le2host_32(drflac_uint32 n)
     }
 
     return n;
+}
+
+static DRFLAC_INLINE drflac_uint32 drflac__le2host_32_ptr_unaligned(const void* pData)
+{
+    const drflac_uint8* pNum = (drflac_uint8*)pData;
+    return *pNum | *(pNum+1) << 8 |  *(pNum+2) << 16 | *(pNum+3) << 24;
 }
 
 
@@ -6485,7 +6497,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                     pRunningData    = (const char*)pRawData;
                     pRunningDataEnd = (const char*)pRawData + blockSize;
 
-                    metadata.data.vorbis_comment.vendorLength = drflac__le2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                    metadata.data.vorbis_comment.vendorLength = drflac__le2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
 
                     /* Need space for the rest of the block */
                     if ((pRunningDataEnd - pRunningData) - 4 < (drflac_int64)metadata.data.vorbis_comment.vendorLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
@@ -6493,7 +6505,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                         return DRFLAC_FALSE;
                     }
                     metadata.data.vorbis_comment.vendor       = pRunningData;                                            pRunningData += metadata.data.vorbis_comment.vendorLength;
-                    metadata.data.vorbis_comment.commentCount = drflac__le2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                    metadata.data.vorbis_comment.commentCount = drflac__le2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
 
                     /* Need space for 'commentCount' comments after the block, which at minimum is a drflac_uint32 per comment */
                     if ((pRunningDataEnd - pRunningData) / sizeof(drflac_uint32) < metadata.data.vorbis_comment.commentCount) { /* <-- Note the order of operations to avoid overflow to a valid value */
@@ -6511,7 +6523,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                             return DRFLAC_FALSE;
                         }
 
-                        commentLength = drflac__le2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                        commentLength = drflac__le2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
                         if (pRunningDataEnd - pRunningData < (drflac_int64)commentLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
                             drflac__free_from_callbacks(pRawData, pAllocationCallbacks);
                             return DRFLAC_FALSE;
@@ -6620,8 +6632,8 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                     pRunningData    = (const char*)pRawData;
                     pRunningDataEnd = (const char*)pRawData + blockSize;
 
-                    metadata.data.picture.type       = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
-                    metadata.data.picture.mimeLength = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                    metadata.data.picture.type       = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    metadata.data.picture.mimeLength = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
 
                     /* Need space for the rest of the block */
                     if ((pRunningDataEnd - pRunningData) - 24 < (drflac_int64)metadata.data.picture.mimeLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
@@ -6629,7 +6641,7 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                         return DRFLAC_FALSE;
                     }
                     metadata.data.picture.mime              = pRunningData;                                            pRunningData += metadata.data.picture.mimeLength;
-                    metadata.data.picture.descriptionLength = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                    metadata.data.picture.descriptionLength = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
 
                     /* Need space for the rest of the block */
                     if ((pRunningDataEnd - pRunningData) - 20 < (drflac_int64)metadata.data.picture.descriptionLength) { /* <-- Note the order of operations to avoid overflow to a valid value */
@@ -6637,11 +6649,11 @@ static drflac_bool32 drflac__read_and_decode_metadata(drflac_read_proc onRead, d
                         return DRFLAC_FALSE;
                     }
                     metadata.data.picture.description     = pRunningData;                                            pRunningData += metadata.data.picture.descriptionLength;
-                    metadata.data.picture.width           = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
-                    metadata.data.picture.height          = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
-                    metadata.data.picture.colorDepth      = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
-                    metadata.data.picture.indexColorCount = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
-                    metadata.data.picture.pictureDataSize = drflac__be2host_32(*(const drflac_uint32*)pRunningData); pRunningData += 4;
+                    metadata.data.picture.width           = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    metadata.data.picture.height          = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    metadata.data.picture.colorDepth      = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    metadata.data.picture.indexColorCount = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
+                    metadata.data.picture.pictureDataSize = drflac__be2host_32_ptr_unaligned(pRunningData); pRunningData += 4;
                     metadata.data.picture.pPictureData    = (const drflac_uint8*)pRunningData;
 
                     /* Need space for the picture after the block */
@@ -11786,7 +11798,7 @@ DRFLAC_API const char* drflac_next_vorbis_comment(drflac_vorbis_comment_iterator
         return NULL;
     }
 
-    length = drflac__le2host_32(*(const drflac_uint32*)pIter->pRunningData);
+    length = drflac__le2host_32_ptr_unaligned(pIter->pRunningData);
     pIter->pRunningData += 4;
 
     pComment = pIter->pRunningData;
@@ -11856,6 +11868,9 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 /*
 REVISION HISTORY
 ================
+v0.12.34 - 2022-01-07
+  - Fix some misalignment bugs when reading metadata.
+
 v0.12.33 - 2021-12-22
   - Fix a bug with seeking when the seek table does not start at PCM frame 0.
 
