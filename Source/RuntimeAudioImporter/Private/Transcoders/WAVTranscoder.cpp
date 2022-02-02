@@ -98,7 +98,7 @@ bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct&
 
 	if (!drwav_init_memory_write(&WAV_Encode, &AudioData, &AudioDataSize, &WAV_Format, nullptr))
 	{
-		UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
+		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
 		return false;
 	}
 
