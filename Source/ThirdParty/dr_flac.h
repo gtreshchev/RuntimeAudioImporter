@@ -1,6 +1,6 @@
 /*
 FLAC audio decoder. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_flac - v0.12.36 - 2022-02-07
+dr_flac - v0.12.37 - TBD
 
 David Reid - mackron@gmail.com
 
@@ -1378,7 +1378,7 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
     #define DRFLAC_X64
 #elif defined(__i386) || defined(_M_IX86)
     #define DRFLAC_X86
-#elif defined(__arm__) || defined(_M_ARM) || defined(_M_ARM64)
+#elif defined(__ARM_NEON) || defined(__aarch64__) || defined(_M_ARM64)
     #define DRFLAC_ARM
 #endif
 
@@ -1431,16 +1431,6 @@ Unfortuantely dr_flac depends on this for a few things so we're just going to di
     #if defined(DRFLAC_ARM)
         #if !defined(DRFLAC_NO_NEON) && (defined(__ARM_NEON) || defined(__aarch64__) || defined(_M_ARM64))
             #define DRFLAC_SUPPORT_NEON
-        #endif
-
-        /* Fall back to looking for the #include file. */
-        #if !defined(__GNUC__) && !defined(__clang__) && defined(__has_include)
-            #if !defined(DRFLAC_SUPPORT_NEON) && !defined(DRFLAC_NO_NEON) && __has_include(<arm_neon.h>)
-                #define DRFLAC_SUPPORT_NEON
-            #endif
-        #endif
-
-        #if defined(DRFLAC_SUPPORT_NEON)
             #include <arm_neon.h>
         #endif
     #endif
@@ -4696,7 +4686,7 @@ static drflac_bool32 drflac__decode_samples_with_residual__rice__neon_64(drflac_
 
     /* For this version we are doing one sample at a time. */
     while (pDecodedSamples < pDecodedSamplesEnd) {
-        int64x2_t prediction128;
+        int64x2_t prediction128{};
         uint32x4_t zeroCountPart128;
         uint32x4_t riceParamPart128;
 
@@ -11938,6 +11928,9 @@ DRFLAC_API drflac_bool32 drflac_next_cuesheet_track(drflac_cuesheet_track_iterat
 /*
 REVISION HISTORY
 ================
+v0.12.37 - TBD
+  - Improve ARM detection.
+
 v0.12.36 - 2022-02-07
   - Fix a compilation error with the ARM build.
 
