@@ -84,7 +84,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 
 	OnProgress_Internal(35);
 
-	AsyncTask(ENamedThreads::AnyThread, [this, AudioBuffer, Format, SampleRate, NumOfChannels]()
+	AsyncTask(ENamedThreads::AnyThread, [this, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
 	{
 		ImportAudioFromRAWBuffer(AudioBuffer, Format, SampleRate, NumOfChannels);
 	});
@@ -319,8 +319,8 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
 {
 	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
-
-	AsyncTask(ENamedThreads::AnyThread, [this, &AudioData, AudioFormat]()
+		
+	AsyncTask(ENamedThreads::AnyThread, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
 		OnProgress_Internal(5);
 
