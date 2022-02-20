@@ -71,7 +71,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 bool WAVTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
 {
 	drwav wav;
-	
+
 	if (!drwav_init_memory(&wav, AudioData, AudioDataSize, nullptr))
 	{
 		return false;
@@ -80,17 +80,32 @@ bool WAVTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize
 	return true;
 }
 
-bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData)
+uint32 ConvertFormat(EWavEncodingFormat Format)
+{
+	switch (Format)
+	{
+	case EWavEncodingFormat::FORMAT_PCM: return DR_WAVE_FORMAT_PCM;
+	case EWavEncodingFormat::FORMAT_ADPCM: return DR_WAVE_FORMAT_ADPCM;
+	case EWavEncodingFormat::FORMAT_IEEE_FLOAT: return DR_WAVE_FORMAT_IEEE_FLOAT;
+	case EWavEncodingFormat::FORMAT_ALAW: return DR_WAVE_FORMAT_ALAW;
+	case EWavEncodingFormat::FORMAT_MULAW: return DR_WAVE_FORMAT_MULAW;
+	case EWavEncodingFormat::FORMAT_DVI_ADPCM: return DR_WAVE_FORMAT_DVI_ADPCM;
+	case EWavEncodingFormat::FORMAT_EXTENSIBLE: return DR_WAVE_FORMAT_EXTENSIBLE;
+		default: return DR_WAVE_FORMAT_PCM;
+	}
+}
+
+bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, FWavEncodingFormat Format)
 {
 	drwav WAV_Encode;
 
 	drwav_data_format WAV_Format;
 	{
 		WAV_Format.container = drwav_container_riff;
-		WAV_Format.format = DR_WAVE_FORMAT_IEEE_FLOAT;
-		WAV_Format.channels = DecodedData.SoundWaveBasicInfo.ChannelsNum;
+		WAV_Format.format = ConvertFormat(Format.Format);
+		WAV_Format.channels = DecodedData.SoundWaveBasicInfo.NumOfChannels;
 		WAV_Format.sampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
-		WAV_Format.bitsPerSample = 32;
+		WAV_Format.bitsPerSample = Format.BitsPerSample;
 	}
 
 	void* AudioData = nullptr;
@@ -137,7 +152,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	/** Getting basic audio information */
 	{
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(wav.totalPCMFrameCount) / wav.sampleRate;
-		DecodedData.SoundWaveBasicInfo.ChannelsNum = wav.channels;
+		DecodedData.SoundWaveBasicInfo.NumOfChannels = wav.channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = wav.sampleRate;
 	}
 

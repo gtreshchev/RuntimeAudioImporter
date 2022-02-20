@@ -3,6 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RuntimeAudioImporterTypes.h"
+
 
 struct FDecodedAudioStruct;
 struct FEncodedAudioStruct;
@@ -10,7 +12,21 @@ struct FEncodedAudioStruct;
 class RUNTIMEAUDIOIMPORTER_API VorbisTranscoder
 {
 public:
+
+	/**
+	 * Check if the given Vorbis audio data seems to be valid
+	 */
 	static bool CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize);
-	/*static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData);*/
+
+	/**
+	 * Encode uncompressed data to Vorbis format
+	 */
+	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality);
+
+	/**
+	 * Decode compressed Vorbis data to PCM format
+	 */
 	static bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData);
 };
+
+
