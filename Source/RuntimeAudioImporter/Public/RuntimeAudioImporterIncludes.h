@@ -26,6 +26,9 @@
 #endif
 
 #ifdef INCLUDE_VORBIS
+#if PLATFORM_SUPPORTS_VORBIS_CODEC
+#include "vorbis/vorbisenc.h"
+#endif
 #include "ThirdParty/stb_vorbis.c"
 #endif
 

@@ -61,14 +61,23 @@ enum class ERAWAudioFormat : uint8
 	Float32 UMETA(DisplayName = "32-bit float")
 };
 
+UENUM(BlueprintType, Category = "Runtime Audio Importer")
+enum class ESoundWaveType : uint8
+{
+	Int16 UMETA(DisplayName = "Signed 16-bit PCM"),
+	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
+	UInt8 UMETA(DisplayName = "Unsigned 8-bit PCM"),
+	Float32 UMETA(DisplayName = "32-bit float")
+};
+
 /** Basic SoundWave data. CPP use only. */
 struct FSoundWaveBasicStruct
 {
 	/** Number of channels */
-	int32 ChannelsNum;
+	uint32 NumOfChannels;
 
 	/** Sample rate (samples per second, sampling frequency) */
-	int32 SampleRate;
+	uint32 SampleRate;
 
 	/** Sound wave duration, sec */
 	float Duration;
@@ -80,7 +89,7 @@ struct FSoundWaveBasicStruct
 	 */
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Number of channels: %d, sample rate: %d, duration: %f"), ChannelsNum, SampleRate, Duration);
+		return FString::Printf(TEXT("Number of channels: %d, sample rate: %d, duration: %f"), NumOfChannels, SampleRate, Duration);
 	}
 };
 
@@ -168,3 +177,4 @@ struct FEncodedAudioStruct
 		                       AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize, *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };
+

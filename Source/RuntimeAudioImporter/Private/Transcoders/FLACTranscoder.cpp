@@ -43,7 +43,7 @@ bool FLACTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct
 	/** Getting basic audio information */
 	{
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(pFlac->totalPCMFrameCount) / pFlac->sampleRate;
-		DecodedData.SoundWaveBasicInfo.ChannelsNum = pFlac->channels;
+		DecodedData.SoundWaveBasicInfo.NumOfChannels = pFlac->channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = pFlac->sampleRate;
 	}
 

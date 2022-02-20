@@ -12,6 +12,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int3
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
 
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess, USoundWave*, SoundWaveRef);
+
 /** Forward declaration of the UPreImportedSoundAsset class */
 class UPreImportedSoundAsset;
 
@@ -25,6 +27,7 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 	GENERATED_BODY()
 
 public:
+	
 	/** Bind to know when the transcoding is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
@@ -45,7 +48,7 @@ public:
 	 * Import audio from file
 	 *
 	 * @param FilePath Path to the audio file to import
-	 * @param Format Audio file format (extension)
+	 * @param Format Audio format
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromFile(const FString& FilePath, EAudioFormat Format);
@@ -62,19 +65,10 @@ public:
 	 * Import audio from buffer
 	 *
 	 * @param AudioData Audio data array
-	 * @param Format Audio file format (extension)
+	 * @param Format Audio format
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From Buffer", Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromBuffer_BP(TArray<uint8> AudioData, EAudioFormat Format);
-
-	/**
-	 * Import audio from buffer
-	 *
-	 * @param AudioData Audio data array
-	 * @param Format Audio file format (extension)
-	 */
-	UFUNCTION()
-	void ImportAudioFromBuffer(TArray<uint8>& AudioData, EAudioFormat Format);
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
+	void ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat Format);
 
 	/**
 	 * Import audio from RAW file. Audio data must not have headers and must be uncompressed
@@ -85,7 +79,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW File"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
+	void ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat Format, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed
@@ -96,7 +90,22 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW Buffer"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
+	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+
+	/**
+	 * Compress ImportedSoundWave to normal SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
+	 *
+	 * @param ImportedSoundWaveRef Reference to the imported sound wave
+	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
+	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
+	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer.
+	 *
+	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
+	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false);
 
 	/**
 	 * Transcoding one RAW Data format to another
@@ -154,6 +163,13 @@ public:
 
 private:
 	/**
+	 * Get platform specific format name
+	 *
+	 * @param Format Base format name
+	 */
+	static FName GetPlatformSpecificFormat(const FName& Format);
+	
+	/**
 	 * Determine audio format based on audio data
 	 *
 	 * @param AudioData Pointer to in-memory audio data
@@ -172,19 +188,11 @@ private:
 	void ImportAudioFromFloat32Buffer(uint8* PCMData, const int32 PCMDataSize, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
 
 	/**
-	 * Internal main audio importing method
-	 *
-	 * @param AudioData Audio data array
-	 * @param AudioFormat Audio data format
-	 */
-	void ImportAudioFromBuffer_Internal(const TArray<uint8>& AudioData, EAudioFormat AudioFormat);
-
-	/**
 	 * Create Imported Sound Wave and finish importing.
 	 *
 	 * @param DecodedAudioInfo Decoded audio data
 	 */
-	void CreateSoundWaveAndFinishImport(const FDecodedAudioStruct& DecodedAudioInfo);
+	void ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo);
 
 	/**
 	 * Define SoundWave object reference
