@@ -25,12 +25,12 @@
         "Mac",
         "Android",
         "IOS",
-        "Linux"
+        "Linux",
+	"PS4",
+	"Switch"
       ],
       "BlacklistPlatforms": [
-        "PS4",
-        "TVOS",
-        "Switch"
+        "TVOS"
       ]
     },
     {
