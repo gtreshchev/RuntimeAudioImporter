@@ -8,6 +8,11 @@ public class RuntimeAudioImporter : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
+		AddEngineThirdPartyPrivateStaticDependencies(Target,
+			"UEOgg",
+			"Vorbis"
+		);
+
 		PublicDefinitions.AddRange(
 			new string[]
 			{
@@ -22,7 +27,8 @@ public class RuntimeAudioImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Core"
+				"Core",
+				"AudioPlatformConfiguration"
 			}
 		);
 	}

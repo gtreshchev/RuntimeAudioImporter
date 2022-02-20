@@ -43,7 +43,7 @@ bool MP3Transcoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	/** Getting basic audio information */
 	{
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate;
-		DecodedData.SoundWaveBasicInfo.ChannelsNum = mp3.channels;
+		DecodedData.SoundWaveBasicInfo.NumOfChannels = mp3.channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
 	}
 
