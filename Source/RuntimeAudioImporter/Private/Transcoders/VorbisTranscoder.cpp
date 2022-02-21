@@ -25,14 +25,17 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 #if PLATFORM_SUPPORTS_VORBIS_CODEC
+
+	#define FRAMES_SPLIT_COUNT 1024
 	
 	TArray<uint8> EncodedAudioData;
-
-	const uint32 NumOfFrames = DecodedData.PCMInfo.PCMNumOfFrames;
 	
+	const uint32 NumOfFrames = DecodedData.PCMInfo.PCMNumOfFrames;
 	const uint32 NumOfChannels = DecodedData.SoundWaveBasicInfo.NumOfChannels;
 	const uint32 SampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
+	const float* PCMData = reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData);
 
+	/** Encoding Vorbis data */
 	{
 		vorbis_info VorbisInfo;
 		vorbis_info_init(&VorbisInfo);
@@ -60,9 +63,7 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 		}
 
 		/** Ogg packet stuff */
-		ogg_packet OggPacket;
-		ogg_packet OggComment;
-		ogg_packet OggCode;
+		ogg_packet OggPacket, OggComment, OggCode;
 		ogg_page OggPage;
 		ogg_stream_state OggStreamState;
 
@@ -80,8 +81,6 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 			EncodedAudioData.Append(static_cast<uint8*>(OggPage.header), OggPage.header_len);
 			EncodedAudioData.Append(static_cast<uint8*>(OggPage.body), OggPage.body_len);
 		}
-		
-		static constexpr int32 FramesSplitCount = 1024;
 
 		uint32 FramesEncoded{0}, FramesRead{0};
 		
@@ -96,16 +95,22 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 			float** AnalysisBuffer = vorbis_analysis_buffer(&VorbisDspState, FramesToEncode);
 
 			/** Make sure we don't read more than SPLIT_COUNT, since libvorbis can segfault if we read too much at once */
-			if (FramesToEncode > FramesSplitCount)
+			if (FramesToEncode > FRAMES_SPLIT_COUNT)
 			{
-				FramesToEncode = FramesSplitCount;
+				FramesToEncode = FRAMES_SPLIT_COUNT;
+			}
+
+			if (PCMData == nullptr || AnalysisBuffer == nullptr)
+			{
+				//UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to create analysis buffers"));
+				return false;
 			}
 
 			/** Deinterleave for the encoder */
 			for (uint32 FrameIndex = 0; FrameIndex < FramesToEncode; ++FrameIndex)
 			{
-				float* Frame = reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData) + (FrameIndex + FramesEncoded) * NumOfChannels;
-
+				const float* Frame = PCMData + (FrameIndex + FramesEncoded) * NumOfChannels;
+				
 				for (uint32 ChannelIndex = 0; ChannelIndex < NumOfChannels; ++ChannelIndex)
 				{
 					AnalysisBuffer[ChannelIndex][FrameIndex] = Frame[ChannelIndex];
@@ -171,6 +176,8 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 	FMemory::Memmove(EncodedData.AudioData, EncodedAudioData.GetData(), EncodedAudioData.Num());
 
 	return true;
+
+	#undef FRAMES_SPLIT_COUNT
 
 #else
 	//UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform does not support Vorbis encoding"));
