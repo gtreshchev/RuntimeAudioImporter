@@ -262,7 +262,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(), *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioDataSize);
 		}
 
-		AsyncTask(ENamedThreads::AnyThread, [OnCompressedResult, RegularSoundWaveRef]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [OnCompressedResult, RegularSoundWaveRef]()
 		{
 			OnCompressedResult.Execute(true, RegularSoundWaveRef);
 		});
