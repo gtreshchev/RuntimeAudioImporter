@@ -262,7 +262,10 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(), *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioDataSize);
 		}
 
-		OnCompressedResult.Execute(true, RegularSoundWaveRef);
+		AsyncTask(ENamedThreads::AnyThread, [OnCompressedResult, RegularSoundWaveRef]()
+		{
+			OnCompressedResult.Execute(true, RegularSoundWaveRef);
+		});
 	});
 }
 
@@ -270,9 +273,10 @@ FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Forma
 {
 	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
 
-	// Platforms that require compression overrides get concatenated formats.
+	/** Platforms that require compression overrides get concatenated formats */
+
 #if WITH_EDITOR
-	
+
 	FName PlatformSpecificFormat;
 	if (CompressionOverrides)
 	{
@@ -286,7 +290,7 @@ FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Forma
 	}
 
 #else
-	
+
 	/** Cache the concatenated hash */
 	static FName PlatformSpecificFormat;
 	static FName CachedFormat;
@@ -319,7 +323,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
 {
 	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
-		
+
 	AsyncTask(ENamedThreads::AnyThread, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
 		OnProgress_Internal(5);
@@ -331,10 +335,10 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 			return;
 		}
 
-		FEncodedAudioStruct EncodedAudioInfo(const_cast<uint8*>(AudioData.GetData()), AudioData.Num(), AudioFormat);
+		const FEncodedAudioStruct EncodedAudioInfo(const_cast<uint8*>(AudioData.GetData()), AudioData.Num(), AudioFormat);
 
 		FDecodedAudioStruct DecodedAudioInfo;
-		if (!DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+		if (!DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
 		{
 			return;
 		}
