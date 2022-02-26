@@ -10,18 +10,19 @@
 
 bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 {
-	drwav wav;
+	drwav WAV;
+	
 	/** Initializing transcoding of audio data in memory */
-	if (!drwav_init_memory(&wav, WavData.GetData(), WavData.Num(), nullptr))
+	if (!drwav_init_memory(&WAV, WavData.GetData(), WavData.Num(), nullptr))
 	{
-		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
 	/** Check if the container is RIFF (not Wave64 or any other containers) */
-	if (wav.container != drwav_container_riff)
+	if (WAV.container != drwav_container_riff)
 	{
-		drwav_uninit(&wav);
+		drwav_uninit(&WAV);
 		return true;
 	}
 
@@ -51,7 +52,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	}
 	if (DataSizeLocation == INDEX_NONE) // should never happen but just in case
 	{
-		drwav_uninit(&wav);
+		drwav_uninit(&WAV);
 
 		return false;
 	}
@@ -63,7 +64,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 		FMemory::Memcpy(WavData.GetData() + DataSizeLocation, &ActualDataSize, 4);
 	}
 
-	drwav_uninit(&wav);
+	drwav_uninit(&WAV);
 
 	return true;
 }
@@ -113,7 +114,7 @@ bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct&
 
 	if (!drwav_init_memory_write(&WAV_Encode, &AudioData, &AudioDataSize, &WAV_Format, nullptr))
 	{
-		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
 		return false;
 	}
 
@@ -136,7 +137,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct&
 	/** Initializing transcoding of audio data in memory */
 	if (!drwav_init_memory(&wav, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
 	{
-		//UE_INTERNAL_LOG_IMPL(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
