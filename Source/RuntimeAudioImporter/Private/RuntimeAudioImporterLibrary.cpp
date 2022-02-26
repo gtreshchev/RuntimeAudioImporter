@@ -13,6 +13,7 @@
 #include "Transcoders/FLACTranscoder.h"
 #include "Transcoders/MP3Transcoder.h"
 #include "Transcoders/VorbisTranscoder.h"
+#include "Transcoders/OpusTranscoder.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "Transcoders/WAVTranscoder.h"
 
@@ -221,21 +222,15 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 		if (bFillCompressedBuffer)
 		{
-			FEncodedAudioStruct EncodedAudioInfo;
-
-			if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
-				OnCompressedResult.Execute(false, nullptr);
-				return;
-			}
-
 			FAudioDeviceManager* DeviceManager{GEngine->GetAudioDeviceManager()};
 
 			if (DeviceManager == nullptr)
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get audio device manager"));
-				OnCompressedResult.Execute(false, nullptr);
+				AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [OnCompressedResult]()
+				{
+					OnCompressedResult.Execute(true, nullptr);
+				});
 				return;
 			}
 
@@ -243,6 +238,49 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			const FName CurrentAudioFormat{DeviceManager->GetActiveAudioDevice()->GetRuntimeFormat(RegularSoundWaveRef)};
 
 			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
+
+			FEncodedAudioStruct EncodedAudioInfo;
+
+			static const FName NAME_ADPCM(TEXT("ADPCM"));
+			static const FName NAME_OGG(TEXT("OGG"));
+			static const FName NAME_OPUS(TEXT("OPUS"));
+
+			if (CurrentAudioFormat == NAME_ADPCM)
+			{
+				int16* Int16PCMData;
+				int32 Int16PCMDataSize;
+				RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, Int16PCMData, Int16PCMDataSize);
+
+				EncodedAudioInfo.AudioData = reinterpret_cast<uint8*>(Int16PCMData);
+				EncodedAudioInfo.AudioDataSize = Int16PCMDataSize;
+			}
+			else if (CurrentAudioFormat == NAME_OGG)
+			{
+				if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+				{
+					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+				}
+			}
+			else if (CurrentAudioFormat == NAME_OPUS)
+			{
+				if (!OpusTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+				{
+					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+				}
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
+			}
+
+			if (EncodedAudioInfo.AudioDataSize <= 0)
+			{
+				AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [OnCompressedResult]()
+				{
+					OnCompressedResult.Execute(true, nullptr);
+				});
+				return;
+			}
 
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::NotStarted);
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::InProgress);
@@ -310,7 +348,7 @@ FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Forma
 		CachedFormat = Format;
 	}
 
-#endif // WITH_EDITOR
+#endif
 
 	return PlatformSpecificFormat;
 }

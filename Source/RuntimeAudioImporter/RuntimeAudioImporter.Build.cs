@@ -10,7 +10,8 @@ public class RuntimeAudioImporter : ModuleRules
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
 			"UEOgg",
-			"Vorbis"
+			"Vorbis",
+			"libOpus"
 		);
 
 		PublicDefinitions.AddRange(

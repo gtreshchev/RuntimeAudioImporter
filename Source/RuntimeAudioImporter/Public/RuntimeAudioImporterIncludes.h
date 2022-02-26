@@ -32,6 +32,20 @@
 #include "ThirdParty/stb_vorbis.c"
 #endif
 
+#ifdef INCLUDE_OPUS
+
+#if !defined(WITH_OPUS)
+	#define WITH_OPUS (PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_UNIX)
+#endif
+
+#if WITH_OPUS
+THIRD_PARTY_INCLUDES_START
+#include "opus_multistream.h"
+THIRD_PARTY_INCLUDES_END
+#endif
+
+#endif
+
 #undef malloc
 #undef free
 #undef realloc
