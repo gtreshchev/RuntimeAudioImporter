@@ -24,9 +24,9 @@ int32 GetBitRateFromQuality(uint8 Quality, uint32 NumOfChannels)
 
 void SerializeHeaderData(FMemoryWriter& CompressedData, uint16 SampleRate, uint32 TrueSampleCount, uint8 NumChannels, uint16 NumFrames)
 {
-	constexpr char* OpusIdentifier = "RuntimeAudioImporterOpus";
+	const char* OpusIdentifier = "RuntimeAudioImporterOpus";
 
-	CompressedData.Serialize(OpusIdentifier, FCStringAnsi::Strlen(OpusIdentifier) + 1);
+	CompressedData.Serialize(const_cast<char*>(OpusIdentifier), FCStringAnsi::Strlen(OpusIdentifier) + 1);
 	CompressedData.Serialize(&SampleRate, sizeof(uint16));
 	CompressedData.Serialize(&TrueSampleCount, sizeof(uint32));
 	CompressedData.Serialize(&NumChannels, sizeof(uint8));
