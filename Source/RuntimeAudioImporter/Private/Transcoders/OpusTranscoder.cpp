@@ -41,6 +41,7 @@ void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 
 
 bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
+#if WITH_OPUS
 	const uint16 OpusSampleRate = GetBestOutputSampleRate(Quality);
 	constexpr int32 OpusFrameSizeMs = 60;
 	const int32 OpusFrameSizeSamples = (OpusSampleRate * OpusFrameSizeMs) / 1000;
@@ -118,5 +119,10 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 		FMemory::Memmove(EncodedData.AudioData, EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
 
-	return EncodedAudioData.Num() > 0;
+	return true;
+
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform does not support Opus encoding"));
+	return false;
+#endif
 }
