@@ -178,6 +178,19 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 	AsyncTask(ENamedThreads::AnyThread, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult]()
 	{
+		auto OnResultExecute = [OnCompressedResult](bool bSuccess, USoundWave* SoundWaveRef)
+		{
+			AsyncTask(ENamedThreads::GameThread, [bSuccess, OnCompressedResult, SoundWaveRef]()
+			{
+				OnCompressedResult.Execute(bSuccess, SoundWaveRef);
+			
+				if (SoundWaveRef != nullptr)
+				{
+					SoundWaveRef->RemoveFromRoot();
+				}
+			});
+		};
+		
 		/** Fill in the standard PCM buffer if needed */
 		if (bFillPCMBuffer)
 		{
@@ -209,7 +222,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			if (!WAVTranscoder::Encode(CustomDecodedAudioInfo, EncodedAudioInfo, FWavEncodingFormat(EWavEncodingFormat::FORMAT_PCM, 16)))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to encode PCM to WAV format due to transcoder error"));
-				OnCompressedResult.Execute(false, nullptr);
+				OnResultExecute(false, nullptr);
 				return;
 			}
 
@@ -227,10 +240,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			if (DeviceManager == nullptr)
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get audio device manager"));
-				AsyncTask(ENamedThreads::GameThread, [OnCompressedResult]()
-				{
-					OnCompressedResult.Execute(true, nullptr);
-				});
+				OnResultExecute(false, nullptr);
 				return;
 			}
 
@@ -275,10 +285,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 			if (EncodedAudioInfo.AudioDataSize <= 0)
 			{
-				AsyncTask(ENamedThreads::GameThread, [OnCompressedResult]()
-				{
-					OnCompressedResult.Execute(true, nullptr);
-				});
+				OnResultExecute(false, nullptr);
 				return;
 			}
 
@@ -299,11 +306,8 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(), *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioDataSize);
 		}
-
-		AsyncTask(ENamedThreads::GameThread, [OnCompressedResult, RegularSoundWaveRef]()
-		{
-			OnCompressedResult.Execute(true, RegularSoundWaveRef);
-		});
+		
+		OnResultExecute(true, RegularSoundWaveRef);
 	});
 }
 
