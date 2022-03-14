@@ -175,6 +175,8 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 		RegularSoundWaveRef->bProcedural = false;
 		RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
 	}
+	
+	RegularSoundWaveRef->AddToRoot();
 
 	AsyncTask(ENamedThreads::AnyThread, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult]()
 	{
