@@ -361,7 +361,7 @@ FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Forma
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)
 {
-	ImportAudioFromBuffer(MoveTemp(PreImportedSoundAssetRef->AudioDataArray), EAudioFormat::Mp3);
+	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
