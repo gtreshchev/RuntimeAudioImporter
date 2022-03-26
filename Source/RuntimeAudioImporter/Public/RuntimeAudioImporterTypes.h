@@ -48,6 +48,9 @@ enum class EAudioFormat : uint8
 	/** OGG Vorbis format */
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
 
+	/** OGG Opus format */
+	OggOpus UMETA(DisplayName = "ogg opus (not supported for decoding yet)"),
+
 	/** Invalid format */
 	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
 };
@@ -100,10 +103,10 @@ struct FPCMStruct
 	uint8* PCMData;
 
 	/** Number of PCM frames */
-	int32 PCMNumOfFrames;
+	uint32 PCMNumOfFrames;
 
 	/** PCM data size */
-	int32 PCMDataSize;
+	uint32 PCMDataSize;
 
 	/** Base constructor */
 	FPCMStruct()
@@ -157,7 +160,7 @@ struct FEncodedAudioStruct
 
 	/** Base constructor */
 	FEncodedAudioStruct()
-		: AudioData(nullptr), AudioDataSize(0), AudioFormat(EAudioFormat::Invalid)
+		: AudioData{nullptr}, AudioDataSize{0}, AudioFormat{EAudioFormat::Invalid}
 	{
 	}
 
@@ -177,4 +180,3 @@ struct FEncodedAudioStruct
 		                       AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize, *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };
-

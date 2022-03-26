@@ -115,6 +115,7 @@ public:
 		/** Returning the transcoded data as bytes */
 		RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
 
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%d' (min: %f, max: %f) to size '%d' (min: %f, max: %f)"), static_cast<int32>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<int32>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%d' (min: %f, max: %f) to size '%d' (min: %f, max: %f)"),
+		       static_cast<int32>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<int32>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
 	}
 };

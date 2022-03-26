@@ -10,7 +10,8 @@ struct FEncodedAudioStruct;
 /**
  * All possible WAV formats
  */
-enum class EWavEncodingFormat : uint8
+UENUM()
+enum class EWAVEncodingFormat : uint8
 {
 	FORMAT_PCM,
 	FORMAT_ADPCM,
@@ -21,17 +22,28 @@ enum class EWavEncodingFormat : uint8
 	FORMAT_EXTENSIBLE
 };
 
+
 /**
  * Information on how to encode WAV data
  */
-struct FWavEncodingFormat
+struct FWAVEncodingFormat
 {
-	EWavEncodingFormat Format;
+	EWAVEncodingFormat Format;
 	uint32 BitsPerSample;
 
-	FWavEncodingFormat(EWavEncodingFormat Format, uint32 BitsPerSample)
+	FWAVEncodingFormat(EWAVEncodingFormat Format, uint32 BitsPerSample)
 		: Format(Format), BitsPerSample(BitsPerSample)
 	{
+	}
+
+	/**
+	 * Converts Decoded Audio Struct to a readable format
+	 *
+	 * @return String representation of the Decoded Audio Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("Format: %s, bits per sample: %d"), *UEnum::GetValueAsName(Format).ToString(), BitsPerSample);
 	}
 };
 
@@ -45,7 +57,7 @@ public:
 	 * @param WavData Buffer of the wav data
 	 */
 	static bool CheckAndFixWavDurationErrors(TArray<uint8>& WavData);
-	
+
 	/**
 	 * Check if the given WAV audio data seems to be valid
 	 */
@@ -54,7 +66,7 @@ public:
 	/**
 	 * Encode uncompressed data to WAV format
 	 */
-	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, FWavEncodingFormat Format);
+	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format);
 
 	/**
 	 * Decode compressed WAV data to PCM format
