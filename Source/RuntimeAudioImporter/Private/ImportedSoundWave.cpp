@@ -23,7 +23,7 @@ void UImportedSoundWave::ReleaseMemory()
 	{
 		FMemory::Free(PCMBufferInfo.PCMData);
 	}
-	
+
 	PCMBufferInfo = FPCMStruct();
 }
 
@@ -34,11 +34,11 @@ bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to rewind playback time for the imported sound wave '%s' by time '%f' because total length is '%f'"), *GetName(), PlaybackTime, Duration);
 		return false;
 	}
-	
+
 	return ChangeCurrentFrameCount(PlaybackTime * SampleRate);
 }
 
-bool UImportedSoundWave::ChangeCurrentFrameCount(const int32 NumOfFrames)
+bool UImportedSoundWave::ChangeCurrentFrameCount(const uint32 NumOfFrames)
 {
 	if (NumOfFrames < 0 || NumOfFrames > PCMBufferInfo.PCMNumOfFrames)
 	{
@@ -48,7 +48,7 @@ bool UImportedSoundWave::ChangeCurrentFrameCount(const int32 NumOfFrames)
 
 	CurrentNumOfFrames = NumOfFrames;
 
-	/** Setting "PlaybackFinishedBroadcast" to "false" in order to rebroadcast the "OnAudioPlaybackFinished" delegate again */
+	/** Setting "PlaybackFinishedBroadcast" to "false" in order to re-broadcast the "OnAudioPlaybackFinished" delegate again */
 	PlaybackFinishedBroadcast = false;
 
 	return true;
@@ -82,14 +82,14 @@ bool UImportedSoundWave::IsPlaybackFinished()
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
 	/** Ensure there is enough number of frames. Lack of frames means audio playback has finished */
-	if (CurrentNumOfFrames >= PCMBufferInfo.PCMNumOfFrames)
+	if (static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames)
 	{
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
 		{
 			if (!PlaybackFinishedBroadcast)
 			{
 				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
-				
+
 				PlaybackFinishedBroadcast = true;
 
 				if (OnAudioPlaybackFinished.IsBound())
@@ -103,7 +103,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	}
 
 	/** Getting the remaining number of samples if the required number of samples is greater than the total available number */
-	if (CurrentNumOfFrames + NumSamples / NumChannels >= PCMBufferInfo.PCMNumOfFrames)
+	if (static_cast<uint32>(CurrentNumOfFrames) + static_cast<uint32>(NumSamples) / static_cast<uint32>(NumChannels) >= PCMBufferInfo.PCMNumOfFrames)
 	{
 		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
 	}

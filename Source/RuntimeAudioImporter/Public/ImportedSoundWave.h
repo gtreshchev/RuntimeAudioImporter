@@ -47,7 +47,7 @@ public:
 	 * @param NumOfFrames The new number of frames from which to continue playing sound
 	 * @return Whether the frames were changed or not
 	 */
-	bool ChangeCurrentFrameCount(const int32 NumOfFrames);
+	bool ChangeCurrentFrameCount(const uint32 NumOfFrames);
 
 	/**
 	 * Get the current sound wave playback time, in seconds

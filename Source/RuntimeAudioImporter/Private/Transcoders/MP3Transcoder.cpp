@@ -10,9 +10,9 @@
 
 bool MP3Transcoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
 {
-	drmp3 mp3;
+	drmp3 MP3;
 	
-	if (!drmp3_init_memory(&mp3, AudioData, AudioDataSize, nullptr))
+	if (!drmp3_init_memory(&MP3, AudioData, AudioDataSize, nullptr))
 	{
 		return false;
 	}
@@ -22,33 +22,37 @@ bool MP3Transcoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize
 
 bool MP3Transcoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
-	drmp3 mp3;
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding MP3 audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+	
+	drmp3 MP3_Decoder;
 
 	/** Initializing transcoding of audio data in memory */
-	if (!drmp3_init_memory(&mp3, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
+	if (!drmp3_init_memory(&MP3_Decoder, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize MP3 Decoder"));
 		return false;
 	}
 
 	/** Allocating memory for PCM data */
-	DecodedData.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(drmp3_get_pcm_frame_count(&mp3) * mp3.channels * sizeof(float)));
+	DecodedData.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(drmp3_get_pcm_frame_count(&MP3_Decoder) * MP3_Decoder.channels * sizeof(float)));
 
 	/** Filling PCM data and getting the number of frames */
-	DecodedData.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(&mp3, drmp3_get_pcm_frame_count(&mp3), reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
+	DecodedData.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(&MP3_Decoder, drmp3_get_pcm_frame_count(&MP3_Decoder), reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
 
 	/** Getting PCM data size */
-	DecodedData.PCMInfo.PCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * mp3.channels * sizeof(float));
+	DecodedData.PCMInfo.PCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * MP3_Decoder.channels * sizeof(float));
 
 	/** Getting basic audio information */
 	{
-		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate;
-		DecodedData.SoundWaveBasicInfo.NumOfChannels = mp3.channels;
-		DecodedData.SoundWaveBasicInfo.SampleRate = mp3.sampleRate;
+		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(drmp3_get_pcm_frame_count(&MP3_Decoder)) / MP3_Decoder.sampleRate;
+		DecodedData.SoundWaveBasicInfo.NumOfChannels = MP3_Decoder.channels;
+		DecodedData.SoundWaveBasicInfo.SampleRate = MP3_Decoder.sampleRate;
 	}
 
 	/** Uninitializing transcoding of audio data in memory */
-	drmp3_uninit(&mp3);
+	drmp3_uninit(&MP3_Decoder);
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded MP3 audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
 
 	return true;
 }

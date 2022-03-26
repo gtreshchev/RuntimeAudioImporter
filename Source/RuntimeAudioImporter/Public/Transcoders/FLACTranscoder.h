@@ -8,7 +8,7 @@ struct FDecodedAudioStruct;
 struct FEncodedAudioStruct;
 
 
-class RUNTIMEAUDIOIMPORTER_API FLACTranscoder
+class RUNTIMEAUDIOIMPORTER_API FlacTranscoder
 {
 public:
 	/**

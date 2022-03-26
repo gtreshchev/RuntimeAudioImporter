@@ -10,12 +10,12 @@
 #include "AudioCompressionSettingsUtils.h"
 #include "Interfaces/IAudioFormat.h"
 
-#include "Transcoders/FLACTranscoder.h"
 #include "Transcoders/MP3Transcoder.h"
+#include "Transcoders/WAVTranscoder.h"
+#include "Transcoders/FlacTranscoder.h"
 #include "Transcoders/VorbisTranscoder.h"
 #include "Transcoders/OpusTranscoder.h"
 #include "Transcoders/RAWTranscoder.h"
-#include "Transcoders/WAVTranscoder.h"
 
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
@@ -85,7 +85,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 
 	OnProgress_Internal(35);
 
-	AsyncTask(ENamedThreads::AnyThread, [this, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
 	{
 		ImportAudioFromRAWBuffer(AudioBuffer, Format, SampleRate, NumOfChannels);
 	});
@@ -175,24 +175,24 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 		RegularSoundWaveRef->bProcedural = false;
 		RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
 	}
-	
+
 	RegularSoundWaveRef->AddToRoot();
 
-	AsyncTask(ENamedThreads::AnyThread, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult]()
 	{
 		auto OnResultExecute = [OnCompressedResult](bool bSuccess, USoundWave* SoundWaveRef)
 		{
 			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [bSuccess, OnCompressedResult, SoundWaveRef]()
 			{
 				OnCompressedResult.Execute(bSuccess, SoundWaveRef);
-			
+
 				if (SoundWaveRef != nullptr)
 				{
 					SoundWaveRef->RemoveFromRoot();
 				}
 			});
 		};
-		
+
 		/** Fill in the standard PCM buffer if needed */
 		if (bFillPCMBuffer)
 		{
@@ -221,7 +221,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 			/** Encoding to WAV format */
 			FEncodedAudioStruct EncodedAudioInfo;
-			if (!WAVTranscoder::Encode(CustomDecodedAudioInfo, EncodedAudioInfo, FWavEncodingFormat(EWavEncodingFormat::FORMAT_PCM, 16)))
+			if (!WAVTranscoder::Encode(CustomDecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_PCM, 16)))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to encode PCM to WAV format due to transcoder error"));
 				OnResultExecute(false, nullptr);
@@ -253,9 +253,9 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 			FEncodedAudioStruct EncodedAudioInfo;
 
-			static const FName NAME_ADPCM(TEXT("ADPCM"));
-			static const FName NAME_OGG(TEXT("OGG"));
-			static const FName NAME_OPUS(TEXT("OPUS"));
+			static const FName NAME_ADPCM{TEXT("ADPCM")};
+			static const FName NAME_OGG{TEXT("OGG")};
+			static const FName NAME_OPUS{TEXT("OPUS")};
 
 			if (CurrentAudioFormat == NAME_ADPCM)
 			{
@@ -308,7 +308,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(), *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioDataSize);
 		}
-		
+
 		OnResultExecute(true, RegularSoundWaveRef);
 	});
 }
@@ -368,7 +368,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 {
 	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
 
-	AsyncTask(ENamedThreads::AnyThread, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
 		OnProgress_Internal(5);
 
@@ -489,7 +489,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToWAV(UImportedSoundWave* Soun
 
 	/** Encoding to WAV format */
 	FEncodedAudioStruct EncodedAudioInfo;
-	if (!WAVTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, FWavEncodingFormat(EWavEncodingFormat::FORMAT_IEEE_FLOAT, 32)))
+	if (!WAVTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_IEEE_FLOAT, 32)))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to encode PCM to WAV format due to transcoder error"));
 		return false;
@@ -603,7 +603,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct EncodedAu
 		}
 	case EAudioFormat::Flac:
 		{
-			if (!FLACTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!FlacTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Flac audio data"));
 				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
@@ -680,7 +680,7 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData
 		return EAudioFormat::Wav;
 	}
 
-	if (FLACTranscoder::CheckAudioFormat(AudioData, AudioDataSize))
+	if (FlacTranscoder::CheckAudioFormat(AudioData, AudioDataSize))
 	{
 		return EAudioFormat::Flac;
 	}
