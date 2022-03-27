@@ -38,7 +38,7 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 	const uint32 SampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
 
 	/** Copying decoded data to prevent crash if the task is interrupted */
-	const TArray<float> CopiedDecodedData{TArray<float>(reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData), DecodedData.PCMInfo.PCMDataSize)};
+	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData), static_cast<int32>(DecodedData.PCMInfo.PCMDataSize) / static_cast<int32>(sizeof(float))};
 
 	/** Encoding Vorbis data */
 	{
