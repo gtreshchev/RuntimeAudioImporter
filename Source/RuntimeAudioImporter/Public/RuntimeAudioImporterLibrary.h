@@ -12,6 +12,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int3
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
 
+/** Delegate broadcast the compressed sound wave */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess, USoundWave*, SoundWaveRef);
 
 /** Forward declaration of the UPreImportedSoundAsset class */
