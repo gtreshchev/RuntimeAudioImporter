@@ -235,6 +235,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled RAW Wave Buffer with size '%d'"), EncodedAudioInfo.AudioDataSize);
 		}
 
+		/** Fill in the compressed buffer (usually OGG Vorbis is used, but other formats such as Opus, ADPCM, etc. are also possible) */
 		if (bFillCompressedBuffer)
 		{
 			FAudioDeviceManager* DeviceManager{GEngine->GetAudioDeviceManager()};
@@ -246,16 +247,23 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 				return;
 			}
 
-			/** Getting the name of the current compressed audio format */
-			const FName CurrentAudioFormat{DeviceManager->GetActiveAudioDevice()->GetRuntimeFormat(RegularSoundWaveRef)};
-
-			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
-
 			FEncodedAudioStruct EncodedAudioInfo;
 
 			static const FName NAME_ADPCM{TEXT("ADPCM")};
 			static const FName NAME_OGG{TEXT("OGG")};
 			static const FName NAME_OPUS{TEXT("OPUS")};
+
+			/** Getting the name of the current compressed audio format */
+			const FName CurrentAudioFormat{
+#if WITH_OGGVORBIS
+				NAME_OGG
+#else
+				DeviceManager->GetActiveAudioDevice()->GetRuntimeFormat(RegularSoundWaveRef)
+#endif
+			};
+
+			/** Getting the name of the current compressed platform-specific audio format */
+			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
 
 			if (CurrentAudioFormat == NAME_ADPCM)
 			{
