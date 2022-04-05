@@ -101,7 +101,7 @@ public:
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
 	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
-	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer.
+	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer. It is recommended not to enable to save memory.
 	 *
 	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
 	 */
