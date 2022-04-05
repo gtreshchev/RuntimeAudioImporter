@@ -52,7 +52,7 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 	const uint32 SampleStride = SAMPLE_SIZE * DecodedData.SoundWaveBasicInfo.NumOfChannels;
 	const uint32 BytesPerFrame = OpusFrameSizeSamples * SampleStride;
 
-	/** Copying decoded data to prevent crash if the task is interrupted */
+	// Copying decoded data to prevent crash if the task is interrupted
 	TArray<uint8> CopiedDecodedData{TArray<uint8>(DecodedData.PCMInfo.PCMData, DecodedData.PCMInfo.PCMDataSize)};
 
 	const uint32 EncoderSize = opus_encoder_get_size(DecodedData.SoundWaveBasicInfo.NumOfChannels);
@@ -134,7 +134,7 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 
 	FMemory::Free(Encoder);
 
-	/** Filling the encoded audio data */
+	// Filling the encoded audio data
 	{
 		EncodedData.AudioData = static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num()));
 		EncodedData.AudioDataSize = EncodedAudioData.Num();

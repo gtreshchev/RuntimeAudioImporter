@@ -9,7 +9,7 @@ void UImportedSoundWave::BeginDestroy()
 {
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
 
-	/** Releasing memory on sound wave destroy */
+	// Releasing memory on sound wave destroy
 	ReleaseMemory();
 
 	Super::BeginDestroy();
@@ -48,7 +48,7 @@ bool UImportedSoundWave::ChangeCurrentFrameCount(const uint32 NumOfFrames)
 
 	CurrentNumOfFrames = NumOfFrames;
 
-	/** Setting "PlaybackFinishedBroadcast" to "false" in order to re-broadcast the "OnAudioPlaybackFinished" delegate again */
+	// Setting "PlaybackFinishedBroadcast" to "false" in order to re-broadcast the "OnAudioPlaybackFinished" delegate again
 	PlaybackFinishedBroadcast = false;
 
 	return true;
@@ -81,7 +81,7 @@ bool UImportedSoundWave::IsPlaybackFinished()
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-	/** Ensure there is enough number of frames. Lack of frames means audio playback has finished */
+	// Ensure there is enough number of frames. Lack of frames means audio playback has finished
 	if (static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames)
 	{
 		AsyncTask(ENamedThreads::GameThread, [this]()
@@ -102,26 +102,26 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 		return 0;
 	}
 
-	/** Getting the remaining number of samples if the required number of samples is greater than the total available number */
+	// Getting the remaining number of samples if the required number of samples is greater than the total available number
 	if (static_cast<uint32>(CurrentNumOfFrames) + static_cast<uint32>(NumSamples) / static_cast<uint32>(NumChannels) >= PCMBufferInfo.PCMNumOfFrames)
 	{
 		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
 	}
 
-	/** Retrieving a part of PCM data */
+	// Retrieving a part of PCM data
 	uint8* RetrievedPCMData = PCMBufferInfo.PCMData + (CurrentNumOfFrames * NumChannels * sizeof(float));
 	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
 
-	/** Ensure we got a valid PCM data */
+	// Ensure we got a valid PCM data
 	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
 	{
 		return 0;
 	}
 
-	/** Filling OutAudio array with the retrieved PCM data */
+	// Filling in OutAudio array with the retrieved PCM data
 	OutAudio = TArray<uint8>(RetrievedPCMData, RetrievedPCMDataSize);
 
-	/** Increasing CurrentFrameCount for correct iteration sequence */
+	// Increasing CurrentFrameCount for correct iteration sequence
 	CurrentNumOfFrames = CurrentNumOfFrames + (NumSamples / NumChannels);
 
 	AsyncTask(ENamedThreads::GameThread, [this, RetrievedPCMData, RetrievedPCMDataSize]()
