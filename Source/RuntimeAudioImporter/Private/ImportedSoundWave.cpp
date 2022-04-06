@@ -64,7 +64,11 @@ float UImportedSoundWave::GetDurationConst() const
 	return Duration;
 }
 
+#if ENGINE_MAJOR_VERSION < 5
 float UImportedSoundWave::GetDuration()
+#else
+float UImportedSoundWave::GetDuration() const
+#endif
 {
 	return GetDurationConst();
 }
