@@ -28,7 +28,6 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 	GENERATED_BODY()
 
 public:
-	
 	/** Bind to know when the transcoding is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
@@ -104,6 +103,7 @@ public:
 	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer. It is recommended not to enable to save memory.
 	 *
 	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
+	 * @warning Not supported by UE5
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
 	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false);
@@ -169,7 +169,7 @@ private:
 	 * @param Format Base format name
 	 */
 	static FName GetPlatformSpecificFormat(const FName& Format);
-	
+
 	/**
 	 * Determine audio format based on audio data
 	 *

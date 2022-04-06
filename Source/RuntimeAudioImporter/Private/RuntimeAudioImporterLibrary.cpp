@@ -139,6 +139,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 
 void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer)
 {
+#if ENGINE_MAJOR_VERSION < 5
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
 
 	if (RegularSoundWaveRef == nullptr)
@@ -319,6 +320,9 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 		OnResultExecute(true, RegularSoundWaveRef);
 	});
+#else
+	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("CompressSoundWave function is not supported by the UE5!"));
+#endif
 }
 
 FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Format)
