@@ -65,11 +65,12 @@ public:
 	 * Get the length of the sound wave, in seconds
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
-	#if ENGINE_MAJOR_VERSION < 5
-	virtual float GetDuration() override;
-	#else
-	virtual float GetDuration() const override;
-	#endif
+	virtual float GetDuration()
+#if ENGINE_MAJOR_VERSION < 5
+	override;
+#else
+	const override;
+#endif
 
 	/**
 	 * Get the current sound playback percentage, 0-100%
