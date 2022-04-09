@@ -14,22 +14,22 @@
 #define memset(Dest, Char, Count)	FMemory::Memset(Dest, Char, Count)
 
 #ifdef INCLUDE_MP3
-#include "ThirdParty/dr_mp3.h"
+#include "dr_mp3.h"
 #endif
 
 #ifdef INCLUDE_WAV
-#include "ThirdParty/dr_wav.h"
+#include "dr_wav.h"
 #endif
 
 #ifdef INCLUDE_FLAC
-#include "ThirdParty/dr_flac.h"
+#include "dr_flac.h"
 #endif
 
 #ifdef INCLUDE_VORBIS
 #if PLATFORM_SUPPORTS_VORBIS_CODEC
 #include "vorbis/vorbisenc.h"
 #endif
-#include "ThirdParty/stb_vorbis.c"
+#include "stb_vorbis.c"
 #endif
 
 #ifdef INCLUDE_OPUS
