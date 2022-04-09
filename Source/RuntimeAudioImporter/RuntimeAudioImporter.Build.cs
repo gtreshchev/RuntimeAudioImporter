@@ -1,9 +1,16 @@
 // Georgy Treshchev 2022.
 
+using System;
+using System.IO;
 using UnrealBuildTool;
 
 public class RuntimeAudioImporter : ModuleRules
 {
+	private string ThirdPartyPath
+	{
+		get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty/")); }
+	}
+	
 	public RuntimeAudioImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
@@ -22,6 +29,8 @@ public class RuntimeAudioImporter : ModuleRules
 				"DR_FLAC_IMPLEMENTATION=1"
 			}
 		);
+		
+		PrivateIncludePaths.Add(ThirdPartyPath);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

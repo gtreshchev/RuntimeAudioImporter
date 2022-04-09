@@ -22,9 +22,7 @@
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
-	URuntimeAudioImporterLibrary* Importer = NewObject<URuntimeAudioImporterLibrary>();
-	Importer->AddToRoot();
-	return Importer;
+	return NewObject<URuntimeAudioImporterLibrary>();
 }
 
 bool LoadAudioFileToArray(TArray<uint8>& AudioData, const FString& FilePath)
