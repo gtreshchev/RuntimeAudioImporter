@@ -135,7 +135,23 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
 }
 
-void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer)
+const FName& GetAudioFormatFromCompressedSoundWaveAudioFormat(ECompressedSoundWaveAudioFormat Format)
+{
+	static const FName NAME_ADPCM{TEXT("ADPCM")};
+	static const FName NAME_OGG{TEXT("OGG")};
+	static const FName NAME_OPUS{TEXT("OPUS")};
+	static const FName NAME_NONE{FName()};
+	
+	switch (Format)
+	{
+	case ECompressedSoundWaveAudioFormat::OggVorbis: return NAME_OGG;
+	case ECompressedSoundWaveAudioFormat::OggOpus: return NAME_OPUS;
+	case ECompressedSoundWaveAudioFormat::ADPCM: return NAME_ADPCM;
+	default: return NAME_NONE;
+	}
+}
+
+void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
@@ -177,7 +193,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 	RegularSoundWaveRef->AddToRoot();
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, DecodedAudioInfo, OnCompressedResult, CompressedSoundWaveAudioFormat]()
 	{
 		auto OnResultExecute = [OnCompressedResult](bool bSuccess, USoundWave* SoundWaveRef)
 		{
@@ -237,60 +253,44 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 		// Filling in the compressed buffer (usually OGG Vorbis is used, but other formats such as Opus, ADPCM, etc. are also possible)
 		if (bFillCompressedBuffer)
 		{
-			FAudioDeviceManager* DeviceManager{GEngine->GetAudioDeviceManager()};
-
-			if (DeviceManager == nullptr)
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get audio device manager"));
-				OnResultExecute(false, nullptr);
-				return;
-			}
-
 			FEncodedAudioStruct EncodedAudioInfo;
 
-			static const FName NAME_ADPCM{TEXT("ADPCM")};
-			static const FName NAME_OGG{TEXT("OGG")};
-			static const FName NAME_OPUS{TEXT("OPUS")};
+			switch (CompressedSoundWaveAudioFormat)
+			{
+			case ECompressedSoundWaveAudioFormat::OggVorbis:
+				{
+					if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+					{
+						UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+					}
+					break;
+				}
+			case ECompressedSoundWaveAudioFormat::OggOpus:
+				{
+					if (!OpusTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+					{
+						UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+					}
+					break;
+				}
+			case ECompressedSoundWaveAudioFormat::ADPCM:
+				{
+					int16* Int16PCMData;
+					int32 Int16PCMDataSize;
+					RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, Int16PCMData, Int16PCMDataSize);
+
+					EncodedAudioInfo.AudioData = reinterpret_cast<uint8*>(Int16PCMData);
+					EncodedAudioInfo.AudioDataSize = Int16PCMDataSize;
+					break;
+				}
+			default: UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
+			}
 
 			// Getting the name of the current compressed audio format
-			const FName CurrentAudioFormat{
-#if WITH_OGGVORBIS
-				NAME_OGG
-#else
-				DeviceManager->GetActiveAudioDevice()->GetRuntimeFormat(RegularSoundWaveRef)
-#endif
-			};
+			const FName CurrentAudioFormat{GetAudioFormatFromCompressedSoundWaveAudioFormat(CompressedSoundWaveAudioFormat)};
 
 			// Getting the name of the current compressed platform-specific audio format
 			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
-
-			if (CurrentAudioFormat == NAME_ADPCM)
-			{
-				int16* Int16PCMData;
-				int32 Int16PCMDataSize;
-				RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, Int16PCMData, Int16PCMDataSize);
-
-				EncodedAudioInfo.AudioData = reinterpret_cast<uint8*>(Int16PCMData);
-				EncodedAudioInfo.AudioDataSize = Int16PCMDataSize;
-			}
-			else if (CurrentAudioFormat == NAME_OGG)
-			{
-				if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
-				}
-			}
-			else if (CurrentAudioFormat == NAME_OPUS)
-			{
-				if (!OpusTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
-			}
 
 			if (EncodedAudioInfo.AudioDataSize <= 0)
 			{

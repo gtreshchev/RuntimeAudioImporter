@@ -106,7 +106,7 @@ public:
 	 * @warning Not supported by UE5
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false);
+	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat = ECompressedSoundWaveAudioFormat::OggVorbis);
 
 	/**
 	 * Transcoding one RAW Data format to another
