@@ -14,7 +14,20 @@
 
 uint16 GetBestOutputSampleRate(uint8 Quality)
 {
-	return FMath::GetMappedRangeValueClamped(FVector2D(1, 100), FVector2D(8000, 48000), Quality);
+	static constexpr uint16 ValidSampleRates[] = {0, 8000, 12000, 16000, 24000, 48000};
+
+	const uint16 MappedSampleRateRange = FMath::GetMappedRangeValueClamped(FVector2D(1, 100), FVector2D(8000, 48000), Quality);
+
+	// Look for the next highest valid rate
+	for (int32 Index = UE_ARRAY_COUNT(ValidSampleRates) - 2; Index >= 0; Index--)
+	{
+		if (MappedSampleRateRange > ValidSampleRates[Index])
+		{
+			return ValidSampleRates[Index + 1];
+		}
+	}
+
+	return 0;
 }
 
 uint32 GetBitRateFromQuality(uint8 Quality, uint32 NumOfChannels)
@@ -42,9 +55,8 @@ void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 
 
 bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"),
-		   *DecodedData.ToString(), Quality);
-	
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality);
+
 #if WITH_OPUS
 	const uint16 OpusSampleRate{GetBestOutputSampleRate(Quality)};
 	constexpr uint32 OpusFrameSizeMs{60};
@@ -72,7 +84,7 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 	TArray<uint8> EncodedAudioData;
 	EncodedAudioData.Empty();
 	FMemoryWriter CompressedData(EncodedAudioData);
-	
+
 	uint32 SrcBufferOffset = 0;
 
 	uint32 FramesToEncode = CopiedDecodedData.Num() / BytesPerFrame;
@@ -87,7 +99,8 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 
 	if (DecodedData.SoundWaveBasicInfo.NumOfChannels > MAX_uint8)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: the number of channels (%d) is more than the max supported value (%d)"), DecodedData.SoundWaveBasicInfo.NumOfChannels, MAX_uint8);
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: the number of channels (%d) is more than the max supported value (%d)"),
+		       DecodedData.SoundWaveBasicInfo.NumOfChannels, MAX_uint8);
 		FMemory::Free(Encoder);
 		return false;
 	}
@@ -106,9 +119,8 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 
 	while (SrcBufferOffset < static_cast<uint32>(CopiedDecodedData.Num()))
 	{
-		const int32 CompressedDataLength = opus_encode(Encoder,
-		                                               reinterpret_cast<const opus_int16*>(CopiedDecodedData.GetData() + SrcBufferOffset),
-		                                               OpusFrameSizeSamples, Uint8RAWBufferFrame.GetData(), Uint8RAWBufferFrame.Num());
+		const int32 CompressedDataLength = opus_encode(Encoder, reinterpret_cast<const opus_int16*>(CopiedDecodedData.GetData() + SrcBufferOffset), OpusFrameSizeSamples, Uint8RAWBufferFrame.GetData(),
+		                                               Uint8RAWBufferFrame.Num());
 
 		if (CompressedDataLength < 0)
 		{
@@ -141,7 +153,7 @@ bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct
 		EncodedData.AudioFormat = EAudioFormat::OggOpus;
 		FMemory::Memmove(EncodedData.AudioData, EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
-	
+
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to Opus audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
 	return true;
