@@ -96,19 +96,19 @@ public:
 	 * Compress ImportedSoundWave to normal SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
 	 *
 	 * @param ImportedSoundWaveRef Reference to the imported sound wave
+	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
 	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
 	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
 	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer. It is recommended not to enable to save memory
 	 * @param CompressedSoundWaveAudioFormat Format for compressing the sound wave. Used when "bFillCompressedBuffer" is true
-	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
 	 *
 	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
 	 * @warning Not supported by UE5
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat = ECompressedSoundWaveAudioFormat::OggVorbis, FCompressedSoundWaveInfo CompressedSoundWaveInfo = FCompressedSoundWaveInfo());
+	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat = ECompressedSoundWaveAudioFormat::OggVorbis);
 
 	/**
 	 * Transcoding one RAW Data format to another
