@@ -151,7 +151,7 @@ const FName& GetAudioFormatFromCompressedSoundWaveAudioFormat(ECompressedSoundWa
 	}
 }
 
-void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat, FCompressedSoundWaveInfo CompressedSoundWaveInfo)
+void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
