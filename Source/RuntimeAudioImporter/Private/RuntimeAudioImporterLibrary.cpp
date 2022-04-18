@@ -151,7 +151,7 @@ const FName& GetAudioFormatFromCompressedSoundWaveAudioFormat(ECompressedSoundWa
 	}
 }
 
-void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat)
+void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat, FCompressedSoundWaveInfo CompressedSoundWaveInfo)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
@@ -189,6 +189,14 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 		RegularSoundWaveRef->bProcedural = false;
 		RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
+
+		// Filling in the compressed sound wave info
+		{
+			RegularSoundWaveRef->SoundGroup = CompressedSoundWaveInfo.SoundGroup;
+			RegularSoundWaveRef->bLooping = CompressedSoundWaveInfo.bLooping;
+			RegularSoundWaveRef->Volume = CompressedSoundWaveInfo.Volume;
+			RegularSoundWaveRef->Pitch = CompressedSoundWaveInfo.Pitch;
+		}
 	}
 
 	RegularSoundWaveRef->AddToRoot();
