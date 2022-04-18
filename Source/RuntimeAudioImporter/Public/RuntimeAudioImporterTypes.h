@@ -187,13 +187,21 @@ struct FCompressedSoundWaveInfo
 
 	/** If set, when played directly (not through a sound cue) the wave will be played looping */
 	UPROPERTY(BlueprintReadWrite, Category = "Runtime Audio Importer")
-	bool bLooping{false};
+	bool bLooping;
 
 	/** Playback volume of sound 0 to 1 - Default is 1.0 */
 	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.0"), Category = "Runtime Audio Importer")
-	float Volume{1.f};
+	float Volume;
 
 	/** Playback pitch for sound. */
 	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.125", ClampMax = "4.0"), Category = "Runtime Audio Importer")
-	float Pitch{1.f};
+	float Pitch;
+
+	FCompressedSoundWaveInfo()
+		: SoundGroup(ESoundGroup::SOUNDGROUP_Default)
+	  , bLooping(false)
+	  , Volume(1.f)
+	  , Pitch(1.f)
+	{
+	}
 };
