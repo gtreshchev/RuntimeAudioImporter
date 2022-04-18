@@ -58,7 +58,7 @@ enum class ECompressedSoundWaveAudioFormat : uint8
 {
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
 	OggOpus UMETA(DisplayName = "ogg opus"),
-	ADPCM UMETA(DisplayName = "ADPCM (errors are possible)")
+	ADPCM UMETA(DisplayName = "ADPCM")
 };
 
 /** Basic SoundWave data. CPP use only. */
@@ -98,7 +98,9 @@ struct FPCMStruct
 
 	/** Base constructor */
 	FPCMStruct()
-		: PCMData{nullptr}, PCMNumOfFrames{0}, PCMDataSize{0}
+		: PCMData{nullptr}
+	  , PCMNumOfFrames{0}
+	  , PCMDataSize{0}
 	{
 	}
 
@@ -148,12 +150,16 @@ struct FEncodedAudioStruct
 
 	/** Base constructor */
 	FEncodedAudioStruct()
-		: AudioData{nullptr}, AudioDataSize{0}, AudioFormat{EAudioFormat::Invalid}
+		: AudioData{nullptr}
+	  , AudioDataSize{0}
+	  , AudioFormat{EAudioFormat::Invalid}
 	{
 	}
 
 	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
-		: AudioData{AudioData}, AudioDataSize{AudioDataSize}, AudioFormat{AudioFormat}
+		: AudioData{AudioData}
+	  , AudioDataSize{AudioDataSize}
+	  , AudioFormat{AudioFormat}
 	{
 	}
 
@@ -164,7 +170,30 @@ struct FEncodedAudioStruct
 	 */
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"),
-		                       AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize, *UEnum::GetValueAsName(AudioFormat).ToString());
+		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"), AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize,
+		                       *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
+};
+
+/** Compressed sound wave information */
+USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
+struct FCompressedSoundWaveInfo
+{
+	GENERATED_BODY()
+
+	/** Sound group */
+	UPROPERTY(BlueprintReadWrite, Category = "Runtime Audio Importer")
+	TEnumAsByte<ESoundGroup> SoundGroup;
+
+	/** If set, when played directly (not through a sound cue) the wave will be played looping */
+	UPROPERTY(BlueprintReadWrite, Category = "Runtime Audio Importer")
+	bool bLooping{false};
+
+	/** Playback volume of sound 0 to 1 - Default is 1.0 */
+	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.0"), Category = "Runtime Audio Importer")
+	float Volume{1.f};
+
+	/** Playback pitch for sound. */
+	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.125", ClampMax = "4.0"), Category = "Runtime Audio Importer")
+	float Pitch{1.f};
 };
