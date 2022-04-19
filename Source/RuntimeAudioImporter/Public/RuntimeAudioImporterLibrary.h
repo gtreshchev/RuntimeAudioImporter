@@ -96,8 +96,8 @@ public:
 	 * Compress ImportedSoundWave to normal SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
 	 *
 	 * @param ImportedSoundWaveRef Reference to the imported sound wave
-	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
 	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
+	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
 	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
@@ -108,7 +108,7 @@ public:
 	 * @warning Not supported by UE5
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality = 100, bool bFillCompressedBuffer = true, bool bFillPCMBuffer = false, bool bFillRAWWaveBuffer = false, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat = ECompressedSoundWaveAudioFormat::OggVorbis);
+	void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat);
 
 	/**
 	 * Transcoding one RAW Data format to another
@@ -229,7 +229,7 @@ private:
 	 * @param DecodedAudioInfo Decoded audio data
 	 * @return Whether the transcoding was successful or not
 	 */
-	bool DecodeAudioData(FEncodedAudioStruct EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
+	bool DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
 
 	/**
 	 * Audio transcoding progress callback
