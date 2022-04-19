@@ -20,5 +20,5 @@ public:
 	/**
 	 * Decode compressed MP3 data to PCM format
 	 */
-	static bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData);
+	static bool Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData);
 };

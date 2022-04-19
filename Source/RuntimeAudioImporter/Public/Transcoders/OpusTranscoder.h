@@ -21,7 +21,7 @@ public:
 	/**
 	 * Encode uncompressed data to Opus format
 	 */
-	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality);
+	static bool Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality);
 
 	/**
 	 * Decode compressed Opus data to PCM format
