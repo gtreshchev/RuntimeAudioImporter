@@ -226,6 +226,8 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			RegularSoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(RawPCMDataSize));
 			FMemory::Memmove(RegularSoundWaveRef->RawPCMData, RawPCMData, RawPCMDataSize);
 
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
+
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled PCM Buffer with size '%d'"), RawPCMDataSize);
 		}
 
@@ -254,6 +256,8 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			RegularSoundWaveRef->RawData.Lock(LOCK_READ_WRITE);
 			FMemory::Memmove(RegularSoundWaveRef->RawData.Realloc(EncodedAudioInfo.AudioDataSize), EncodedAudioInfo.AudioData, EncodedAudioInfo.AudioDataSize);
 			RegularSoundWaveRef->RawData.Unlock();
+
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled RAW Wave Buffer with size '%d'"), EncodedAudioInfo.AudioDataSize);
 		}
