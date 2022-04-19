@@ -26,7 +26,7 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 	return true;
 }
 
-bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
+bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Vorbis audio format.\nDecoded audio info: %s.\nQuality: %d"),
@@ -216,7 +216,7 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStru
 #endif
 }
 
-bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
+bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding Vorbis audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());

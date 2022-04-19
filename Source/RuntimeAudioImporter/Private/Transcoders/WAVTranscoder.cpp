@@ -99,7 +99,7 @@ uint32 ConvertFormat(EWAVEncodingFormat Format)
 	}
 }
 
-bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
+bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s.\nEncoding audio format: %s"),
@@ -144,7 +144,7 @@ bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct&
 	return true;
 }
 
-bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
+bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
 #if ENGINE_MAJOR_VERSION < 5
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());

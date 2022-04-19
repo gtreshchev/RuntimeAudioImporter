@@ -53,7 +53,7 @@ void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 
 	CompressedData.Serialize(FrameData, FrameSize);
 }
 
-bool OpusTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
+bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality);
 

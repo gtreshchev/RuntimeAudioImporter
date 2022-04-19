@@ -27,7 +27,7 @@ public:
 	virtual void BeginDestroy() override;
 
 	/**
-	 * Release PCM data. You should only call this function if you are sure of it (it is called automatically by the garbage collector)
+	 * Release PCM data. You should only call this function if you are sure of it (it is called automatically by the garbage collector on sound wave destroy)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
 	void ReleaseMemory();
@@ -138,5 +138,6 @@ public:
 	/**
 	 * Contains PCM data for sound wave playback
 	 */
+	UPROPERTY()
 	FPCMStruct PCMBufferInfo;
 };

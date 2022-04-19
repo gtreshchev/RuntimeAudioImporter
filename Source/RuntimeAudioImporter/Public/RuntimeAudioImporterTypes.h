@@ -85,8 +85,11 @@ struct FSoundWaveBasicStruct
 };
 
 /** PCM Data buffer structure */
+USTRUCT(BlueprintType)
 struct FPCMStruct
 {
+	GENERATED_BODY()
+	
 	/** 32-bit float PCM data */
 	uint8* PCMData;
 
@@ -98,10 +101,19 @@ struct FPCMStruct
 
 	/** Base constructor */
 	FPCMStruct()
-		: PCMData{nullptr}
-	  , PCMNumOfFrames{0}
-	  , PCMDataSize{0}
+	: PCMData(nullptr)
+	, PCMNumOfFrames(0)
+	, PCMDataSize(0)
 	{
+	}
+
+	/** Base destructor */
+	~FPCMStruct()
+	{
+		if (PCMData != nullptr && PCMNumOfFrames > 0 && PCMDataSize > 0)
+		{
+			FMemory::Free(PCMData);
+		}
 	}
 
 	/**
@@ -156,11 +168,21 @@ struct FEncodedAudioStruct
 	{
 	}
 
+	/** Custom constructor */
 	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
 		: AudioData{AudioData}
 	  , AudioDataSize{AudioDataSize}
 	  , AudioFormat{AudioFormat}
 	{
+	}
+
+	/** Base destructor */
+	~FEncodedAudioStruct()
+	{
+		if (AudioData != nullptr && AudioDataSize > 0)
+		{
+			FMemory::Free(AudioData);
+		}
 	}
 
 	/**

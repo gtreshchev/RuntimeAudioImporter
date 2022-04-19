@@ -21,12 +21,12 @@ public:
 	/**
 	 * Encode uncompressed data to Vorbis format
 	 */
-	static bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality);
+	static bool Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality);
 
 	/**
 	 * Decode compressed Vorbis data to PCM format
 	 */
-	static bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData);
+	static bool Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData);
 };
 
 

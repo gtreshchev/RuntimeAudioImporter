@@ -9,9 +9,6 @@ void UImportedSoundWave::BeginDestroy()
 {
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
 
-	// Releasing memory on sound wave destroy
-	ReleaseMemory();
-
 	Super::BeginDestroy();
 }
 
@@ -24,7 +21,7 @@ void UImportedSoundWave::ReleaseMemory()
 		FMemory::Free(PCMBufferInfo.PCMData);
 	}
 
-	PCMBufferInfo = FPCMStruct();
+	PCMBufferInfo.~FPCMStruct();
 }
 
 bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
