@@ -16,11 +16,6 @@ void UImportedSoundWave::ReleaseMemory()
 {
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
 
-	if (PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0)
-	{
-		FMemory::Free(PCMBufferInfo.PCMData);
-	}
-
 	PCMBufferInfo.~FPCMStruct();
 }
 
