@@ -294,12 +294,14 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStru
 
 	// Transcoding int16 to float format
 	{
-		float* TempFloatBuffer = new float[DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2];
+		float* TempFloatBuffer = static_cast<float*>(FMemory::Malloc(DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2 * sizeof(float)));
 		int32 TempFloatSize;
 
 		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, DecodedData.PCMInfo.PCMDataSize, TempFloatBuffer, TempFloatSize);
 		DecodedData.PCMInfo.PCMData = reinterpret_cast<uint8*>(TempFloatBuffer);
 	}
+	
+	FMemory::Free(Int16RAWBuffer);
 
 	// Getting basic audio information
 	{
