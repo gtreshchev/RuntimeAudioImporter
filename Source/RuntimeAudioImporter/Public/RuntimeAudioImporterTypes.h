@@ -85,7 +85,7 @@ struct FSoundWaveBasicStruct
 };
 
 /** PCM Data buffer structure */
-USTRUCT(BlueprintType)
+USTRUCT()
 struct FPCMStruct
 {
 	GENERATED_BODY()
