@@ -22,14 +22,14 @@ bool MP3Transcoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize
 
 bool MP3Transcoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding MP3 audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Decoding MP3 audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 	
 	drmp3 MP3_Decoder;
 
 	// Initializing transcoding of audio data in memory
 	if (!drmp3_init_memory(&MP3_Decoder, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize MP3 Decoder"));
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize MP3 Decoder"));
 		return false;
 	}
 
@@ -54,7 +54,7 @@ bool MP3Transcoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 	/** Uninitializing transcoding of audio data in memory */
 	drmp3_uninit(&MP3_Decoder);
 
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded MP3 audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Successfully decoded MP3 audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
 }

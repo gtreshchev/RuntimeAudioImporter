@@ -15,9 +15,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	// Initializing transcoding of audio data in memory
 	if (!drwav_init_memory(&WAV, WavData.GetData(), WavData.Num(), nullptr))
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
@@ -109,10 +107,8 @@ uint32 ConvertFormat(EWAVEncodingFormat Format)
 
 bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
 {
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s.\nEncoding audio format: %s"),
-	       *DecodedData.ToString(), *Format.ToString());
-#endif
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s.\nEncoding audio format: %s"),
+	                                                                *DecodedData.ToString(), *Format.ToString()));
 
 	drwav WAV_Encoder;
 
@@ -130,9 +126,7 @@ bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudio
 
 	if (!drwav_init_memory_write(&WAV_Encoder, &AudioData, &AudioDataSize, &WAV_Format, nullptr))
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize WAV Encoder"));
 		return false;
 	}
 
@@ -143,28 +137,22 @@ bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudio
 		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), AudioDataSize);
 		EncodedData.AudioFormat = EAudioFormat::Wav;
 	}
-
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-#endif
+	
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully encoded uncompressed audio data to WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	return true;
 }
 
 bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-#endif
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	drwav WAV_Decoder;
 
 	// Initializing transcoding of audio data in memory
 	if (!drwav_init_memory(&WAV_Decoder, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize WAV Decoder"));
 		return false;
 	}
 
@@ -188,10 +176,8 @@ bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 
 	// Uninitializing transcoding of audio data in memory
 	drwav_uninit(&WAV_Decoder);
-
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded WAV audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-#endif
+	
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully decoded WAV audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
 }

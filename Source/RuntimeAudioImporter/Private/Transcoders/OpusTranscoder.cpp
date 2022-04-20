@@ -55,7 +55,7 @@ void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 
 
 bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality);
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
 
 #if WITH_OPUS
 	const uint16 OpusSampleRate{GetBestOutputSampleRate(Quality)};
@@ -73,7 +73,7 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 
 	if (EncoderError != OPUS_OK)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize Opus Encoder: error code %d"), EncoderError);
+		RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Unable to initialize Opus Encoder: error code %d"), EncoderError));
 		FMemory::Free(Encoder);
 		return false;
 	}
@@ -99,15 +99,14 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 
 	if (DecodedData.SoundWaveBasicInfo.NumOfChannels > MAX_uint8)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: the number of channels (%d) is more than the max supported value (%d)"),
-		       DecodedData.SoundWaveBasicInfo.NumOfChannels, MAX_uint8);
+		RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Failed to encode Opus data: the number of channels (%d) is more than the max supported value (%d)"), DecodedData.SoundWaveBasicInfo.NumOfChannels, MAX_uint8));
 		FMemory::Free(Encoder);
 		return false;
 	}
 
 	if (FramesToEncode > MAX_uint16)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: the number of frames to encode (%d) is more than the max supported value (%d)"), FramesToEncode, MAX_uint16);
+		RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Failed to encode Opus data: the number of frames to encode (%d) is more than the max supported value (%d)"), FramesToEncode, MAX_uint16));
 		FMemory::Free(Encoder);
 		return false;
 	}
@@ -125,7 +124,7 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 		if (CompressedDataLength < 0)
 		{
 			const char* ErrorStr = opus_strerror(CompressedDataLength);
-			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: [%d] %s"), CompressedDataLength, ANSI_TO_TCHAR(ErrorStr));
+			RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Failed to encode Opus data: [%d] %s"), CompressedDataLength, ANSI_TO_TCHAR(ErrorStr)));
 
 			FMemory::Free(Encoder);
 			return false;
@@ -134,7 +133,7 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 		{
 			if (CompressedDataLength > MAX_uint16)
 			{
-				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to encode Opus data: Compressed data length (%d) is more than max uint16 value (%d)"), CompressedDataLength, MAX_uint16);
+				RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Failed to encode Opus data: Compressed data length (%d) is more than max uint16 value (%d)"), CompressedDataLength, MAX_uint16));
 				FMemory::Free(Encoder);
 				return false;
 			}
@@ -153,12 +152,12 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
 
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to Opus audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully encoded uncompressed audio data to Opus audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	return true;
 
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%s) does not support Opus encoding"), FGenericPlatformProperties::IniPlatformName());
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Your platform (%hs) does not support Opus encoding"), FGenericPlatformProperties::IniPlatformName()));
 	return false;
 #endif
 }
