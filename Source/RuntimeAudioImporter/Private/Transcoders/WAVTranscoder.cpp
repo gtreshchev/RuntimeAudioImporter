@@ -42,7 +42,7 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	uint32 DataSizeLocation = INDEX_NONE;
 	for (uint32 Index = 36; Index < static_cast<uint32>(WavData.Num()) - 4; ++Index)
 	{
-	    // "64617461" - hex for string "data"
+		// "64617461" - hex for string "data"
 		if (BytesToHex(WavData.GetData() + Index, 4) == "64617461")
 		{
 			DataSizeLocation = Index + 4;
@@ -88,14 +88,22 @@ uint32 ConvertFormat(EWAVEncodingFormat Format)
 {
 	switch (Format)
 	{
-	case EWAVEncodingFormat::FORMAT_PCM: return DR_WAVE_FORMAT_PCM;
-	case EWAVEncodingFormat::FORMAT_ADPCM: return DR_WAVE_FORMAT_ADPCM;
-	case EWAVEncodingFormat::FORMAT_IEEE_FLOAT: return DR_WAVE_FORMAT_IEEE_FLOAT;
-	case EWAVEncodingFormat::FORMAT_ALAW: return DR_WAVE_FORMAT_ALAW;
-	case EWAVEncodingFormat::FORMAT_MULAW: return DR_WAVE_FORMAT_MULAW;
-	case EWAVEncodingFormat::FORMAT_DVI_ADPCM: return DR_WAVE_FORMAT_DVI_ADPCM;
-	case EWAVEncodingFormat::FORMAT_EXTENSIBLE: return DR_WAVE_FORMAT_EXTENSIBLE;
-	default: return DR_WAVE_FORMAT_PCM;
+	case EWAVEncodingFormat::FORMAT_PCM:
+		return DR_WAVE_FORMAT_PCM;
+	case EWAVEncodingFormat::FORMAT_ADPCM:
+		return DR_WAVE_FORMAT_ADPCM;
+	case EWAVEncodingFormat::FORMAT_IEEE_FLOAT:
+		return DR_WAVE_FORMAT_IEEE_FLOAT;
+	case EWAVEncodingFormat::FORMAT_ALAW:
+		return DR_WAVE_FORMAT_ALAW;
+	case EWAVEncodingFormat::FORMAT_MULAW:
+		return DR_WAVE_FORMAT_MULAW;
+	case EWAVEncodingFormat::FORMAT_DVI_ADPCM:
+		return DR_WAVE_FORMAT_DVI_ADPCM;
+	case EWAVEncodingFormat::FORMAT_EXTENSIBLE:
+		return DR_WAVE_FORMAT_EXTENSIBLE;
+	default:
+		return DR_WAVE_FORMAT_PCM;
 	}
 }
 
@@ -128,12 +136,11 @@ bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudio
 		return false;
 	}
 
-	drwav_write_pcm_frames(&WAV_Encoder, DecodedData.PCMInfo.PCMNumOfFrames, DecodedData.PCMInfo.PCMData);
+	drwav_write_pcm_frames(&WAV_Encoder, DecodedData.PCMInfo.PCMNumOfFrames, DecodedData.PCMInfo.PCMData.GetView().GetData());
 	drwav_uninit(&WAV_Encoder);
 
 	{
-		EncodedData.AudioData = static_cast<uint8*>(AudioData);
-		EncodedData.AudioDataSize = AudioDataSize;
+		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), AudioDataSize);
 		EncodedData.AudioFormat = EAudioFormat::Wav;
 	}
 
@@ -153,7 +160,7 @@ bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 	drwav WAV_Decoder;
 
 	// Initializing transcoding of audio data in memory
-	if (!drwav_init_memory(&WAV_Decoder, EncodedData.AudioData, EncodedData.AudioDataSize, nullptr))
+	if (!drwav_init_memory(&WAV_Decoder, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
 #if ENGINE_MAJOR_VERSION < 5
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Decoder"));
@@ -162,13 +169,15 @@ bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 	}
 
 	// Allocating memory for PCM data
-	DecodedData.PCMInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(WAV_Decoder.totalPCMFrameCount * WAV_Decoder.channels * sizeof(float)));
+	uint8* TempPCMData = static_cast<uint8*>(FMemory::Malloc(WAV_Decoder.totalPCMFrameCount * WAV_Decoder.channels * sizeof(float)));
 
 	// Filling PCM data and getting the number of frames
-	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&WAV_Decoder, WAV_Decoder.totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData));
+	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&WAV_Decoder, WAV_Decoder.totalPCMFrameCount, reinterpret_cast<float*>(TempPCMData));
 
 	// Getting PCM data size
-	DecodedData.PCMInfo.PCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * WAV_Decoder.channels * sizeof(float));
+	const int32 TempPCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * WAV_Decoder.channels * sizeof(float));
+
+	DecodedData.PCMInfo.PCMData =FBulkDataBuffer<uint8>(TempPCMData, TempPCMDataSize);
 
 	// Getting basic audio information
 	{

@@ -42,7 +42,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 	const uint32 SampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
 
 	// Copying decoded data to prevent crash if the task is interrupted
-	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData), static_cast<int32>(DecodedData.PCMInfo.PCMDataSize) / static_cast<int32>(sizeof(float))};
+	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData.GetView().GetData()), DecodedData.PCMInfo.PCMData.GetView().Num()};
 
 	// Encoding Vorbis data
 	{
@@ -192,10 +192,9 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 
 	// Filling in the encoded audio data
 	{
-		EncodedData.AudioData = static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num()));
-		EncodedData.AudioDataSize = EncodedAudioData.Num();
+		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num())), EncodedAudioData.Num());
 		EncodedData.AudioFormat = EAudioFormat::OggVorbis;
-		FMemory::Memmove(EncodedData.AudioData, EncodedAudioData.GetData(), EncodedAudioData.Num());
+		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
 
 #if ENGINE_MAJOR_VERSION < 5
@@ -223,7 +222,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 #endif
 	
 	int32 ErrorCode;
-	stb_vorbis* Vorbis_Decoder = stb_vorbis_open_memory(EncodedData.AudioData, EncodedData.AudioDataSize, &ErrorCode, nullptr);
+	stb_vorbis* Vorbis_Decoder = stb_vorbis_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), &ErrorCode, nullptr);
 
 	if (Vorbis_Decoder == nullptr)
 	{
@@ -290,15 +289,15 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	DecodedData.PCMInfo.PCMNumOfFrames = NumOfFrames;
 
 	// Getting PCM data size
-	DecodedData.PCMInfo.PCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
+	uint32 PCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
 
 	// Transcoding int16 to float format
 	{
 		float* TempFloatBuffer = static_cast<float*>(FMemory::Malloc(DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2 * sizeof(float)));
 		int32 TempFloatSize;
 
-		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, DecodedData.PCMInfo.PCMDataSize, TempFloatBuffer, TempFloatSize);
-		DecodedData.PCMInfo.PCMData = reinterpret_cast<uint8*>(TempFloatBuffer);
+		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, PCMDataSize, TempFloatBuffer, TempFloatSize);
+		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(TempFloatBuffer), PCMDataSize);
 	}
 	
 	FMemory::Free(Int16RAWBuffer);
