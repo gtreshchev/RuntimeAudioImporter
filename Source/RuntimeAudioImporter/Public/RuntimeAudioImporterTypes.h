@@ -3,6 +3,10 @@
 #pragma once
 
 #include "Engine/EngineBaseTypes.h"
+#include "Sound/SoundGroups.h"
+#include "RuntimeAudioImporterDefines.h"
+#include "Serialization/BulkDataBuffer.h"
+#include "HAL/UnrealMemory.h"
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
@@ -91,29 +95,15 @@ struct FPCMStruct
 	GENERATED_BODY()
 	
 	/** 32-bit float PCM data */
-	uint8* PCMData;
+	FBulkDataBuffer<uint8> PCMData;
 
 	/** Number of PCM frames */
 	uint32 PCMNumOfFrames;
 
-	/** PCM data size */
-	uint32 PCMDataSize;
-
 	/** Base constructor */
 	FPCMStruct()
-	: PCMData(nullptr)
-	, PCMNumOfFrames(0)
-	, PCMDataSize(0)
+		: PCMNumOfFrames(0)
 	{
-	}
-
-	/** Base destructor */
-	~FPCMStruct()
-	{
-		if (PCMData != nullptr && PCMNumOfFrames > 0 && PCMDataSize > 0)
-		{
-			FMemory::Free(PCMData);
-		}
 	}
 
 	/**
@@ -124,7 +114,7 @@ struct FPCMStruct
 	FString ToString() const
 	{
 		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %d"),
-		                       PCMData != nullptr ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, PCMDataSize);
+		                       PCMData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, PCMData.GetView().Num());
 	}
 };
 
@@ -151,38 +141,23 @@ struct FDecodedAudioStruct
 /** Encoded audio information */
 struct FEncodedAudioStruct
 {
-	/** Pointer to memory location of the audio data */
-	uint8* AudioData;
-
-	/** Memory size allocated for the audio data */
-	int32 AudioDataSize;
+	/** Audio data */
+	FBulkDataBuffer<uint8> AudioData;
 
 	/** Format of the audio data (e.g. mp3, flac, etc) */
 	EAudioFormat AudioFormat;
 
 	/** Base constructor */
 	FEncodedAudioStruct()
-		: AudioData{nullptr}
-	  , AudioDataSize{0}
-	  , AudioFormat{EAudioFormat::Invalid}
+		: AudioFormat{EAudioFormat::Invalid}
 	{
 	}
 
 	/** Custom constructor */
 	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
-		: AudioData{AudioData}
-	  , AudioDataSize{AudioDataSize}
+		: AudioData{AudioData, AudioDataSize}
 	  , AudioFormat{AudioFormat}
 	{
-	}
-
-	/** Base destructor */
-	~FEncodedAudioStruct()
-	{
-		if (AudioData != nullptr && AudioDataSize > 0)
-		{
-			FMemory::Free(AudioData);
-		}
 	}
 
 	/**
@@ -192,7 +167,7 @@ struct FEncodedAudioStruct
 	 */
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"), AudioData != nullptr ? TEXT("Valid") : TEXT("Invalid"), AudioDataSize,
+		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"), AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), AudioData.GetView().Num(),
 		                       *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };

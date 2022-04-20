@@ -141,13 +141,17 @@ const FName& GetAudioFormatFromCompressedSoundWaveAudioFormat(ECompressedSoundWa
 	static const FName NAME_OGG{TEXT("OGG")};
 	static const FName NAME_OPUS{TEXT("OPUS")};
 	static const FName NAME_NONE{FName()};
-	
+
 	switch (Format)
 	{
-	case ECompressedSoundWaveAudioFormat::OggVorbis: return NAME_OGG;
-	case ECompressedSoundWaveAudioFormat::OggOpus: return NAME_OPUS;
-	case ECompressedSoundWaveAudioFormat::ADPCM: return NAME_ADPCM;
-	default: return NAME_NONE;
+	case ECompressedSoundWaveAudioFormat::OggVorbis:
+		return NAME_OGG;
+	case ECompressedSoundWaveAudioFormat::OggOpus:
+		return NAME_OPUS;
+	case ECompressedSoundWaveAudioFormat::ADPCM:
+		return NAME_ADPCM;
+	default:
+		return NAME_NONE;
 	}
 }
 
@@ -164,176 +168,176 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 	RegularSoundWaveRef->AddToRoot();
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask,
-	          [ImportedSoundWaveRef, RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, CompressedSoundWaveInfo, OnCompressedResult,
-		          CompressedSoundWaveAudioFormat]()
-	          {
-		          // Filling in decoded audio info
-		          FDecodedAudioStruct DecodedAudioInfo;
-		          {
-			          DecodedAudioInfo.PCMInfo = ImportedSoundWaveRef->PCMBufferInfo;
-			          FSoundWaveBasicStruct SoundWaveBasicInfo;
-			          {
-				          SoundWaveBasicInfo.NumOfChannels = ImportedSoundWaveRef->NumChannels;
-				          SoundWaveBasicInfo.SampleRate = ImportedSoundWaveRef->SamplingRate;
-				          SoundWaveBasicInfo.Duration = ImportedSoundWaveRef->Duration;
-			          }
-			          DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
-		          }
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWaveRef, RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, CompressedSoundWaveInfo, OnCompressedResult, CompressedSoundWaveAudioFormat]()
+	{
+		// Filling in decoded audio info
+		FDecodedAudioStruct DecodedAudioInfo;
+		{
+			DecodedAudioInfo.PCMInfo = ImportedSoundWaveRef->PCMBufferInfo;
+			FSoundWaveBasicStruct SoundWaveBasicInfo;
+			{
+				SoundWaveBasicInfo.NumOfChannels = ImportedSoundWaveRef->NumChannels;
+				SoundWaveBasicInfo.SampleRate = ImportedSoundWaveRef->SamplingRate;
+				SoundWaveBasicInfo.Duration = ImportedSoundWaveRef->Duration;
+			}
+			DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
+		}
 
-		          // Filling in the basic information of the sound wave
-		          {
-			          RegularSoundWaveRef->Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
-			          RegularSoundWaveRef->SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
-			          RegularSoundWaveRef->NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
-			          RegularSoundWaveRef->SoundGroup = SOUNDGROUP_Default;
+		// Filling in the basic information of the sound wave
+		{
+			RegularSoundWaveRef->Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
+			RegularSoundWaveRef->SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
+			RegularSoundWaveRef->NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
+			RegularSoundWaveRef->SoundGroup = SOUNDGROUP_Default;
 
-			          if (RegularSoundWaveRef->NumChannels >= 4)
-			          {
-				          RegularSoundWaveRef->bIsAmbisonics = 1;
-			          }
+			if (RegularSoundWaveRef->NumChannels >= 4)
+			{
+				RegularSoundWaveRef->bIsAmbisonics = 1;
+			}
 
-			          RegularSoundWaveRef->bProcedural = false;
-			          RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
+			RegularSoundWaveRef->bProcedural = false;
+			RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
 
-			          // Filling in the compressed sound wave info
-			          {
-				          RegularSoundWaveRef->SoundGroup = CompressedSoundWaveInfo.SoundGroup;
-				          RegularSoundWaveRef->bLooping = CompressedSoundWaveInfo.bLooping;
-				          RegularSoundWaveRef->Volume = CompressedSoundWaveInfo.Volume;
-				          RegularSoundWaveRef->Pitch = CompressedSoundWaveInfo.Pitch;
-			          }
-		          }
+			// Filling in the compressed sound wave info
+			{
+				RegularSoundWaveRef->SoundGroup = CompressedSoundWaveInfo.SoundGroup;
+				RegularSoundWaveRef->bLooping = CompressedSoundWaveInfo.bLooping;
+				RegularSoundWaveRef->Volume = CompressedSoundWaveInfo.Volume;
+				RegularSoundWaveRef->Pitch = CompressedSoundWaveInfo.Pitch;
+			}
+		}
 
-		          auto OnResultExecute = [OnCompressedResult](bool bSuccess, USoundWave* SoundWaveRef)
-		          {
-			          AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [bSuccess, OnCompressedResult, SoundWaveRef]()
-			          {
-				          OnCompressedResult.Execute(bSuccess, SoundWaveRef);
+		auto OnResultExecute = [OnCompressedResult](bool bSuccess, USoundWave* SoundWaveRef)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [bSuccess, OnCompressedResult, SoundWaveRef]()
+			{
+				OnCompressedResult.Execute(bSuccess, SoundWaveRef);
 
-				          if (SoundWaveRef != nullptr)
-				          {
-					          SoundWaveRef->RemoveFromRoot();
-				          }
-			          });
-		          };
+				if (SoundWaveRef != nullptr)
+				{
+					SoundWaveRef->RemoveFromRoot();
+				}
+			});
+		};
 
-		          // Filling in the standard PCM buffer if needed
-		          if (bFillPCMBuffer)
-		          {
-			          int16* RawPCMData;
-			          int32 RawPCMDataSize;
-			          RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
-			          RegularSoundWaveRef->RawPCMDataSize = RawPCMDataSize;
-			          RegularSoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(RawPCMDataSize));
-			          FMemory::Memcpy(RegularSoundWaveRef->RawPCMData, RawPCMData, RawPCMDataSize);
+		// Filling in the standard PCM buffer if needed
+		if (bFillPCMBuffer)
+		{
+			int16* RawPCMData;
+			int32 RawPCMDataSize;
+			RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num(), RawPCMData, RawPCMDataSize);
+			RegularSoundWaveRef->RawPCMDataSize = RawPCMDataSize;
+			RegularSoundWaveRef->RawPCMData = static_cast<uint8*>(FMemory::Malloc(RawPCMDataSize));
+			FMemory::Memcpy(RegularSoundWaveRef->RawPCMData, RawPCMData, RawPCMDataSize);
 
-			          RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
+			FMemory::Free(RawPCMData);
 
-			          UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled PCM Buffer with size '%d'"), RawPCMDataSize);
-		          }
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
-		          // Filling in the standard RAW Wave 16-bit buffer if needed
-		          if (bFillRAWWaveBuffer)
-		          {
-			          int16* RawPCMData;
-			          int32 RawPCMDataSize;
-			          RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, RawPCMData, RawPCMDataSize);
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled PCM Buffer with size '%d'"), RawPCMDataSize);
+		}
 
-			          FDecodedAudioStruct CustomDecodedAudioInfo = DecodedAudioInfo;
-			          {
-				          CustomDecodedAudioInfo.PCMInfo.PCMData = reinterpret_cast<uint8*>(RawPCMData);
-				          CustomDecodedAudioInfo.PCMInfo.PCMDataSize = RawPCMDataSize;
-			          }
+		// Filling in the standard RAW Wave 16-bit buffer if needed
+		if (bFillRAWWaveBuffer)
+		{
+			int16* RawPCMData;
+			int32 RawPCMDataSize;
+			RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num(), RawPCMData, RawPCMDataSize);
 
-			          // Encoding to WAV format
-			          FEncodedAudioStruct EncodedAudioInfo;
-			          if (!WAVTranscoder::Encode(CustomDecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_PCM, 16)))
-			          {
-				          UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to encode PCM to WAV format due to transcoder error"));
-				          OnResultExecute(false, nullptr);
-				          return;
-			          }
+			FDecodedAudioStruct CustomDecodedAudioInfo;
+			{
+				CustomDecodedAudioInfo.SoundWaveBasicInfo = DecodedAudioInfo.SoundWaveBasicInfo;
+				CustomDecodedAudioInfo.PCMInfo.PCMData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(RawPCMData), RawPCMDataSize);
+				CustomDecodedAudioInfo.PCMInfo.PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
+			}
 
-			          RegularSoundWaveRef->RawData.Lock(LOCK_READ_WRITE);
-			          FMemory::Memcpy(RegularSoundWaveRef->RawData.Realloc(EncodedAudioInfo.AudioDataSize), EncodedAudioInfo.AudioData, EncodedAudioInfo.AudioDataSize);
-			          RegularSoundWaveRef->RawData.Unlock();
+			// Encoding to WAV format
+			FEncodedAudioStruct EncodedAudioInfo;
+			if (!WAVTranscoder::Encode(CustomDecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_PCM, 16)))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to encode PCM to WAV format due to transcoder error"));
+				OnResultExecute(false, nullptr);
+				return;
+			}
 
-			          RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
+			RegularSoundWaveRef->RawData.Lock(LOCK_READ_WRITE);
+			FMemory::Memcpy(RegularSoundWaveRef->RawData.Realloc(EncodedAudioInfo.AudioData.GetView().Num()), EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+			RegularSoundWaveRef->RawData.Unlock();
 
-			          UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled RAW Wave Buffer with size '%d'"), EncodedAudioInfo.AudioDataSize);
-		          }
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
-		          // Filling in the compressed buffer (usually OGG Vorbis is used, but other formats such as Opus, ADPCM, etc. are also possible)
-		          if (bFillCompressedBuffer)
-		          {
-			          FEncodedAudioStruct EncodedAudioInfo;
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled RAW Wave Buffer with size '%d'"), EncodedAudioInfo.AudioData.GetView().Num());
+		}
 
-			          switch (CompressedSoundWaveAudioFormat)
-			          {
-			          case ECompressedSoundWaveAudioFormat::OggVorbis:
-				          {
-					          if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
-					          {
-						          UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
-					          }
-					          break;
-				          }
-			          case ECompressedSoundWaveAudioFormat::OggOpus:
-				          {
-					          if (!OpusTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
-					          {
-						          UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
-					          }
-					          break;
-				          }
-			          case ECompressedSoundWaveAudioFormat::ADPCM:
-				          {
-					          int16* Int16PCMData;
-					          int32 Int16PCMDataSize;
-					          RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData), DecodedAudioInfo.PCMInfo.PCMDataSize, Int16PCMData,
-					                                                        Int16PCMDataSize);
+		// Filling in the compressed buffer (usually OGG Vorbis is used, but other formats such as Opus, ADPCM, etc. are also possible)
+		if (bFillCompressedBuffer)
+		{
+			FEncodedAudioStruct EncodedAudioInfo;
 
-					          EncodedAudioInfo.AudioData = reinterpret_cast<uint8*>(Int16PCMData);
-					          EncodedAudioInfo.AudioDataSize = Int16PCMDataSize;
-					          break;
-				          }
-			          default: UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
-			          }
+			switch (CompressedSoundWaveAudioFormat)
+			{
+			case ECompressedSoundWaveAudioFormat::OggVorbis:
+				{
+					if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+					{
+						UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+					}
+					break;
+				}
+			case ECompressedSoundWaveAudioFormat::OggOpus:
+				{
+					if (!OpusTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+					{
+						UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+					}
+					break;
+				}
+			case ECompressedSoundWaveAudioFormat::ADPCM:
+				{
+					int16* Int16PCMData;
+					int32 Int16PCMDataSize;
+					RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num(), Int16PCMData,
+					                                              Int16PCMDataSize);
 
-			          // Getting the name of the current compressed audio format
-			          const FName CurrentAudioFormat{GetAudioFormatFromCompressedSoundWaveAudioFormat(CompressedSoundWaveAudioFormat)};
+					EncodedAudioInfo.AudioData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(Int16PCMData), Int16PCMDataSize);
+					break;
+				}
+			default: UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
+			}
 
-			          // Getting the name of the current compressed platform-specific audio format
-			          const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
+			// Getting the name of the current compressed audio format
+			const FName CurrentAudioFormat{GetAudioFormatFromCompressedSoundWaveAudioFormat(CompressedSoundWaveAudioFormat)};
 
-			          if (EncodedAudioInfo.AudioDataSize <= 0)
-			          {
-				          OnResultExecute(false, nullptr);
-				          return;
-			          }
+			// Getting the name of the current compressed platform-specific audio format
+			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
 
-			          RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::NotStarted);
-			          RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::InProgress);
+			if (EncodedAudioInfo.AudioData.GetView().Num() <= 0)
+			{
+				OnResultExecute(false, nullptr);
+				return;
+			}
 
-			          // Getting the compressed bulk data
-			          FByteBulkData* CompressedBulkData = &RegularSoundWaveRef->CompressedFormatData.GetFormat(CurrentAudioPlatformSpecificFormat);
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::NotStarted);
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::InProgress);
 
-			          // Filling in the compressed data
-			          {
-				          CompressedBulkData->Lock(LOCK_READ_WRITE);
-				          FMemory::Memcpy(CompressedBulkData->Realloc(EncodedAudioInfo.AudioDataSize), EncodedAudioInfo.AudioData, EncodedAudioInfo.AudioDataSize);
-				          CompressedBulkData->Unlock();
-			          }
+			// Getting the compressed bulk data
+			FByteBulkData* CompressedBulkData = &RegularSoundWaveRef->CompressedFormatData.GetFormat(CurrentAudioPlatformSpecificFormat);
 
-			          RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
+			// Filling in the compressed data
+			{
+				CompressedBulkData->Lock(LOCK_READ_WRITE);
+				FMemory::Memcpy(CompressedBulkData->Realloc(EncodedAudioInfo.AudioData.GetView().Num()), EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+				CompressedBulkData->Unlock();
+			}
 
-			          UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(),
-			                 *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioDataSize);
-		          }
+			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
-		          OnResultExecute(true, RegularSoundWaveRef);
-	          });
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(),
+			       *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioData.GetView().Num());
+		}
+
+		OnResultExecute(true, RegularSoundWaveRef);
+	});
 #else
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("CompressSoundWave function is not supported by the UE5!"));
 #endif
@@ -407,7 +411,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 		}
 
 		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
-		
+
 		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
 
 		FDecodedAudioStruct DecodedAudioInfo;
@@ -524,7 +528,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToWAV(UImportedSoundWave* Soun
 		return false;
 	}
 
-	TArray<uint8> EncodedArray(EncodedAudioInfo.AudioData, EncodedAudioInfo.AudioDataSize);
+	TArray<uint8> EncodedArray(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
 
 	// Writing a file to a specified location
 	if (!FFileHelper::SaveArrayToFile(MoveTemp(EncodedArray), *SavePath))
@@ -590,12 +594,8 @@ void URuntimeAudioImporterLibrary::FillSoundWaveBasicInfo(UImportedSoundWave* So
 
 void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo)
 {
-	{
-		SoundWaveRef->PCMBufferInfo.PCMData = static_cast<uint8*>(FMemory::Malloc(DecodedAudioInfo.PCMInfo.PCMDataSize * sizeof(float)));
-		FMemory::Memcpy(SoundWaveRef->PCMBufferInfo.PCMData, DecodedAudioInfo.PCMInfo.PCMData, DecodedAudioInfo.PCMInfo.PCMDataSize);
-	}
-	SoundWaveRef->PCMBufferInfo.PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
-	SoundWaveRef->PCMBufferInfo.PCMDataSize = DecodedAudioInfo.PCMInfo.PCMDataSize;
+	SoundWaveRef->PCMBufferInfo = DecodedAudioInfo.PCMInfo;
+	SoundWaveRef->RawPCMDataSize = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
 }
 
 bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
@@ -604,7 +604,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 
 	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto)
 	{
-		EncodedAudioInfo.AudioFormat = GetAudioFormat(EncodedAudioInfo.AudioData, EncodedAudioInfo.AudioDataSize);
+		EncodedAudioInfo.AudioFormat = GetAudioFormat(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
 	}
 
 	switch (EncodedAudioInfo.AudioFormat)
@@ -729,8 +729,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, 
 
 	// Filling in the required information
 	{
-		DecodedAudioInfo.PCMInfo.PCMData = PCMData;
-		DecodedAudioInfo.PCMInfo.PCMDataSize = PCMDataSize;
+		DecodedAudioInfo.PCMInfo.PCMData = FBulkDataBuffer<uint8>(PCMData, PCMDataSize);
 		DecodedAudioInfo.PCMInfo.PCMNumOfFrames = PCMDataSize / sizeof(float) / NumOfChannels;
 
 		DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels = NumOfChannels;
@@ -789,7 +788,7 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWa
 				SoundWaveRef->ClearInternalFlags(EInternalObjectFlags::Async);
 			}
 		}
-		
+
 		if (OnResult.IsBound())
 		{
 			OnResult.Broadcast(this, SoundWaveRef, Status);

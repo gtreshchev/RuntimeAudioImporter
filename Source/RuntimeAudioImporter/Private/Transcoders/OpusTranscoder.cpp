@@ -65,7 +65,7 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 	const uint32 BytesPerFrame = OpusFrameSizeSamples * SampleStride;
 
 	// Copying decoded data to prevent crash if the task is interrupted
-	TArray<uint8> CopiedDecodedData{TArray<uint8>(DecodedData.PCMInfo.PCMData, DecodedData.PCMInfo.PCMDataSize)};
+	TArray<uint8> CopiedDecodedData{TArray<uint8>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num())};
 
 	const uint32 EncoderSize = opus_encoder_get_size(DecodedData.SoundWaveBasicInfo.NumOfChannels);
 	OpusEncoder* Encoder{static_cast<OpusEncoder*>(FMemory::Malloc(EncoderSize))};
@@ -148,10 +148,9 @@ bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudi
 
 	// Filling the encoded audio data
 	{
-		EncodedData.AudioData = static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num()));
-		EncodedData.AudioDataSize = EncodedAudioData.Num();
+		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num())), EncodedAudioData.Num());
 		EncodedData.AudioFormat = EAudioFormat::OggOpus;
-		FMemory::Memmove(EncodedData.AudioData, EncodedAudioData.GetData(), EncodedAudioData.Num());
+		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to Opus audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
