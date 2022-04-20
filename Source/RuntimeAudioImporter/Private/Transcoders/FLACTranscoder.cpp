@@ -22,14 +22,14 @@ bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSiz
 
 bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 	
 	// Initializing transcoding of audio data in memory
 	drflac* FLAC_Decoder{drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr)};
 
 	if (FLAC_Decoder == nullptr)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize FLAC Decoder"));
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize FLAC Decoder"));
 		return false;
 	}
 
@@ -54,7 +54,7 @@ bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudi
 	// Uninitializing transcoding of audio data in memory
 	
 
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded Flac audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Successfully decoded Flac audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
 }

@@ -6,10 +6,6 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "PreImportedSoundAsset.h"
 
-#include "AudioDevice.h"
-#include "AudioCompressionSettingsUtils.h"
-#include "Interfaces/IAudioFormat.h"
-
 #include "Transcoders/MP3Transcoder.h"
 #include "Transcoders/WAVTranscoder.h"
 #include "Transcoders/FlacTranscoder.h"
@@ -19,6 +15,11 @@
 
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
+
+#if ENGINE_MAJOR_VERSION < 5
+#include "AudioDevice.h"
+#include "AudioCompressionSettingsUtils.h"
+#endif
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -155,9 +156,57 @@ const FName& GetAudioFormatFromCompressedSoundWaveAudioFormat(ECompressedSoundWa
 	}
 }
 
+#if ENGINE_MAJOR_VERSION < 5
+FName GetPlatformSpecificFormat(const FName& Format)
+{
+	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
+
+	// Platforms that require compression overrides get concatenated formats
+
+#if WITH_EDITOR
+
+	FName PlatformSpecificFormat;
+	if (CompressionOverrides)
+	{
+		FString HashedString = *Format.ToString();
+		FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+		PlatformSpecificFormat = *HashedString;
+	}
+	else
+	{
+		PlatformSpecificFormat = Format;
+	}
+
+#else
+
+	// Cache the concatenated hash
+	
+	static FName PlatformSpecificFormat;
+	static FName CachedFormat;
+	if (!Format.IsEqual(CachedFormat))
+	{
+		if (CompressionOverrides)
+		{
+			FString HashedString = *Format.ToString();
+			FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+			PlatformSpecificFormat = *HashedString;
+		}
+		else
+		{
+			PlatformSpecificFormat = Format;
+		}
+
+		CachedFormat = Format;
+	}
+
+#endif
+
+	return PlatformSpecificFormat;
+}
+#endif
+
 void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat)
 {
-#if ENGINE_MAJOR_VERSION < 5
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
 
 	if (RegularSoundWaveRef == nullptr)
@@ -190,7 +239,7 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			RegularSoundWaveRef->NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
 			RegularSoundWaveRef->SoundGroup = SOUNDGROUP_Default;
 
-			if (RegularSoundWaveRef->NumChannels >= 4)
+			if (RegularSoundWaveRef->NumChannels == 4)
 			{
 				RegularSoundWaveRef->bIsAmbisonics = 1;
 			}
@@ -305,89 +354,54 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 			default: UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unknown encoding format"));
 			}
 
-			// Getting the name of the current compressed audio format
-			const FName CurrentAudioFormat{GetAudioFormatFromCompressedSoundWaveAudioFormat(CompressedSoundWaveAudioFormat)};
-
-			// Getting the name of the current compressed platform-specific audio format
-			const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
-
 			if (EncodedAudioInfo.AudioData.GetView().Num() <= 0)
 			{
 				OnResultExecute(false, nullptr);
 				return;
 			}
 
+			// Getting the name of the current compressed audio format
+			const FName CurrentAudioFormat{GetAudioFormatFromCompressedSoundWaveAudioFormat(CompressedSoundWaveAudioFormat)};
+
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::NotStarted);
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::InProgress);
 
-			// Getting the compressed bulk data
-			FByteBulkData* CompressedBulkData = &RegularSoundWaveRef->CompressedFormatData.GetFormat(CurrentAudioPlatformSpecificFormat);
-
-			// Filling in the compressed data
 			{
-				CompressedBulkData->Lock(LOCK_READ_WRITE);
-				FMemory::Memcpy(CompressedBulkData->Realloc(EncodedAudioInfo.AudioData.GetView().Num()), EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
-				CompressedBulkData->Unlock();
+#if ENGINE_MAJOR_VERSION < 5
+
+				// Getting the name of the current compressed platform-specific audio format
+				const FName CurrentAudioPlatformSpecificFormat{GetPlatformSpecificFormat(CurrentAudioFormat)};
+
+				// Getting the compressed bulk data
+				FByteBulkData* CompressedBulkDataPtr = &RegularSoundWaveRef->CompressedFormatData.GetFormat(CurrentAudioPlatformSpecificFormat);
+
+#else
+				
+				FByteBulkData CompressedBulkData;
+				FByteBulkData* CompressedBulkDataPtr = &CompressedBulkData;
+
+#endif
+
+
+				// Filling in the compressed data
+				{
+					CompressedBulkDataPtr->Lock(LOCK_READ_WRITE);
+					FMemory::Memcpy(CompressedBulkDataPtr->Realloc(EncodedAudioInfo.AudioData.GetView().Num()), EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+					CompressedBulkDataPtr->Unlock();
+				}
+
+#if ENGINE_MAJOR_VERSION >= 5
+				RegularSoundWaveRef->InitAudioResource(*CompressedBulkDataPtr);
+#endif
 			}
 
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
-			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled compressed audio buffer '%s' ('%s') with size '%d'"), *CurrentAudioFormat.ToString(),
-			       *CurrentAudioPlatformSpecificFormat.ToString(), EncodedAudioInfo.AudioData.GetView().Num());
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled in the compressed audio buffer '%s' with size '%d'"), *CurrentAudioFormat.ToString(), EncodedAudioInfo.AudioData.GetView().Num());
 		}
 
 		OnResultExecute(true, RegularSoundWaveRef);
 	});
-#else
-	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("CompressSoundWave function is not supported by the UE5!"));
-#endif
-}
-
-FName URuntimeAudioImporterLibrary::GetPlatformSpecificFormat(const FName& Format)
-{
-	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
-
-	// Platforms that require compression overrides get concatenated formats
-
-#if WITH_EDITOR
-
-	FName PlatformSpecificFormat;
-	if (CompressionOverrides)
-	{
-		FString HashedString = *Format.ToString();
-		FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
-		PlatformSpecificFormat = *HashedString;
-	}
-	else
-	{
-		PlatformSpecificFormat = Format;
-	}
-
-#else
-
-	// Cache the concatenated hash
-	
-	static FName PlatformSpecificFormat;
-	static FName CachedFormat;
-	if (!Format.IsEqual(CachedFormat))
-	{
-		if (CompressionOverrides)
-		{
-			FString HashedString = *Format.ToString();
-			FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
-			PlatformSpecificFormat = *HashedString;
-		}
-		else
-		{
-			PlatformSpecificFormat = Format;
-		}
-
-		CachedFormat = Format;
-	}
-
-#endif
-
-	return PlatformSpecificFormat;
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)

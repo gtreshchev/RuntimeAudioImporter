@@ -12,7 +12,7 @@ struct FEncodedAudioStruct;
 class RUNTIMEAUDIOIMPORTER_API VorbisTranscoder
 {
 public:
-
+	
 	/**
 	 * Check if the given Vorbis audio data seems to be valid
 	 */

@@ -165,12 +165,6 @@ public:
 	static FString ConvertSecondsToString(int32 Seconds);
 
 private:
-	/**
-	 * Get platform specific format name
-	 *
-	 * @param Format Base format name
-	 */
-	static FName GetPlatformSpecificFormat(const FName& Format);
 
 	/**
 	 * Determine audio format based on audio data

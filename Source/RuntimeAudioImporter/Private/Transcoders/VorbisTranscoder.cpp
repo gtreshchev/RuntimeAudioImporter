@@ -1,7 +1,6 @@
 ﻿// Georgy Treshchev 2022.
 
 #include "Transcoders/VorbisTranscoder.h"
-#include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "GenericPlatform/GenericPlatformProperties.h"
@@ -17,9 +16,7 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 
 	if (STBVorbis == nullptr)
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize vorbis encoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to initialize vorbis encoder"));
 		return false;
 	}
 
@@ -28,10 +25,7 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 
 bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to Vorbis audio format.\nDecoded audio info: %s.\nQuality: %d"),
-		   *DecodedData.ToString(), Quality);
-#endif
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to Vorbis audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
 	
 #if PLATFORM_SUPPORTS_VORBIS_CODEC
 
@@ -42,7 +36,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 	const uint32 SampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
 
 	// Copying decoded data to prevent crash if the task is interrupted
-	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData.GetView().GetData()), DecodedData.PCMInfo.PCMData.GetView().Num()};
+	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData.GetView().GetData()), static_cast<int32>(DecodedData.PCMInfo.PCMData.GetView().Num()) / static_cast<int32>(sizeof(float))};
 
 	// Encoding Vorbis data
 	{
@@ -53,10 +47,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 		{
 			vorbis_info_clear(&VorbisInfo);
 			
-#if ENGINE_MAJOR_VERSION < 5
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize vorbis encoder"));
-#endif
-			
+			RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to initialize vorbis encoder"));
 			return false;
 		}
 
@@ -109,7 +100,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 			// Analyze buffers
 			float** AnalysisBuffer = vorbis_analysis_buffer(&VorbisDspState, FramesToEncode);
 
-			// Make sure we don't read more than SPLIT_COUNT, since libvorbis can segfault if we read too much at once
+			// Make sure we don't read more than FramesSplitCount, since libvorbis can segfault if we read too much at once
 			if (FramesToEncode > FramesSplitCount)
 			{
 				FramesToEncode = FramesSplitCount;
@@ -117,9 +108,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 
 			if (CopiedDecodedData.GetData() == nullptr || AnalysisBuffer == nullptr)
 			{
-#if ENGINE_MAJOR_VERSION < 5
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to create analysis buffers"));
-#endif
+				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to create analysis buffers"));
 				return false;
 			}
 
@@ -137,9 +126,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 			// Set how many frames we wrote
 			if (vorbis_analysis_wrote(&VorbisDspState, FramesToEncode) < 0)
 			{
-#if ENGINE_MAJOR_VERSION < 5
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to read frames"));
-#endif
+				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to read frames"));
 				return false;
 			}
 
@@ -196,39 +183,29 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 		EncodedData.AudioFormat = EAudioFormat::OggVorbis;
 		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
-
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to Vorbis audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-#endif
+	
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully encoded uncompressed audio data to Vorbis audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	return true;
 
 	#undef FRAMES_SPLIT_COUNT
 
 #else
-
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%s) does not support Vorbis encoding"), FGenericPlatformProperties::IniPlatformName());
-#endif
-
+	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Your platform (%hs) does not support Vorbis encoding"), FGenericPlatformProperties::IniPlatformName()));
 	return false;
 #endif
 }
 
 bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding Vorbis audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-#endif
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Vorbis audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 	
 	int32 ErrorCode;
 	stb_vorbis* Vorbis_Decoder = stb_vorbis_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), &ErrorCode, nullptr);
 
 	if (Vorbis_Decoder == nullptr)
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize OGG Vorbis Decoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize OGG Vorbis Decoder"));
 		return false;
 	}
 
@@ -244,9 +221,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	int16* Int16RAWBuffer = static_cast<int16*>(FMemory::Malloc(TotalSamples * sizeof(int16)));
 	if (Int16RAWBuffer == nullptr)
 	{
-#if ENGINE_MAJOR_VERSION < 5
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
-#endif
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 		stb_vorbis_close(Vorbis_Decoder);
 		return false;
 	}
@@ -268,9 +243,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 
 			if (Int16RAWBufferFrame == nullptr)
 			{
-#if ENGINE_MAJOR_VERSION < 5
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
-#endif
+				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 
 				FMemory::Free(Int16RAWBuffer);
 				stb_vorbis_close(Vorbis_Decoder);
@@ -289,15 +262,15 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	DecodedData.PCMInfo.PCMNumOfFrames = NumOfFrames;
 
 	// Getting PCM data size
-	uint32 PCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
+	int32 TempPCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
 
 	// Transcoding int16 to float format
 	{
 		float* TempFloatBuffer = static_cast<float*>(FMemory::Malloc(DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2 * sizeof(float)));
 		int32 TempFloatSize;
 
-		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, PCMDataSize, TempFloatBuffer, TempFloatSize);
-		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(TempFloatBuffer), PCMDataSize);
+		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, TempPCMDataSize, TempFloatBuffer, TempFloatSize);
+		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(TempFloatBuffer), TempFloatSize);
 	}
 	
 	FMemory::Free(Int16RAWBuffer);
@@ -308,10 +281,8 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = NumOfChannels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = SampleRate;
 	}
-
-#if ENGINE_MAJOR_VERSION < 5
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded Vorbis audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-#endif
+	
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully decoded Vorbis audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
 }
