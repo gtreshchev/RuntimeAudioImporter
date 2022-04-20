@@ -10,6 +10,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRuntimeAudioImporter, Log, All);
 
+/**
+ * In some transcoders, it is not possible to directly call UE_LOG due to some variable intersections, which is why this wrapper is needed
+ */
 namespace RuntimeAudioImporter_TranscoderLogs
 {
 	static void PrintLog(const FString& LogString)
