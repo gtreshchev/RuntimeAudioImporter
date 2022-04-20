@@ -113,7 +113,7 @@ struct FPCMStruct
 	 */
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %d"),
+		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %lld"),
 		                       PCMData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, PCMData.GetView().Num());
 	}
 };

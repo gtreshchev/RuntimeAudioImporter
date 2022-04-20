@@ -10,7 +10,7 @@ public class RuntimeAudioImporter : ModuleRules
 	{
 		get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty/")); }
 	}
-	
+
 	public RuntimeAudioImporter(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
@@ -29,7 +29,7 @@ public class RuntimeAudioImporter : ModuleRules
 				"DR_FLAC_IMPLEMENTATION=1"
 			}
 		);
-		
+
 		PrivateIncludePaths.Add(ThirdPartyPath);
 
 		PrivateDependencyModuleNames.AddRange(
@@ -37,9 +37,12 @@ public class RuntimeAudioImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Core",
-				"AudioPlatformConfiguration"
+				"Core"
 			}
 		);
+
+#if !UE_5_00_OR_LATER
+		PrivateDependencyModuleNames.Add("AudioPlatformConfiguration");
+#endif
 	}
 }
