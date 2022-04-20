@@ -55,7 +55,7 @@ void SerialiseFrameData(FMemoryWriter& CompressedData, uint8* FrameData, uint16 
 
 bool OpusTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
-	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to Opus audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
 
 #if WITH_OPUS
 	const uint16 OpusSampleRate{GetBestOutputSampleRate(Quality)};
