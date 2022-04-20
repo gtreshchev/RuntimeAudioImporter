@@ -72,7 +72,7 @@ float UImportedSoundWave::GetPlaybackPercentage() const
 
 bool UImportedSoundWave::IsPlaybackFinished()
 {
-	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMDataSize > 0;
+	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData.GetView().GetData() != nullptr && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMData.GetView().Num() > 0;
 }
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
@@ -105,7 +105,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	}
 
 	// Retrieving a part of PCM data
-	uint8* RetrievedPCMData = PCMBufferInfo.PCMData + (CurrentNumOfFrames * NumChannels * sizeof(float));
+	uint8* RetrievedPCMData = PCMBufferInfo.PCMData.GetView().GetData() + (CurrentNumOfFrames * NumChannels * sizeof(float));
 	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
 
 	// Ensure we got a valid PCM data
