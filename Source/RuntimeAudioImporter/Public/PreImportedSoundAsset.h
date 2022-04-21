@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RuntimeAudioImporterTypes.h"
 #include "PreImportedSoundAsset.generated.h"
 
 /**
@@ -14,9 +15,13 @@ class RUNTIMEAUDIOIMPORTER_API UPreImportedSoundAsset : public UObject
 	GENERATED_BODY()
 public:
 
-	/** Audio data array. Only MP3 data is intended to be here */
+	/** Audio data array */
 	UPROPERTY()
 	TArray<uint8> AudioDataArray;
+
+	/** Audio data format */
+	UPROPERTY(Category = "Info", VisibleAnywhere, Meta = (DisplayName = "Audio format"))
+	EAudioFormat AudioFormat = EAudioFormat::Mp3;
 
 	/** Information about the basic details of an audio file. Used only for convenience in the editor */
 #if WITH_EDITORONLY_DATA
