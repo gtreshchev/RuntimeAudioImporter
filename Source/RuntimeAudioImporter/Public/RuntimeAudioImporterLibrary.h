@@ -163,6 +163,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
 	static FString ConvertSecondsToString(int32 Seconds);
 
+	/**
+	 * Transcode Audio from Audio Data to PCM Data
+	 *
+	 * @param EncodedAudioInfo Encoded audio data
+	 * @param DecodedAudioInfo Decoded audio data
+	 * @return Whether the transcoding was successful or not
+	 */
+	static bool DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
+
 private:
 
 	/**
@@ -214,15 +223,6 @@ private:
 	 * @param DecodedAudioInfo Decoded audio data
 	 */
 	static void FillPCMData(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
-
-	/**
-	 * Transcode Audio from Audio Data to PCM Data
-	 *
-	 * @param EncodedAudioInfo Encoded audio data
-	 * @param DecodedAudioInfo Decoded audio data
-	 * @return Whether the transcoding was successful or not
-	 */
-	bool DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
 
 	/**
 	 * Audio transcoding progress callback

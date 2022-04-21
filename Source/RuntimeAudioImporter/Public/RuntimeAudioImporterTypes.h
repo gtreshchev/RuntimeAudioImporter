@@ -42,7 +42,6 @@ enum class EAudioFormat : uint8
 	Wav UMETA(DisplayName = "wav"),
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
-	OggOpus UMETA(DisplayName = "ogg opus (not supported for decoding yet)"),
 	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
 };
 
@@ -155,7 +154,7 @@ struct FEncodedAudioStruct
 
 	/** Custom constructor */
 	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
-		: AudioData{AudioData, AudioDataSize}
+		: AudioData(AudioData, AudioDataSize)
 	  , AudioFormat{AudioFormat}
 	{
 	}
