@@ -6,25 +6,7 @@
 
 DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
-#include "ThirdParty/dr_mp3.h"
-
-/**
-* Replacing standard CPP memory functions (malloc, realloc, free) with engine ones
-*/
-void* Unreal_Malloc(size_t sz, void* pUserData)
-{
-	return FMemory::Malloc(sz);
-}
-
-void* Unreal_Realloc(void* p, size_t sz, void* pUserData)
-{
-	return FMemory::Realloc(p, sz);
-}
-
-void Unreal_Free(void* p, void* pUserData)
-{
-	FMemory::Free(p);
-}
+#include "RuntimeAudioImporterLibrary.h"
 
 UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
@@ -40,7 +22,7 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString FileExtension{FPaths::GetExtension(Filename).ToLower()};
-	return FileExtension == "mp3" || FileExtension == "imp";
+	return FileExtension == TEXT("imp") || URuntimeAudioImporterLibrary::GetAudioFormat(Filename) != EAudioFormat::Invalid;
 }
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
@@ -51,60 +33,33 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 	if (FFileHelper::LoadFileToArray(AudioDataArray, *Filename))
 	{
-		drmp3_allocation_callbacks allocationCallbacksDecoding;
-		{
-			allocationCallbacksDecoding.pUserData = nullptr;
-			allocationCallbacksDecoding.onMalloc = Unreal_Malloc;
-			allocationCallbacksDecoding.onRealloc = Unreal_Realloc;
-			allocationCallbacksDecoding.onFree = Unreal_Free;
-		}
+		FDecodedAudioStruct DecodedAudioInfo;
 
-		drmp3 mp3;
+		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioDataArray.Num() - 2), AudioDataArray.GetData(), AudioDataArray.Num() - 2));
+		FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioDataArray.Num() - 2, EAudioFormat::Auto);
 
-		if (!drmp3_init_memory(&mp3, AudioDataArray.GetData(), AudioDataArray.Num() - 2, &allocationCallbacksDecoding))
+		if (!URuntimeAudioImporterLibrary::DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
 		{
-			UE_LOG(LogPreImportedSoundFactory, Error, TEXT("The file you are trying to import is not an MP3 file"));
+			UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to decode the audio file '%s'"), *Filename);
 			return nullptr;
 		}
 
 		PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
 		PreImportedSoundAsset->AudioDataArray = AudioDataArray;
+		PreImportedSoundAsset->AudioFormat = EncodedAudioInfo.AudioFormat;
 		PreImportedSoundAsset->SourceFilePath = Filename;
 
-		PreImportedSoundAsset->SoundDuration = ConvertSecondsToString(static_cast<int32>(drmp3_get_pcm_frame_count(&mp3)) / mp3.sampleRate);
-		PreImportedSoundAsset->NumberOfChannels = mp3.channels;
-		PreImportedSoundAsset->SampleRate = mp3.sampleRate;
-
-		drmp3_uninit(&mp3);
+		PreImportedSoundAsset->SoundDuration = URuntimeAudioImporterLibrary::ConvertSecondsToString(DecodedAudioInfo.SoundWaveBasicInfo.Duration);
+		PreImportedSoundAsset->NumberOfChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
+		PreImportedSoundAsset->SampleRate = DecodedAudioInfo.SoundWaveBasicInfo.SampleRate;
 	}
 	else
 	{
-		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file. Check file permissions."));
+		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file '%s'. Check file permissions."), *Filename);
 		return nullptr;
 	}
 
 	bOutOperationCanceled = false;
 
 	return PreImportedSoundAsset;
-}
-
-FString UPreImportedSoundFactory::ConvertSecondsToString(int32 Seconds)
-{
-	FString FinalString;
-
-	const int32 NewHours = Seconds / 3600;
-	if (NewHours > 0)
-	{
-		FinalString += ((NewHours < 10) ? TEXT("0") + FString::FromInt(NewHours) : FString::FromInt(NewHours)) + TEXT(":");
-	}
-
-	Seconds = Seconds % 3600;
-
-	const int32 NewMinutes = Seconds / 60;
-	FinalString += ((NewMinutes < 10) ? TEXT("0") + FString::FromInt(NewMinutes) : FString::FromInt(NewMinutes)) + TEXT(":");
-
-	const int32 NewSeconds = Seconds % 60;
-	FinalString += (NewSeconds < 10) ? TEXT("0") + FString::FromInt(NewSeconds) : FString::FromInt(NewSeconds);
-
-	return FinalString;
 }

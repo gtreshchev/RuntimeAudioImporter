@@ -406,12 +406,17 @@ void URuntimeAudioImporterLibrary::CompressSoundWave(UImportedSoundWave* Importe
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)
 {
-	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, EAudioFormat::Mp3);
+	ImportAudioFromBuffer(PreImportedSoundAssetRef->AudioDataArray, PreImportedSoundAssetRef->AudioFormat);
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
 {
 	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
+
+	if (AudioFormat == EAudioFormat::Auto)
+	{
+		AudioFormat = GetAudioFormat(AudioData.GetData(), AudioData.Num());
+	}
 
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
@@ -428,11 +433,16 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 
 		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
 
+		OnProgress_Internal(10);
+		
 		FDecodedAudioStruct DecodedAudioInfo;
 		if (!DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
 		{
+			OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 			return;
 		}
+
+		OnProgress_Internal(65);
 
 		ImportAudioFromDecodedInfo(DecodedAudioInfo);
 	});
@@ -612,70 +622,6 @@ void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* SoundWaveRef,
 	SoundWaveRef->RawPCMDataSize = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
 }
 
-bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
-{
-	OnProgress_Internal(10);
-
-	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto)
-	{
-		EncodedAudioInfo.AudioFormat = GetAudioFormat(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
-	}
-
-	switch (EncodedAudioInfo.AudioFormat)
-	{
-	case EAudioFormat::Mp3:
-		{
-			if (!MP3Transcoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Mp3 audio data"));
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-				return false;
-			}
-			break;
-		}
-	case EAudioFormat::Wav:
-		{
-			if (!WAVTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Wav audio data"));
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-				return false;
-			}
-			break;
-		}
-	case EAudioFormat::Flac:
-		{
-			if (!FlacTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Flac audio data"));
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-				return false;
-			}
-			break;
-		}
-	case EAudioFormat::OggVorbis:
-		{
-			if (!VorbisTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Vorbis audio data"));
-				OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-				return false;
-			}
-			break;
-		}
-	default:
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for decode"));
-			OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
-			return false;
-		}
-	}
-
-	OnProgress_Internal(65);
-
-	return true;
-}
-
 EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePath)
 {
 	const FString& Extension{FPaths::GetExtension(FilePath, false).ToLower()};
@@ -776,6 +722,61 @@ FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int32 Seconds)
 	FinalString += (NewSeconds < 10) ? TEXT("0") + FString::FromInt(NewSeconds) : FString::FromInt(NewSeconds);
 
 	return FinalString;
+}
+
+bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
+{
+	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto)
+	{
+		EncodedAudioInfo.AudioFormat = GetAudioFormat(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+	}
+	
+	switch (EncodedAudioInfo.AudioFormat)
+	{
+	case EAudioFormat::Mp3:
+		{
+			if (!MP3Transcoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Mp3 audio data"));
+				return false;
+			}
+			break;
+		}
+	case EAudioFormat::Wav:
+		{
+			if (!WAVTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Wav audio data"));
+				return false;
+			}
+			break;
+		}
+	case EAudioFormat::Flac:
+		{
+			if (!FlacTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Flac audio data"));
+				return false;
+			}
+			break;
+		}
+	case EAudioFormat::OggVorbis:
+		{
+			if (!VorbisTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Vorbis audio data"));
+				return false;
+			}
+			break;
+		}
+	default:
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for decode"));
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
