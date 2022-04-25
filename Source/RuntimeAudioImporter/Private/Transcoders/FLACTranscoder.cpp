@@ -22,7 +22,7 @@ bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSiz
 
 bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
 {
-	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 	
 	// Initializing transcoding of audio data in memory
 	drflac* FLAC_Decoder{drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr)};
@@ -37,7 +37,7 @@ bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudi
 	uint8* TempPCMData = static_cast<uint8*>(FMemory::Malloc(FLAC_Decoder->totalPCMFrameCount * FLAC_Decoder->channels * sizeof(float)));
 
 	// Filling in PCM data and getting the number of frames
-	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(FLAC_Decoder, FLAC_Decoder->totalPCMFrameCount, reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData.GetView().GetData()));
+	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(FLAC_Decoder, FLAC_Decoder->totalPCMFrameCount, reinterpret_cast<float*>(TempPCMData));
 
 	// Getting PCM data size
 	const int32 TempPCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * FLAC_Decoder->channels * sizeof(float));
@@ -54,7 +54,7 @@ bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudi
 	// Uninitializing transcoding of audio data in memory
 	drflac_close(FLAC_Decoder);
 
-	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Successfully decoded Flac audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
+	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully decoded Flac audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
 }
