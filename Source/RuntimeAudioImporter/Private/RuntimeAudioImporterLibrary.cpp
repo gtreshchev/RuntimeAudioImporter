@@ -444,7 +444,10 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 
 		OnProgress_Internal(65);
 
-		ImportAudioFromDecodedInfo(DecodedAudioInfo);
+		AsyncTask(ENamedThreads::GameThread, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]()
+		{
+			ImportAudioFromDecodedInfo(DecodedAudioInfo);
+		});
 	});
 }
 
@@ -567,6 +570,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToWAV(UImportedSoundWave* Soun
 void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo)
 {
 	UImportedSoundWave* SoundWaveRef = NewObject<UImportedSoundWave>(UImportedSoundWave::StaticClass());
+	
 	if (SoundWaveRef == nullptr)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while creating the imported sound wave"));
@@ -794,16 +798,6 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWa
 {
 	AsyncTask(ENamedThreads::GameThread, [this, SoundWaveRef, Status]()
 	{
-		if (SoundWaveRef != nullptr)
-		{
-			SoundWaveRef->ClearInternalFlags(EInternalObjectFlags::AsyncLoading);
-
-			if (SoundWaveRef->HasAnyInternalFlags(EInternalObjectFlags::Async))
-			{
-				SoundWaveRef->ClearInternalFlags(EInternalObjectFlags::Async);
-			}
-		}
-
 		if (OnResult.IsBound())
 		{
 			OnResult.Broadcast(this, SoundWaveRef, Status);
@@ -812,6 +806,7 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWa
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("You did not bind to the delegate to get the result of the import"));
 		}
+		
 		RemoveFromRoot();
 	});
 }
