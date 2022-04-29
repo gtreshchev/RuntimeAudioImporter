@@ -5,7 +5,7 @@
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_MP3
-#include "RuntimeAudioImporterIncludes.h"
+#include "TranscodersIncludes.h"
 #undef INCLUDE_MP3
 
 bool MP3Transcoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)

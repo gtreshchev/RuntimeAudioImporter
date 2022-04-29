@@ -42,7 +42,6 @@ enum class EAudioFormat : uint8
 	Wav UMETA(DisplayName = "wav"),
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
-	OggOpus UMETA(DisplayName = "ogg opus (not supported for decoding yet)"),
 	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
 };
 
@@ -54,15 +53,6 @@ enum class ERAWAudioFormat : uint8
 	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
 	UInt8 UMETA(DisplayName = "Unsigned 8-bit PCM"),
 	Float32 UMETA(DisplayName = "32-bit float")
-};
-
-/** Possible compressed sound wave audio formats */
-UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class ECompressedSoundWaveAudioFormat : uint8
-{
-	OggVorbis UMETA(DisplayName = "ogg vorbis"),
-	OggOpus UMETA(DisplayName = "ogg opus"),
-	ADPCM UMETA(DisplayName = "ADPCM")
 };
 
 /** Basic SoundWave data. CPP use only. */
