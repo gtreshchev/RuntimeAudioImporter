@@ -119,8 +119,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		case ERAWAudioFormat::Float32:
 			{
 				PCMDataSize = RAWDataSize;
-				PCMData = static_cast<float*>(FMemory::Malloc(PCMDataSize));
-				FMemory::Memcpy(PCMData, RAWData, RAWDataSize);
+				PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize), RAWData, RAWDataSize));
 				break;
 			}
 		}
