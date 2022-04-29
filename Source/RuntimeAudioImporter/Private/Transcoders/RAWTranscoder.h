@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Math/UnrealMathUtility.h"
 #include "RuntimeAudioImporterDefines.h"
 
 class RUNTIMEAUDIOIMPORTER_API RAWTranscoder
@@ -63,24 +64,6 @@ public:
 		RAWData_To = TArray<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
 	}
 
-	static float NormalizeToRange(float Value, float RangeMin, float RangeMax)
-	{
-		if (RangeMin == RangeMax)
-		{
-			if (Value < RangeMin)
-			{
-				return 0.f;
-			}
-			return 1.f;
-		}
-
-		if (RangeMin > RangeMax)
-		{
-			Swap(RangeMin, RangeMax);
-		}
-		return (Value - RangeMin) / (RangeMax - RangeMin);
-	}
-
 	/**
 	 * Transcoding one RAW Data format to another
 	 *
@@ -107,9 +90,7 @@ public:
 		/** Iterating through the RAW Data to transcode values using a divisor */
 		for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 		{
-			const float NormalizedValue = NormalizeToRange(RAWData_From[SampleIndex], MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value);
-
-			TempPCMData[SampleIndex] = static_cast<IntegralTypeTo>(NormalizedValue * MinAndMaxValuesTo.Value);
+			TempPCMData[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWData_From[SampleIndex]));
 		}
 
 		/** Returning the transcoded data as bytes */
