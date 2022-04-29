@@ -10,8 +10,7 @@ DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
 UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
-	Formats.Add(TEXT("mp3;MP3 Preimported Audio Format"));
-	Formats.Add(TEXT("imp;IMP (the same as MP3) Pre-imported Audio Format"));
+	Formats.Add(TEXT("imp;IMP Pre-imported Audio Format"));
 	SupportedClass = StaticClass();
 	bCreateNew = false; // turned off for import
 	bEditAfterNew = false; // turned off for import
@@ -55,7 +54,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 	else
 	{
-		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file '%s'. Check file permissions."), *Filename);
+		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file '%s'. Check file permissions"), *Filename);
 		return nullptr;
 	}
 

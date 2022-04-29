@@ -102,12 +102,11 @@ public:
 	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
 	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
 	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer. It is recommended not to enable to save memory
-	 * @param CompressedSoundWaveAudioFormat Format for compressing the sound wave. Used when "bFillCompressedBuffer" is true
 	 *
 	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer, ECompressedSoundWaveAudioFormat CompressedSoundWaveAudioFormat);
+	void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer);
 
 	/**
 	 * Transcoding one RAW Data format to another
@@ -134,11 +133,12 @@ public:
 	/**
 	 * Export imported sound wave to WAV file in 32-bit format
 	 *
-	 * @param SoundWaveRef Reference to the imported sound wave
+	 * @param ImporterSoundWave Reference to the imported sound wave
+	 * @param AudioFormat Required format to export
 	 * @param SavePath Path to save the file
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static bool ExportSoundWaveToWAV(UImportedSoundWave* SoundWaveRef, const FString& SavePath);
+	static bool ExportSoundWave(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality);
 
 	/**
 	 * Get audio format by extension
@@ -164,13 +164,23 @@ public:
 	static FString ConvertSecondsToString(int32 Seconds);
 
 	/**
-	 * Transcode Audio from Audio Data to PCM Data
+	 * Decode compressed audio data to uncompressed
 	 *
 	 * @param EncodedAudioInfo Encoded audio data
 	 * @param DecodedAudioInfo Decoded audio data
-	 * @return Whether the transcoding was successful or not
+	 * @return Whether the decoding was successful or not
 	 */
 	static bool DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
+
+	/**
+	 * Encode uncompressed audio data to compressed
+	 *
+	 * @param DecodedAudioInfo Decoded audio data
+	 * @param EncodedAudioInfo Encoded audio data
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @return Whether the encoding was successful or not
+	 */
+	static bool EncodeAudioData(const FDecodedAudioStruct& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
 
 private:
 

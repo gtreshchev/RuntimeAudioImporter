@@ -1,11 +1,11 @@
 ﻿// Georgy Treshchev 2022.
 
-#include "Transcoders/WAVTranscoder.h"
+#include "WAVTranscoder.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_WAV
-#include "RuntimeAudioImporterIncludes.h"
+#include "TranscodersIncludes.h"
 #undef INCLUDE_WAV
 
 bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)

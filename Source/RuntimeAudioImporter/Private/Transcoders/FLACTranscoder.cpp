@@ -5,7 +5,7 @@
 #include "RuntimeAudioImporterTypes.h"
 
 #define INCLUDE_FLAC
-#include "RuntimeAudioImporterIncludes.h"
+#include "TranscodersIncludes.h"
 #undef INCLUDE_FLAC
 
 bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
