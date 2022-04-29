@@ -23,14 +23,11 @@ class RUNTIMEAUDIOIMPORTEREDITOR_API UPreImportedSoundFactory : public UFactory
 	GENERATED_BODY()
 
 public:
+	/** Default constructor */
 	UPreImportedSoundFactory();
 
-	/**
-	 * Check whether the audio file can be imported.
-	 *
-	 * @param Filename The name of the importing audio file
-	 */
+	//~ Begin UFactory Interface.
 	virtual bool FactoryCanImport(const FString& Filename) override;
-
 	virtual UObject* FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
+	//~ end UFactory Interface.
 };

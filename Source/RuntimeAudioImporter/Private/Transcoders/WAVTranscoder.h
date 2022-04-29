@@ -22,7 +22,6 @@ enum class EWAVEncodingFormat : uint8
 	FORMAT_EXTENSIBLE
 };
 
-
 /**
  * Information on how to encode WAV data
  */
@@ -32,7 +31,8 @@ struct FWAVEncodingFormat
 	uint32 BitsPerSample;
 
 	FWAVEncodingFormat(EWAVEncodingFormat Format, uint32 BitsPerSample)
-		: Format(Format), BitsPerSample(BitsPerSample)
+		: Format(Format)
+	  , BitsPerSample(BitsPerSample)
 	{
 	}
 

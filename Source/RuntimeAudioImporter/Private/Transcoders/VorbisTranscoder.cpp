@@ -1,12 +1,12 @@
 ﻿// Georgy Treshchev 2022.
 
-#include "Transcoders/VorbisTranscoder.h"
+#include "VorbisTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "GenericPlatform/GenericPlatformProperties.h"
 
 #define INCLUDE_VORBIS
-#include "RuntimeAudioImporterIncludes.h"
+#include "TranscodersIncludes.h"
 #undef INCLUDE_VORBIS
 
 bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize)
