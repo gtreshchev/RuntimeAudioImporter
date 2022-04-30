@@ -14,23 +14,21 @@
   "IsBetaVersion": false,
   "IsExperimentalVersion": false,
   "Installed": true,
-  "EngineVersion": "4.27.0",
+  "EngineVersion": "5.0.0",
   "Modules": [
     {
       "Name": "RuntimeAudioImporter",
       "Type": "Runtime",
       "LoadingPhase": "Default",
-      "WhitelistPlatforms": [
+      "PlatformAllowList": [
         "Win64",
         "Mac",
         "Android",
         "IOS",
         "Linux",
+        "LinuxArm64",
         "PS4",
         "Switch"
-      ],
-      "BlacklistPlatforms": [
-        "TVOS"
       ]
     },
     {
