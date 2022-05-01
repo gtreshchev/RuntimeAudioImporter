@@ -19,8 +19,8 @@ DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess,
 class UPreImportedSoundAsset;
 
 /**
- * Runtime Audio Importer object
- * Designed primarily for importing audio files in real time
+ * Runtime Audio Importer library
+ * Various functions related to transcoding audio data, such as importing audio files, manually encoding / decoding audio data, sound wave compression and more
  */
 UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
@@ -28,18 +28,18 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 	GENERATED_BODY()
 
 public:
-	/** Bind to know when the transcoding is on progress */
+	/** Bind to know when audio import is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
 
-	/** Bind to know when the transcoding is complete (even if it fails) */
+	/** Bind to know when audio import is complete (even if it fails) */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterResult OnResult;
 
 	/**
 	 * Instantiates a RuntimeAudioImporter object
 	 *
-	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates to know when it is in the process of importing and imported
+	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer")
 	static URuntimeAudioImporterLibrary* CreateRuntimeAudioImporter();
@@ -93,7 +93,7 @@ public:
 	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
-	 * Compress ImportedSoundWave to normal SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
+	 * Compress ImportedSoundWave to regular SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
 	 *
 	 * @param ImportedSoundWaveRef Reference to the imported sound wave
 	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
@@ -131,14 +131,26 @@ public:
 	static bool TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo);
 
 	/**
-	 * Export imported sound wave to WAV file in 32-bit format
+	 * Export the imported sound wave to file
 	 *
 	 * @param ImporterSoundWave Reference to the imported sound wave
-	 * @param AudioFormat Required format to export
+	 * @param AudioFormat Required format to export Please note that some formats are not supported
 	 * @param SavePath Path to save the file
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static bool ExportSoundWave(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality);
+	static bool ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality);
+
+	/**
+	 * Export the imported sound wave to buffer
+	 *
+	 * @param ImporterSoundWave Reference to the imported sound wave
+	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param AudioData The exported (compressed) audio data
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
+	static bool ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, TArray<uint8>& AudioData, EAudioFormat AudioFormat, uint8 Quality);
 
 	/**
 	 * Get audio format by extension
