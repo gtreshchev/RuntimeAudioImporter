@@ -482,7 +482,27 @@ bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 	return true;
 }
 
-bool URuntimeAudioImporterLibrary::ExportSoundWave(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality)
+bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality)
+{
+	TArray<uint8> AudioData;
+
+	// Exporting a sound wave to a buffer
+	if (!ExportSoundWaveToBuffer(ImporterSoundWave, AudioData, AudioFormat, Quality))
+	{
+		return false;
+	}
+
+	// Writing encoded data to specified location
+	if (!FFileHelper::SaveArrayToFile(MoveTemp(AudioData), *SavePath))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
+		return false;
+	}
+
+	return true;
+}
+
+bool URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, TArray<uint8>& AudioData, EAudioFormat AudioFormat, uint8 Quality)
 {
 	// Filling in decoded audio info
 	FDecodedAudioStruct DecodedAudioInfo;
@@ -505,18 +525,11 @@ bool URuntimeAudioImporterLibrary::ExportSoundWave(UImportedSoundWave* ImporterS
 	// Encoding to the specified format
 	if (!EncodeAudioData(DecodedAudioInfo, EncodedAudioInfo, Quality))
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to '%s'"), *SavePath);
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImporterSoundWave->GetName());
 		return false;
 	}
 
-	TArray<uint8> EncodedArray(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
-
-	// Writing a file to a specified location
-	if (!FFileHelper::SaveArrayToFile(MoveTemp(EncodedArray), *SavePath))
-	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving WAV data to the path '%s'"), *SavePath);
-		return false;
-	}
+	AudioData = TArray<uint8>(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
 
 	return true;
 }
@@ -544,7 +557,7 @@ bool URuntimeAudioImporterLibrary::DefineSoundWave(UImportedSoundWave* SoundWave
 {
 	OnProgress_Internal(70);
 
-	// Fillng in SoundWave basic information (e.g. duration, number of channels, etc)
+	// Filling in a sound wave basic information (e.g. duration, number of channels, etc)
 	FillSoundWaveBasicInfo(SoundWaveRef, DecodedAudioInfo);
 
 	OnProgress_Internal(75);
