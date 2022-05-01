@@ -4,7 +4,7 @@
     <img src="Resources/Icon128.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">Runtime Audio Importer</h3>
+<h3 align="center">Runtime Audio Importer</h3>
 
   <p align="center">
     Importing audio of various formats at runtime
@@ -19,18 +19,22 @@
     .
     <a href="https://t.me/unrealblog">Support Chat</a>
   </p>
-</p>
 
 ## Features
+
 - Fast transcoding speed (≈ 200-900 ms)
 - Supported for major audio formats: MP3, WAV, FLAC and OGG Vorbis
 - Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float
 - Automatic detection of audio format
+- Sound wave compression
+- Exporting a sound wave to a separate file
+- Pre-imported sound assets
 - No any static libraries and external dependencies
 - Support for all available devices (Android, iOS, Windows, Mac, Linux, etc)
 
 ## Additional information
-The in-memory audio transcoding operation is based on [dr_libs](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb/blob/master/stb_vorbis.c).
+
+The in-memory audio transcoding operation is done on [dr_libs](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb/blob/master/stb_vorbis.c).
 
 ## Legal info
 
