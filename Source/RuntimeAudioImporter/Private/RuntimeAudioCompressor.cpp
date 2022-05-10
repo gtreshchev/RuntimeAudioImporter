@@ -16,7 +16,55 @@
 #include "AudioCompressionSettingsUtils.h"
 #endif
 
-URuntimeAudioCompressor* URuntimeAudioCompressor::Create()
+namespace
+{
+	#if ENGINE_MAJOR_VERSION < 5
+	FName GetPlatformSpecificFormat(const FName& Format)
+	{
+		const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
+
+		// Platforms that require compression overrides get concatenated formats
+
+		#if WITH_EDITOR
+		FName PlatformSpecificFormat;
+		if (CompressionOverrides)
+		{
+			FString HashedString = *Format.ToString();
+			FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+			PlatformSpecificFormat = *HashedString;
+		}
+		else
+		{
+			PlatformSpecificFormat = Format;
+		}
+		#else
+		
+		// Cache the concatenated hash
+		static FName PlatformSpecificFormat;
+		static FName CachedFormat;
+		if (!Format.IsEqual(CachedFormat))
+		{
+			if (CompressionOverrides)
+			{
+				FString HashedString = *Format.ToString();
+				FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
+				PlatformSpecificFormat = *HashedString;
+			}
+			else
+			{
+				PlatformSpecificFormat = Format;
+			}
+
+			CachedFormat = Format;
+		}
+		#endif
+
+		return PlatformSpecificFormat;
+	}
+	#endif
+}
+
+URuntimeAudioCompressor* URuntimeAudioCompressor::CreateRuntimeAudioCompressor()
 {
 	return NewObject<URuntimeAudioCompressor>();
 }
