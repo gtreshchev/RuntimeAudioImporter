@@ -311,7 +311,7 @@ bool URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* I
 
 void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo)
 {
-	UImportedSoundWave* SoundWaveRef = NewObject<UImportedSoundWave>(UImportedSoundWave::StaticClass());
+	UImportedSoundWave* SoundWaveRef = CreateImportedSoundWave();
 
 	if (SoundWaveRef == nullptr)
 	{
@@ -568,6 +568,11 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& De
 	}
 
 	return true;
+}
+
+UImportedSoundWave* URuntimeAudioImporterLibrary::CreateImportedSoundWave() const
+{
+	return NewObject<UImportedSoundWave>();
 }
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
