@@ -15,11 +15,6 @@
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
 
-#if ENGINE_MAJOR_VERSION < 5
-#include "AudioDevice.h"
-#include "AudioCompressionSettingsUtils.h"
-#endif
-
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
 	return NewObject<URuntimeAudioImporterLibrary>();
@@ -133,55 +128,6 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 
 	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
 }
-
-#if ENGINE_MAJOR_VERSION < 5
-FName GetPlatformSpecificFormat(const FName& Format)
-{
-	const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
-
-	// Platforms that require compression overrides get concatenated formats
-
-#if WITH_EDITOR
-
-	FName PlatformSpecificFormat;
-	if (CompressionOverrides)
-	{
-		FString HashedString = *Format.ToString();
-		FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
-		PlatformSpecificFormat = *HashedString;
-	}
-	else
-	{
-		PlatformSpecificFormat = Format;
-	}
-
-#else
-
-	// Cache the concatenated hash
-	
-	static FName PlatformSpecificFormat;
-	static FName CachedFormat;
-	if (!Format.IsEqual(CachedFormat))
-	{
-		if (CompressionOverrides)
-		{
-			FString HashedString = *Format.ToString();
-			FPlatformAudioCookOverrides::GetHashSuffix(CompressionOverrides, HashedString);
-			PlatformSpecificFormat = *HashedString;
-		}
-		else
-		{
-			PlatformSpecificFormat = Format;
-		}
-
-		CachedFormat = Format;
-	}
-
-#endif
-
-	return PlatformSpecificFormat;
-}
-#endif
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef)
 {
