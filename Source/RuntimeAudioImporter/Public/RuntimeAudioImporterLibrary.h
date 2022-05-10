@@ -231,7 +231,7 @@ public:
 
 protected:
 	/** Creates a new instance of the ImportedSoundWave class to use */
-	virtual UImportedSoundWave* CreateImportedSoundWave();
+	virtual UImportedSoundWave* CreateImportedSoundWave() const;
 
 	/**
 	 * Audio transcoding progress callback
