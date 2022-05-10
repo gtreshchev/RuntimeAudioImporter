@@ -230,6 +230,9 @@ public:
 	static void FillPCMData(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
 
 protected:
+	/** Creates a new instance of the ImportedSoundWave class to use */
+	virtual UImportedSoundWave* CreateImportedSoundWave();
+
 	/**
 	 * Audio transcoding progress callback
 	 * 
