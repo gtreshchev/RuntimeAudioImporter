@@ -31,13 +31,12 @@ public:
 	 * @return The RuntimeAudioCompressor object. Bind to it's OnResult delegate
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, Compress"), Category = "Runtime Audio Importer")
-	static URuntimeAudioCompressor* Create();
+	static URuntimeAudioCompressor* CreateRuntimeAudioCompressor();
 
 	/**
 	 * Compress ImportedSoundWave to regular SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
 	 *
 	 * @param ImportedSoundWaveRef Reference to the imported sound wave
-	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
 	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
