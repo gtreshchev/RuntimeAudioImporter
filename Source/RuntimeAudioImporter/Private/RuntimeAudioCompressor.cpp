@@ -18,14 +18,14 @@
 
 namespace
 {
-	#if ENGINE_MAJOR_VERSION < 5
+#if ENGINE_MAJOR_VERSION < 5
 	FName GetPlatformSpecificFormat(const FName& Format)
 	{
 		const FPlatformAudioCookOverrides* CompressionOverrides = FPlatformCompressionUtilities::GetCookOverrides();
 
 		// Platforms that require compression overrides get concatenated formats
 
-		#if WITH_EDITOR
+#if WITH_EDITOR
 		FName PlatformSpecificFormat;
 		if (CompressionOverrides)
 		{
@@ -37,8 +37,8 @@ namespace
 		{
 			PlatformSpecificFormat = Format;
 		}
-		#else
-		
+#else
+
 		// Cache the concatenated hash
 		static FName PlatformSpecificFormat;
 		static FName CachedFormat;
@@ -57,11 +57,11 @@ namespace
 
 			CachedFormat = Format;
 		}
-		#endif
+#endif
 
 		return PlatformSpecificFormat;
 	}
-	#endif
+#endif
 }
 
 URuntimeAudioCompressor* URuntimeAudioCompressor::CreateRuntimeAudioCompressor()
@@ -231,29 +231,29 @@ void URuntimeAudioCompressor::BroadcastResult(USoundWave* SoundWaveRef)
 {
 	AsyncTask(ENamedThreads::GameThread, [this, SoundWaveRef]()
 	{
-		bool bBroadcasted = false;
-		const bool bSuccess = SoundWaveRef != nullptr;
-		
-		if( OnResultNative.IsBound() )
+		bool bBroadcasted{false};
+		const bool bSuccess{SoundWaveRef != nullptr};
+
+		if (OnResultNative.IsBound())
 		{
 			bBroadcasted = true;
-			OnResultNative.Broadcast( bSuccess, SoundWaveRef);
+			OnResultNative.Broadcast(bSuccess, SoundWaveRef);
 		}
-		
-		if( OnResult.IsBound() )
+
+		if (OnResult.IsBound())
 		{
 			bBroadcasted = true;
-			OnResult.Broadcast( bSuccess, SoundWaveRef );
+			OnResult.Broadcast(bSuccess, SoundWaveRef);
 		}
-		
-		if( !SoundWaveRef )
+
+		if (SoundWaveRef != nullptr)
 		{
 			SoundWaveRef->RemoveFromRoot();
 		}
-		
-		if( !bBroadcasted )
+
+		if (!bBroadcasted)
 		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("You did not bind to the delegate to get the result of the import"));
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("You did not bind to the delegate to get the result of the compress"));
 		}
 	});
 }
