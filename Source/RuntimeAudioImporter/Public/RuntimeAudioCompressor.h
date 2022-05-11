@@ -20,7 +20,7 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioCompressor : public UObject
 	GENERATED_BODY()
 
 public:
-	//** Bind to know when audio compression is complete (even if it fails) */
+	/** Bind to know when audio compression is complete (even if it fails) */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnSoundWaveCompressedResult OnResult;
 	FOnSoundWaveCompressedResultNative OnResultNative;
