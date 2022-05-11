@@ -583,8 +583,8 @@ void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 		{
 			OnProgress.Broadcast(Percentage);
 		}
-		
-		if( OnProgressNative.IsBound() )
+
+		if (OnProgressNative.IsBound())
 		{
 			OnProgressNative.Broadcast(Percentage);
 		}
@@ -595,22 +595,21 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWa
 {
 	AsyncTask(ENamedThreads::GameThread, [this, SoundWaveRef, Status]()
 	{
-		bool bBroadcasted = false;
-		const bool bSuccess = SoundWaveRef != nullptr;
-		
-		if( OnResultNative.IsBound() )
+		bool bBroadcasted{false};
+
+		if (OnResultNative.IsBound())
 		{
 			bBroadcasted = true;
 			OnResultNative.Broadcast(this, SoundWaveRef, Status);
 		}
-		
-		if( OnResult.IsBound() )
+
+		if (OnResult.IsBound())
 		{
 			bBroadcasted = true;
 			OnResult.Broadcast(this, SoundWaveRef, Status);
 		}
-		
-		if( !bBroadcasted )
+
+		if (!bBroadcasted)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("You did not bind to the delegate to get the result of the import"));
 		}
