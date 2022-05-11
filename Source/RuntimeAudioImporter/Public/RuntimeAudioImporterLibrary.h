@@ -8,19 +8,18 @@
 
 /** Delegate broadcast to get the audio importer progress */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, const int32 Percentage);
 
 /** Delegate broadcast to get the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
-
-/** Delegate broadcast the compressed sound wave */
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess, USoundWave*, SoundWaveRef);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, class URuntimeAudioImporterLibrary* RuntimeAudioImporterObjectRef, UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status);
 
 /** Forward declaration of the UPreImportedSoundAsset class */
 class UPreImportedSoundAsset;
 
 /**
  * Runtime Audio Importer library
- * Various functions related to transcoding audio data, such as importing audio files, manually encoding / decoding audio data, sound wave compression and more
+ * Various functions related to transcoding audio data, such as importing audio files, manually encoding / decoding audio data and more
  */
 UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
@@ -31,10 +30,12 @@ public:
 	/** Bind to know when audio import is on progress */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
+	FOnAudioImporterProgressNative OnProgressNative;
 
 	/** Bind to know when audio import is complete (even if it fails) */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterResult OnResult;
+	FOnAudioImporterResultNative OnResultNative;
 
 	/**
 	 * Instantiates a RuntimeAudioImporter object
@@ -91,22 +92,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW Buffer"), Category = "Runtime Audio Importer|Import")
 	void ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat Format, int32 SampleRate = 44100, int32 NumOfChannels = 1);
-
-	/**
-	 * Compress ImportedSoundWave to regular SoundWave. This greatly reduces the size of the audio data in memory and can improve performance
-	 *
-	 * @param ImportedSoundWaveRef Reference to the imported sound wave
-	 * @param OnCompressedResult Delegate broadcast the compressed sound wave
-	 * @param CompressedSoundWaveInfo Basic information for filling a sound wave (partially taken from the standard Sound Wave asset)
-	 * @param Quality The quality of the encoded audio data. From 0 to 100
-	 * @param bFillCompressedBuffer Whether to fill the compressed buffer. It is supposed to be true to reduce memory
-	 * @param bFillPCMBuffer Whether to fill PCM buffer. Mainly used for in-engine previews. It is recommended not to enable to save memory
-	 * @param bFillRAWWaveBuffer Whether to fill RAW Wave buffer. It is recommended not to enable to save memory
-	 *
-	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FOnSoundWaveCompressedResult OnCompressedResult, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer);
 
 	/**
 	 * Transcoding one RAW Data format to another
@@ -194,8 +179,6 @@ public:
 	 */
 	static bool EncodeAudioData(const FDecodedAudioStruct& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
 
-private:
-
 	/**
 	 * Determine audio format based on audio data
 	 *
@@ -228,7 +211,7 @@ private:
 	 * @param DecodedAudioInfo Decoded audio data
 	 * @return Whether the defining was successful or not
 	 */
-	bool DefineSoundWave(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
+	virtual void DefineSoundWave(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
 
 	/**
 	 * Fill SoundWave basic information (e.g. duration, number of channels, etc)
@@ -245,6 +228,10 @@ private:
 	 * @param DecodedAudioInfo Decoded audio data
 	 */
 	static void FillPCMData(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
+
+protected:
+	/** Creates a new instance of the ImportedSoundWave class to use */
+	virtual UImportedSoundWave* CreateImportedSoundWave() const;
 
 	/**
 	 * Audio transcoding progress callback
