@@ -6,10 +6,17 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
-/** Delegate broadcast to track the end of audio playback */
+/** Static delegate broadcast to track the end of audio playback */
+DECLARE_MULTICAST_DELEGATE(FOnAudioPlaybackFinishedNative);
+
+/** Dynamic delegate broadcast to track the end of audio playback */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAudioPlaybackFinished);
 
-/** Delegate broadcast PCM data during a generation request */
+
+/** Static delegate broadcast PCM data during a generation request */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMDataNative, const TArray<float>&);
+
+/** Dynamic delegate broadcast PCM data during a generation request */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMData, const TArray<float>&, PCMData);
 
 
@@ -89,22 +96,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Utility")
 	bool IsPlaybackFinished();
 
-	/**
-	 * Bind to this delegate to know when the audio playback is finished
-	 */
+	/** Bind to this delegate to know when the audio playback is finished. Recommended for C++ only */
+	FOnAudioPlaybackFinishedNative OnAudioPlaybackFinishedNative;
+	
+	/** Bind to this delegate to know when the audio playback is finished. Recommended for Blueprints only */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
 
-	/**
-	 * Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data)
-	 */
+	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Recommended for C++ only */
+	FOnGeneratePCMDataNative OnGeneratePCMDataNative;
+	
+	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Recommended for Blueprints only */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnGeneratePCMData OnGeneratePCMData;
 
 private:
-	/**
-	 * Bool to control the behaviour of the OnAudioPlaybackFinished delegate
-	 */
+	/** Bool to control the behaviour of the OnAudioPlaybackFinished delegate */
 	bool PlaybackFinishedBroadcast = false;
 
 public:
@@ -128,15 +135,10 @@ public:
 
 	//~ End UProceduralSoundWave Interface
 
-	/**
-	 * The current number of processed frames
-	 */
+	/** The current number of processed frames */
 	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
 	int32 CurrentNumOfFrames = 0;
 
-	/**
-	 * Contains PCM data for sound wave playback
-	 */
-	UPROPERTY()
+	/** Contains PCM data for sound wave playback */
 	FPCMStruct PCMBufferInfo;
 };
