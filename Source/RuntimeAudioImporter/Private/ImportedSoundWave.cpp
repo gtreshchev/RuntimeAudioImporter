@@ -88,6 +88,11 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 
 				PlaybackFinishedBroadcast = true;
 
+				if (OnAudioPlaybackFinishedNative.IsBound())
+				{
+					OnAudioPlaybackFinishedNative.Broadcast();
+				}
+				
 				if (OnAudioPlaybackFinished.IsBound())
 				{
 					OnAudioPlaybackFinished.Broadcast();
@@ -122,6 +127,11 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 
 	AsyncTask(ENamedThreads::GameThread, [this, RetrievedPCMData, RetrievedPCMDataSize]()
 	{
+		if (OnGeneratePCMDataNative.IsBound())
+		{
+			OnGeneratePCMDataNative.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
+		}
+		
 		if (OnGeneratePCMData.IsBound())
 		{
 			OnGeneratePCMData.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
