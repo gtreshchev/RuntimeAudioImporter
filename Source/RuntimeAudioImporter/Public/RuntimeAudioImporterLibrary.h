@@ -6,13 +6,18 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
-/** Delegate broadcast to get the audio importer progress */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
+/** Static delegate broadcast to get the audio importer progress */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, const int32 Percentage);
 
-/** Delegate broadcast to get the audio importer result */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
+/** Dynamic delegate broadcast to get the audio importer progress */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
+
+
+/** Static delegate broadcast to get the audio importer result */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, class URuntimeAudioImporterLibrary* RuntimeAudioImporterObjectRef, UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status);
+
+/** Dynamic delegate broadcast to get the audio importer result */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
 
 /** Forward declaration of the UPreImportedSoundAsset class */
 class UPreImportedSoundAsset;
@@ -27,15 +32,19 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioImporterLibrary : public UObject
 	GENERATED_BODY()
 
 public:
-	/** Bind to know when audio import is on progress */
+	/** Bind to know when audio import is on progress. Recommended for C++ only */
+	FOnAudioImporterProgressNative OnProgressNative;
+	
+	/** Bind to know when audio import is on progress. Recommended for Blueprints only */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterProgress OnProgress;
-	FOnAudioImporterProgressNative OnProgressNative;
 
-	/** Bind to know when audio import is complete (even if it fails) */
+	/** Bind to know when audio import is complete (even if it fails). Recommended for C++ only */
+	FOnAudioImporterResultNative OnResultNative;
+	
+	/** Bind to know when audio import is complete (even if it fails). Recommended for Blueprints only */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnAudioImporterResult OnResult;
-	FOnAudioImporterResultNative OnResultNative;
 
 	/**
 	 * Instantiates a RuntimeAudioImporter object

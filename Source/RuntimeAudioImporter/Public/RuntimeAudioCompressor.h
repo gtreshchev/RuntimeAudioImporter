@@ -6,9 +6,11 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioCompressor.generated.h"
 
-/** Delegate broadcast the compressed sound wave */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess, USoundWave*, SoundWaveRef);
+/** Static delegate broadcast the compressed sound wave */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSoundWaveCompressedResultNative, bool bSuccess, USoundWave* SoundWaveRef);
+
+/** Dynamic delegate broadcast the compressed sound wave */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool, bSuccess, USoundWave*, SoundWaveRef);
 
 /**
  * Runtime Audio Compressor
@@ -20,10 +22,12 @@ class RUNTIMEAUDIOIMPORTER_API URuntimeAudioCompressor : public UObject
 	GENERATED_BODY()
 
 public:
-	/** Bind to know when audio compression is complete (even if it fails) */
+	/** Bind to know when audio compression is complete (even if it fails). Recommended for C++ only */
+	FOnSoundWaveCompressedResultNative OnResultNative;
+	
+	/** Bind to know when audio compression is complete (even if it fails). Recommended for Blueprints only */
 	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
 	FOnSoundWaveCompressedResult OnResult;
-	FOnSoundWaveCompressedResultNative OnResultNative;
 
 	/**
 	 * Instantiates a RuntimeAudioCompressor object
