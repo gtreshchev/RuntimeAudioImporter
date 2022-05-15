@@ -28,9 +28,9 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 {
 	GENERATED_BODY()
 public:
-	//~ Begin USoundWave Interface.
+	//~ Begin USoundWave Interface
 	virtual void BeginDestroy() override;
-	//~ End USoundWave Interface.
+	//~ End USoundWave Interface
 
 	/**
 	 * Release PCM data. You should only call this function if you are sure of it (it is called automatically by the garbage collector on sound wave destroy)
