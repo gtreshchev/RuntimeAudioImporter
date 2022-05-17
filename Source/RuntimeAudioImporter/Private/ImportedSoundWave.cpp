@@ -114,7 +114,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
 
 	// Ensure we got a valid PCM data
-	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
+	if (RetrievedPCMDataSize <= 0 || RetrievedPCMData == nullptr)
 	{
 		return 0;
 	}
@@ -125,7 +125,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	// Increasing CurrentFrameCount for correct iteration sequence
 	CurrentNumOfFrames = CurrentNumOfFrames + (NumSamples / NumChannels);
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RetrievedPCMData, RetrievedPCMDataSize]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RetrievedPCMData, RetrievedPCMDataSize = NumSamples]()
 	{
 		if (OnGeneratePCMDataNative.IsBound())
 		{
