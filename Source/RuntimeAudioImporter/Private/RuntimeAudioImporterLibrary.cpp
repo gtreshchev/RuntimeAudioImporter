@@ -539,7 +539,7 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& De
 		}
 	case EAudioFormat::Wav:
 		{
-			if (!WAVTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_PCM, 16)))
+			if (!WAVTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_IEEE_FLOAT, 32)))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Wav audio data"));
 				return false;
