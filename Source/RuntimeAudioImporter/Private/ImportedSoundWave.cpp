@@ -16,6 +16,8 @@ void UImportedSoundWave::ReleaseMemory()
 {
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
 
+	PCMBufferInfo.PCMData.Empty();
+
 	PCMBufferInfo.~FPCMStruct();
 }
 
