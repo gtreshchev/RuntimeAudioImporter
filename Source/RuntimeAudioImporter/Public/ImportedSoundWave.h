@@ -33,7 +33,7 @@ public:
 	//~ End USoundWave Interface
 
 	/**
-	 * Release PCM data. You should only call this function if you are sure of it (it is called automatically by the garbage collector on sound wave destroy)
+	 * Release sound wave data. It is currently recommended to call manually when the sound wave is not needed, as the garbage collector does not correctly destroy the sound wave in some cases
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
 	void ReleaseMemory();
