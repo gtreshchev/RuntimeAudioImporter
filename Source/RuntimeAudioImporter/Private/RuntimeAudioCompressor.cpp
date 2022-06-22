@@ -69,7 +69,7 @@ URuntimeAudioCompressor* URuntimeAudioCompressor::CreateRuntimeAudioCompressor()
 	return NewObject<URuntimeAudioCompressor>();
 }
 
-void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer)
+void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, /*bool bFillCompressedBuffer,*/ bool bFillPCMBuffer, bool bFillRAWWaveBuffer)
 {
 	USoundWave* RegularSoundWaveRef = NewObject<USoundWave>(USoundWave::StaticClass());
 
@@ -81,7 +81,11 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 
 	RegularSoundWaveRef->AddToRoot();
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this,ImportedSoundWaveRef, RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, bFillCompressedBuffer, CompressedSoundWaveInfo]()
+if ENGINE_MAJOR_VERSION < 5
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, ImportedSoundWaveRef, RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, /*bFillCompressedBuffer,*/ CompressedSoundWaveInfo]()
+#else
+	FAudioThread::RunCommandOnAudioThread([this, ImportedSoundWaveRef, RegularSoundWaveRef, Quality, bFillPCMBuffer, bFillRAWWaveBuffer, /*bFillCompressedBuffer,*/ CompressedSoundWaveInfo]()
+#endif
 	{
 		// Filling in decoded audio info
 		FDecodedAudioStruct DecodedAudioInfo;
@@ -109,7 +113,7 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 			}
 
 			RegularSoundWaveRef->bProcedural = false;
-			RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
+			
 
 			// Filling in the compressed sound wave info
 			{
@@ -123,6 +127,9 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 		// Filling in the standard PCM buffer if needed
 		if (bFillPCMBuffer)
 		{
+			RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_Native;
+			
+
 			int16* RawPCMData;
 			int32 RawPCMDataSize;
 			RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num(), RawPCMData, RawPCMDataSize);
@@ -140,6 +147,8 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 		// Filling in the standard RAW Wave 16-bit buffer if needed
 		if (bFillRAWWaveBuffer)
 		{
+			RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_Streaming;
+
 			int16* RawPCMData;
 			int32 RawPCMDataSize;
 			RAWTranscoder::TranscodeRAWData<float, int16>(reinterpret_cast<float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num(), RawPCMData, RawPCMDataSize);
@@ -169,9 +178,13 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled RAW Wave Buffer with size '%d'"), EncodedAudioInfo.AudioData.GetView().Num());
 		}
 
+		/* //Compressed audio just doesn't work, there's no decoder created.
+		   // TODO: Work out where decoder should go
+
 		// Filling in the compressed OGG buffer
 		if (bFillCompressedBuffer)
 		{
+			RegularSoundWaveRef->DecompressionType = EDecompressionType::DTYPE_RealTime;
 			FEncodedAudioStruct EncodedAudioInfo;
 			if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
 			{
@@ -199,7 +212,7 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 				FByteBulkData* CompressedBulkDataPtr = &RegularSoundWaveRef->CompressedFormatData.GetFormat(CurrentAudioPlatformSpecificFormat);
 
 #else
-				
+
 				FByteBulkData CompressedBulkData;
 				FByteBulkData* CompressedBulkDataPtr = &CompressedBulkData;
 
@@ -221,7 +234,7 @@ void URuntimeAudioCompressor::CompressSoundWave(UImportedSoundWave* ImportedSoun
 			RegularSoundWaveRef->SetPrecacheState(ESoundWavePrecacheState::Done);
 
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Filled in the compressed audio buffer 'OGG' with size '%d'"), EncodedAudioInfo.AudioData.GetView().Num());
-		}
+		}*/
 
 		BroadcastResult(RegularSoundWaveRef);
 	});
