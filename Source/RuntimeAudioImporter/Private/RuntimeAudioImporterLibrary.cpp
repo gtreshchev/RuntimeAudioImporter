@@ -120,7 +120,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		}
 	}
 
-	if (!PCMData || PCMDataSize < 0)
+	if (PCMData == nullptr || PCMDataSize <= 0)
 	{
 		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 		return;
@@ -185,12 +185,12 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 	{
 	case ERAWAudioFormat::Int16:
 		{
-			RAWTranscoder::TranscodeRAWData<int16, uint8>(RAWData_From, IntermediateRAWBuffer);
+			RAWTranscoder::TranscodeRAWData<int16, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
 			break;
 		}
 	case ERAWAudioFormat::Int32:
 		{
-			RAWTranscoder::TranscodeRAWData<int32, uint8>(RAWData_From, IntermediateRAWBuffer);
+			RAWTranscoder::TranscodeRAWData<int32, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
 			break;
 		}
 	case ERAWAudioFormat::UInt8:
@@ -200,24 +200,22 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 		}
 	case ERAWAudioFormat::Float32:
 		{
-			RAWTranscoder::TranscodeRAWData<float, uint8>(RAWData_From, IntermediateRAWBuffer);
+			RAWTranscoder::TranscodeRAWData<float, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
 			break;
 		}
 	}
-
-	RAWData_From.Empty();
 
 	// Transcoding unsigned 8-bit PCM to the specified format
 	switch (RAWTo)
 	{
 	case ERAWAudioFormat::Int16:
 		{
-			RAWTranscoder::TranscodeRAWData<uint8, int16>(IntermediateRAWBuffer, RAWData_To);
+			RAWTranscoder::TranscodeRAWData<uint8, int16>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
 			break;
 		}
 	case ERAWAudioFormat::Int32:
 		{
-			RAWTranscoder::TranscodeRAWData<uint8, int32>(IntermediateRAWBuffer, RAWData_To);
+			RAWTranscoder::TranscodeRAWData<uint8, int32>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
 			break;
 		}
 	case ERAWAudioFormat::UInt8:
@@ -227,7 +225,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 		}
 	case ERAWAudioFormat::Float32:
 		{
-			RAWTranscoder::TranscodeRAWData<uint8, float>(IntermediateRAWBuffer, RAWData_To);
+			RAWTranscoder::TranscodeRAWData<uint8, float>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
 			break;
 		}
 	}
