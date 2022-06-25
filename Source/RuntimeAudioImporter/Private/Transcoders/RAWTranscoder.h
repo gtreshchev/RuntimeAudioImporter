@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Math/UnrealMathUtility.h"
+#include "HAL/UnrealMemory.h"
 #include "RuntimeAudioImporterDefines.h"
 
 class RUNTIMEAUDIOIMPORTER_API RAWTranscoder
@@ -20,28 +21,28 @@ public:
 		/** Signed 16-bit PCM */
 		if (TIsSame<IntegralType, int16>::Value)
 		{
-			return TTuple<float, float>(-32767, 32768);
+			return {-32767.f, 32768.f};
 		}
 
 		/** Signed 32-bit PCM */
 		if (TIsSame<IntegralType, int32>::Value)
 		{
-			return TTuple<float, float>(-2147483648.0, 2147483647.0);
+			return {-2147483648.f, 2147483647.f};
 		}
 
 		/** Unsigned 8-bit PCM */
 		if (TIsSame<IntegralType, uint8>::Value)
 		{
-			return TTuple<float, float>(0, 255);
+			return {0.f, 255.f};
 		}
 
 		/** 32-bit float */
 		if (TIsSame<IntegralType, float>::Value)
 		{
-			return TTuple<float, float>(-1.0, 1.0);
+			return {-1.f, 1.f};
 		}
 
-		return TTuple<float, float>(-1.0, 1.0);
+		return {-1.f, 1.f};
 	}
 
 	/**
@@ -51,7 +52,7 @@ public:
 	 * @param RAWData_To Transcoded RAW data with the specified format
 	 */
 	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	static void TranscodeRAWData(TArray<uint8> RAWData_From, TArray<uint8>& RAWData_To)
+	static void TranscodeRAWData(TArray<uint8>&& RAWData_From, TArray<uint8>& RAWData_To)
 	{
 		IntegralTypeFrom* DataFrom = reinterpret_cast<IntegralTypeFrom*>(RAWData_From.GetData());
 		const int32 DataFrom_Size = RAWData_From.Num();
@@ -62,6 +63,8 @@ public:
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
 
 		RAWData_To = TArray<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
+		
+		FMemory::Free(DataTo);
 	}
 
 	/**
