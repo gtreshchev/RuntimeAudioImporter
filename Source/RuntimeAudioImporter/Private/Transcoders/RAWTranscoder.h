@@ -21,28 +21,28 @@ public:
 		/** Signed 16-bit PCM */
 		if (TIsSame<IntegralType, int16>::Value)
 		{
-			return {-32767.f, 32768.f};
+			return TTuple<float, float>(-32767.f, 32768.f);
 		}
 
 		/** Signed 32-bit PCM */
 		if (TIsSame<IntegralType, int32>::Value)
 		{
-			return {-2147483648.f, 2147483647.f};
+			return TTuple<float, float>(-2147483648.f, 2147483647.f);
 		}
 
 		/** Unsigned 8-bit PCM */
 		if (TIsSame<IntegralType, uint8>::Value)
 		{
-			return {0.f, 255.f};
+			return TTuple<float, float>(0.f, 255.f);
 		}
 
 		/** 32-bit float */
 		if (TIsSame<IntegralType, float>::Value)
 		{
-			return {-1.f, 1.f};
+			return TTuple<float, float>(-1.f, 1.f);
 		}
 
-		return {-1.f, 1.f};
+		return TTuple<float, float>(-1.f, 1.f);
 	}
 
 	/**
