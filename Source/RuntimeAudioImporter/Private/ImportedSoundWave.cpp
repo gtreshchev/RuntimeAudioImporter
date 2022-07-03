@@ -2,7 +2,7 @@
 
 #include "ImportedSoundWave.h"
 #include "RuntimeAudioImporterDefines.h"
-
+#include "AudioDevice.h"
 #include "Async/Async.h"
 
 void UImportedSoundWave::BeginDestroy()
@@ -10,6 +10,16 @@ void UImportedSoundWave::BeginDestroy()
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
 
 	Super::BeginDestroy();
+}
+
+void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
+{
+	if (IsPlaybackFinished())
+	{
+		AudioDevice->StopActiveSound(&ActiveSound);
+	}
+
+	Super::Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
 }
 
 void UImportedSoundWave::ReleaseMemory()
@@ -74,7 +84,7 @@ float UImportedSoundWave::GetPlaybackPercentage() const
 
 bool UImportedSoundWave::IsPlaybackFinished()
 {
-	return GetPlaybackPercentage() == 100 && PCMBufferInfo.PCMData.GetView().GetData() != nullptr && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMData.GetView().Num() > 0;
+	return GetPlaybackTime() == GetDurationConst() && PCMBufferInfo.PCMData.GetView().GetData() != nullptr && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMData.GetView().Num() > 0;
 }
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)

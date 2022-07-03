@@ -30,10 +30,11 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 public:
 	//~ Begin USoundWave Interface
 	virtual void BeginDestroy() override;
+	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
 	//~ End USoundWave Interface
 
 	/**
-	 * Release sound wave data. It is currently recommended to call manually when the sound wave is not needed, as the garbage collector does not correctly destroy the sound wave in some cases
+	 * Release sound wave data. Call it manually only if you are sure of it
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
 	void ReleaseMemory();
