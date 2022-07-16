@@ -15,6 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnSoundWaveCompressedResult, bool,
 /**
  * Runtime Audio Compressor
  * Utilized for sound compression
+ * Warning! It has garbage collection issues, so it's not recommended to use it
  */
 UCLASS(BlueprintType, Category = "Runtime Audio Importer")
 class RUNTIMEAUDIOIMPORTER_API URuntimeAudioCompressor : public UObject
@@ -26,7 +27,7 @@ public:
 	FOnSoundWaveCompressedResultNative OnResultNative;
 	
 	/** Bind to know when audio compression is complete (even if it fails). Recommended for Blueprints only */
-	UPROPERTY(BlueprintAssignable, Category = "Runtime Audio Importer|Delegates")
+	UPROPERTY(BlueprintAssignable, meta = (DeprecatedProperty, DeprecationMessage = "This has big garbage collection issues. Please consider switching to the default sound wave plugin as ImportedSoundWave"), Category = "Runtime Audio Importer|Delegates")
 	FOnSoundWaveCompressedResult OnResult;
 
 	/**
@@ -34,7 +35,7 @@ public:
 	 *
 	 * @return The RuntimeAudioCompressor object. Bind to it's OnResult delegate
 	 */
-	UFUNCTION(BlueprintCallable, meta = (Keywords = "Create, Audio, Runtime, Compress"), Category = "Runtime Audio Importer")
+	UFUNCTION(BlueprintCallable, meta = (DeprecatedFunction, DeprecationMessage = "This has big garbage collection issues. Please consider switching to the default sound wave plugin as ImportedSoundWave"), Category = "Runtime Audio Importer")
 	static URuntimeAudioCompressor* CreateRuntimeAudioCompressor();
 
 	/**
@@ -49,7 +50,7 @@ public:
 	 *
 	 * @note Some unique features will be missing, such as the "OnGeneratePCMData" delegate. But at the same time, you do not need to manually rewind the sound wave through "RewindPlaybackTime", but use traditional methods
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
+	UFUNCTION(BlueprintCallable, meta = (DeprecatedFunction, DeprecationMessage = "This has big garbage collection issues. Please consider switching to the default sound wave plugin as ImportedSoundWave"), Category = "Runtime Audio Importer|Utilities")
 	void CompressSoundWave(UImportedSoundWave* ImportedSoundWaveRef, FCompressedSoundWaveInfo CompressedSoundWaveInfo, uint8 Quality, bool bFillCompressedBuffer, bool bFillPCMBuffer, bool bFillRAWWaveBuffer);
 
 private:
