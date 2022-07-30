@@ -27,9 +27,17 @@ enum class EWAVEncodingFormat : uint8
  */
 struct FWAVEncodingFormat
 {
+	/**
+	 * Wav format for encoding
+	 */
 	EWAVEncodingFormat Format;
+
+	/**
+	 * Sample depth for encoding
+	 */
 	uint32 BitsPerSample;
 
+	/** Base constructor */
 	FWAVEncodingFormat(EWAVEncodingFormat Format, uint32 BitsPerSample)
 		: Format(Format)
 	  , BitsPerSample(BitsPerSample)

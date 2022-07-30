@@ -6,18 +6,17 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
-/** Static delegate broadcast to get the audio importer progress */
+/** Static delegate broadcast the audio importer progress */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, const int32 Percentage);
 
-/** Dynamic delegate broadcast to get the audio importer progress */
+/** Dynamic delegate broadcast the audio importer progress */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
 
+/** Static delegate broadcast the audio importer result */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, class URuntimeAudioImporterLibrary* Importer, UImportedSoundWave* ImportedSoundWave, ETranscodingStatus Status);
 
-/** Static delegate broadcast to get the audio importer result */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, class URuntimeAudioImporterLibrary* RuntimeAudioImporterObjectRef, UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status);
-
-/** Dynamic delegate broadcast to get the audio importer result */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, RuntimeAudioImporterObjectRef, UImportedSoundWave*, SoundWaveRef, ETranscodingStatus, Status);
+/** Dynamic delegate broadcast the audio importer result */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ETranscodingStatus, Status);
 
 /** Forward declaration of the UPreImportedSoundAsset class */
 class UPreImportedSoundAsset;
@@ -159,12 +158,15 @@ public:
 	 * Determine audio format based on audio data. A more advanced way to get the format
 	 *
 	 * @param AudioData Audio data array
+	 * @return The found audio format (e.g. mp3. flac, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
 	static EAudioFormat GetAudioFormatAdvanced(const TArray<uint8>& AudioData);
 
 	/**
 	 * Convert seconds to string (hh:mm:ss or mm:ss depending on the number of seconds)
+	 *
+	 * @return hh:mm:ss or mm:ss string representation
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
 	static FString ConvertSecondsToString(int32 Seconds);
@@ -204,7 +206,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromFloat32Buffer(uint8* PCMData, const int32 PCMDataSize, const int32 SampleRate = 44100, const int32 NumOfChannels = 1);
+	void ImportAudioFromFloat32Buffer(uint8* PCMData, int32 PCMDataSize, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Create Imported Sound Wave and finish importing.
@@ -239,7 +241,11 @@ public:
 	static void FillPCMData(UImportedSoundWave* SoundWaveRef, const FDecodedAudioStruct& DecodedAudioInfo);
 
 protected:
-	/** Creates a new instance of the ImportedSoundWave class to use */
+	/**
+	 * Create a new instance of the imported sound wave
+	 *
+	 * @return Created imported sound wave
+	 */
 	virtual UImportedSoundWave* CreateImportedSoundWave() const;
 
 	/**
