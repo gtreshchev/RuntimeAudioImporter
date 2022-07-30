@@ -424,7 +424,7 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData
 	return EAudioFormat::Invalid;
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, const int32 PCMDataSize, const int32 SampleRate, const int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, int32 PCMDataSize, int32 SampleRate, int32 NumOfChannels)
 {
 	FDecodedAudioStruct DecodedAudioInfo;
 
