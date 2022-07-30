@@ -10,6 +10,9 @@ struct FEncodedAudioStruct;
 class RUNTIMEAUDIOIMPORTER_API MP3Transcoder
 {
 public:
+	/**
+	 * Check if the given MP3 audio data seems to be valid
+	 */
 	static bool CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize);
 
 	/**
