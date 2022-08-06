@@ -6,20 +6,30 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
-/** Static delegate broadcast the audio importer progress */
+/** Static delegate broadcasting the audio importer progress */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, const int32 Percentage);
 
-/** Dynamic delegate broadcast the audio importer progress */
+/** Dynamic delegate broadcasting the audio importer progress */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, const int32, Percentage);
 
-/** Static delegate broadcast the audio importer result */
+/** Static delegate broadcasting the audio importer result */
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, class URuntimeAudioImporterLibrary* Importer, UImportedSoundWave* ImportedSoundWave, ETranscodingStatus Status);
 
-/** Dynamic delegate broadcast the audio importer result */
+/** Dynamic delegate broadcasting the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ETranscodingStatus, Status);
 
-/** Forward declaration of the UPreImportedSoundAsset class */
-class UPreImportedSoundAsset;
+
+/** Static delegate broadcasting the result of the audio export to buffer */
+DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, TArray<uint8>);
+
+/** Dynamic delegate broadcasting the result of the audio export to buffer */
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnAudioExportToBufferResult, bool, bSucceed, TArray<uint8>, AudioData);
+
+/** Static delegate broadcasting the result of the audio export to file */
+DECLARE_DELEGATE_OneParam(FOnAudioExportToFileResultNative, bool);
+
+/** Dynamic delegate broadcasting the result of the audio export to file */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAudioExportToFileResult, bool, bSucceed);
 
 /**
  * Runtime Audio Importer library
@@ -68,7 +78,7 @@ public:
 	 * @param PreImportedSoundAssetRef PreImportedSoundAsset object reference
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAssetRef);
+	void ImportAudioFromPreImportedSound(class UPreImportedSoundAsset* PreImportedSoundAssetRef);
 
 	/**
 	 * Import audio from buffer
@@ -130,20 +140,42 @@ public:
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
 	 * @param SavePath Path to save the file
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static bool ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality);
+	static void ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result);
+
+	/**
+	 * Export the imported sound wave to file. Prefer to use this function if possible
+	 *
+	 * @param ImporterSoundWave Reference to the imported sound wave
+	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param SavePath Path to save the file
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result);
 
 	/**
 	 * Export the imported sound wave to buffer
 	 *
 	 * @param ImporterSoundWave Reference to the imported sound wave
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
-	 * @param AudioData The exported (compressed) audio data
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static bool ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, TArray<uint8>& AudioData, EAudioFormat AudioFormat, uint8 Quality);
+	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result);
+
+	/**
+	 * Export the imported sound wave to buffer. Prefer to use this function if possible
+	 *
+	 * @param ImporterSoundWave Reference to the imported sound wave
+	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param Quality The quality of the encoded audio data. From 0 to 100
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result);
 
 	/**
 	 * Get audio format by extension
