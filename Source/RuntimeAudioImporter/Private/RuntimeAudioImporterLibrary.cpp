@@ -255,56 +255,91 @@ bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 	return true;
 }
 
-bool URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality)
+void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result)
 {
-	TArray<uint8> AudioData;
-
-	// Exporting a sound wave to a buffer
-	if (!ExportSoundWaveToBuffer(ImporterSoundWave, AudioData, AudioFormat, Quality))
+	ExportSoundWaveToFile(ImporterSoundWave, SavePath, AudioFormat, Quality, FOnAudioExportToFileResultNative::CreateLambda([Result](bool bSucceed)
 	{
-		return false;
-	}
-
-	// Writing encoded data to specified location
-	if (!FFileHelper::SaveArrayToFile(MoveTemp(AudioData), *SavePath))
-	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
-		return false;
-	}
-
-	return true;
+		Result.ExecuteIfBound(bSucceed);
+	}));
 }
 
-bool URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, TArray<uint8>& AudioData, EAudioFormat AudioFormat, uint8 Quality)
+void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result)
 {
-	// Filling in decoded audio info
-	FDecodedAudioStruct DecodedAudioInfo;
+	// Exporting a sound wave to a buffer
+	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, TArray<uint8> AudioData)
 	{
-		DecodedAudioInfo.PCMInfo = ImporterSoundWave->PCMBufferInfo;
-		FSoundWaveBasicStruct SoundWaveBasicInfo;
+		if (!bSucceed)
 		{
-			SoundWaveBasicInfo.NumOfChannels = ImporterSoundWave->NumChannels;
-			SoundWaveBasicInfo.SampleRate = ImporterSoundWave->SamplingRate;
-			SoundWaveBasicInfo.Duration = ImporterSoundWave->Duration;
+			return;
 		}
-		DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
-	}
 
-	FEncodedAudioStruct EncodedAudioInfo;
+		// Writing encoded data to specified location
+		if (!FFileHelper::SaveArrayToFile(MoveTemp(AudioData), *SavePath))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
+			Result.ExecuteIfBound(false);
+			return;
+		}
+
+		Result.ExecuteIfBound(true);
+	}));
+}
+
+void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result)
+{
+	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, TArray<uint8> AudioData)
 	{
-		EncodedAudioInfo.AudioFormat = AudioFormat;
-	}
+		Result.ExecuteIfBound(bSucceed, MoveTemp(AudioData));
+	}));
+}
 
-	// Encoding to the specified format
-	if (!EncodeAudioData(DecodedAudioInfo, EncodedAudioInfo, Quality))
+void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImporterSoundWave, AudioFormat, Quality, Result]()
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImporterSoundWave->GetName());
-		return false;
-	}
+		auto ExecuteResult = [Result](bool bSucceed, TArray<uint8>&& AudioData)
+		{
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceed, AudioData]()
+			{
+				Result.ExecuteIfBound(bSucceed, AudioData);
+			});
+		};
 
-	AudioData = TArray<uint8>(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+		if (!IsValid(ImporterSoundWave))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
+			ExecuteResult(false, TArray<uint8>());
+			return;
+		}
 
-	return true;
+		// Filling in decoded audio info
+		FDecodedAudioStruct DecodedAudioInfo;
+		{
+			DecodedAudioInfo.PCMInfo = ImporterSoundWave->PCMBufferInfo;
+			FSoundWaveBasicStruct SoundWaveBasicInfo;
+			{
+				SoundWaveBasicInfo.NumOfChannels = ImporterSoundWave->NumChannels;
+				SoundWaveBasicInfo.SampleRate = ImporterSoundWave->SamplingRate;
+				SoundWaveBasicInfo.Duration = ImporterSoundWave->Duration;
+			}
+			DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
+		}
+
+		FEncodedAudioStruct EncodedAudioInfo;
+		{
+			EncodedAudioInfo.AudioFormat = AudioFormat;
+		}
+
+		// Encoding to the specified format
+		if (!EncodeAudioData(DecodedAudioInfo, EncodedAudioInfo, Quality))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImporterSoundWave->GetName());
+			ExecuteResult(false, TArray<uint8>());
+			return;
+		}
+
+		ExecuteResult(true, TArray<uint8>(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num()));
+	});
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo)
