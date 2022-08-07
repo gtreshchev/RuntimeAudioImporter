@@ -20,10 +20,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, class URu
 
 
 /** Static delegate broadcasting the result of the audio export to buffer */
-DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, TArray<uint8>);
+DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, const TArray<uint8>&);
 
 /** Dynamic delegate broadcasting the result of the audio export to buffer */
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnAudioExportToBufferResult, bool, bSucceed, TArray<uint8>, AudioData);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnAudioExportToBufferResult, bool, bSucceed, const TArray<uint8>&, AudioData);
 
 /** Static delegate broadcasting the result of the audio export to file */
 DECLARE_DELEGATE_OneParam(FOnAudioExportToFileResultNative, bool);
