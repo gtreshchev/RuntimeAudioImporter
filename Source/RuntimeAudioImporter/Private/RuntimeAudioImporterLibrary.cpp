@@ -266,7 +266,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* Imp
 void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result)
 {
 	// Exporting a sound wave to a buffer
-	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, TArray<uint8> AudioData)
+	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, const TArray<uint8>& AudioData)
 	{
 		if (!bSucceed)
 		{
@@ -274,7 +274,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* Imp
 		}
 
 		// Writing encoded data to specified location
-		if (!FFileHelper::SaveArrayToFile(MoveTemp(AudioData), *SavePath))
+		if (!FFileHelper::SaveArrayToFile(AudioData, *SavePath))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
 			Result.ExecuteIfBound(false);
@@ -287,9 +287,9 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* Imp
 
 void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImporterSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result)
 {
-	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, TArray<uint8> AudioData)
+	ExportSoundWaveToBuffer(ImporterSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray<uint8>& AudioData)
 	{
-		Result.ExecuteIfBound(bSucceed, MoveTemp(AudioData));
+		Result.ExecuteIfBound(bSucceed, AudioData);
 	}));
 }
 
