@@ -77,10 +77,15 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 	}
 
 	OnProgress_Internal(35);
+	
+	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
 	{
-		ImportAudioFromRAWBuffer(AudioBuffer, Format, SampleRate, NumOfChannels);
+		if (ThisPtr.IsValid())
+		{
+			ThisPtr->ImportAudioFromRAWBuffer(AudioBuffer, Format, SampleRate, NumOfChannels);
+		}
 	});
 }
 
@@ -143,14 +148,21 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 		AudioFormat = GetAudioFormat(AudioData.GetData(), AudioData.Num());
 	}
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
+	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
+
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
-		OnProgress_Internal(5);
+		if (!ThisPtr.IsValid())
+		{
+			return;
+		}
+
+		ThisPtr->OnProgress_Internal(5);
 
 		if (AudioFormat == EAudioFormat::Invalid)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for import"));
-			OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
 			return;
 		}
 
@@ -158,20 +170,23 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 
 		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
 
-		OnProgress_Internal(10);
+		ThisPtr->OnProgress_Internal(10);
 
 		FDecodedAudioStruct DecodedAudioInfo;
 		if (!DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
 		{
-			OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 			return;
 		}
 
-		OnProgress_Internal(65);
+		ThisPtr->OnProgress_Internal(65);
 
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]()
 		{
-			ImportAudioFromDecodedInfo(DecodedAudioInfo);
+			if (ThisPtr.IsValid())
+			{
+				ThisPtr->ImportAudioFromDecodedInfo(DecodedAudioInfo);
+			}
 		});
 	});
 }
@@ -610,36 +625,50 @@ UImportedSoundWave* URuntimeAudioImporterLibrary::CreateImportedSoundWave() cons
 
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, Percentage]()
+	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
+	
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, Percentage]()
 	{
-		if (OnProgress.IsBound())
+		if (!ThisPtr.IsValid())
 		{
-			OnProgress.Broadcast(Percentage);
+			return;
 		}
 
-		if (OnProgressNative.IsBound())
+		if (ThisPtr->OnProgress.IsBound())
 		{
-			OnProgressNative.Broadcast(Percentage);
+			ThisPtr->OnProgress.Broadcast(Percentage);
+		}
+
+		if (ThisPtr->OnProgressNative.IsBound())
+		{
+			ThisPtr->OnProgressNative.Broadcast(Percentage);
 		}
 	});
 }
 
 void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* SoundWaveRef, ETranscodingStatus Status)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, SoundWaveRef, Status]()
-	{
-		bool bBroadcasted{false};
+	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
 
-		if (OnResultNative.IsBound())
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, SoundWaveRef, Status]()
+	{
+		if (!ThisPtr.IsValid())
 		{
-			bBroadcasted = true;
-			OnResultNative.Broadcast(this, SoundWaveRef, Status);
+			return;
 		}
 
-		if (OnResult.IsBound())
+		bool bBroadcasted{false};
+
+		if (ThisPtr->OnResultNative.IsBound())
 		{
 			bBroadcasted = true;
-			OnResult.Broadcast(this, SoundWaveRef, Status);
+			ThisPtr->OnResultNative.Broadcast(ThisPtr.Get(), SoundWaveRef, Status);
+		}
+
+		if (ThisPtr->OnResult.IsBound())
+		{
+			bBroadcasted = true;
+			ThisPtr->OnResult.Broadcast(ThisPtr.Get(), SoundWaveRef, Status);
 		}
 
 		if (!bBroadcasted)

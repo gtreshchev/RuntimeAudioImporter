@@ -14,9 +14,37 @@ void UImportedSoundWave::BeginDestroy()
 
 void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
+	ActiveSound.PlaybackTime = GetPlaybackTime();
+
 	if (IsPlaybackFinished())
 	{
-		AudioDevice->StopActiveSound(&ActiveSound);
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
+
+		if (!PlaybackFinishedBroadcast)
+		{
+			PlaybackFinishedBroadcast = true;
+
+			if (OnAudioPlaybackFinishedNative.IsBound())
+			{
+				OnAudioPlaybackFinishedNative.Broadcast();
+			}
+
+			if (OnAudioPlaybackFinished.IsBound())
+			{
+				OnAudioPlaybackFinished.Broadcast();
+			}
+		}
+
+		if (!bLooping)
+		{
+			AudioDevice->StopActiveSound(&ActiveSound);
+		}
+		else
+		{
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The sound wave '%s' will be looped"), *GetName());
+			ActiveSound.PlaybackTime = 0.f;
+			RewindPlaybackTime(0.f);
+		}
 	}
 
 	Super::Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
@@ -29,6 +57,11 @@ void UImportedSoundWave::ReleaseMemory()
 	PCMBufferInfo.PCMData.Empty();
 
 	PCMBufferInfo.~FPCMStruct();
+}
+
+void UImportedSoundWave::SetLooping(bool bLoop)
+{
+	bLooping = bLoop;
 }
 
 bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
@@ -89,29 +122,11 @@ bool UImportedSoundWave::IsPlaybackFinished()
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
+	TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+
 	// Ensure there is enough number of frames. Lack of frames means audio playback has finished
 	if (static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames)
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
-		{
-			if (!PlaybackFinishedBroadcast)
-			{
-				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
-
-				PlaybackFinishedBroadcast = true;
-
-				if (OnAudioPlaybackFinishedNative.IsBound())
-				{
-					OnAudioPlaybackFinishedNative.Broadcast();
-				}
-				
-				if (OnAudioPlaybackFinished.IsBound())
-				{
-					OnAudioPlaybackFinished.Broadcast();
-				}
-			}
-		});
-
 		return 0;
 	}
 
@@ -137,16 +152,21 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	// Increasing CurrentFrameCount for correct iteration sequence
 	CurrentNumOfFrames = CurrentNumOfFrames + (NumSamples / NumChannels);
 
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RetrievedPCMData, RetrievedPCMDataSize = NumSamples]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, RetrievedPCMData, RetrievedPCMDataSize = NumSamples]()
 	{
-		if (OnGeneratePCMDataNative.IsBound())
+		if (!ThisPtr.IsValid())
 		{
-			OnGeneratePCMDataNative.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
+			return;
 		}
-		
-		if (OnGeneratePCMData.IsBound())
+
+		if (ThisPtr->OnGeneratePCMDataNative.IsBound())
 		{
-			OnGeneratePCMData.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
+			ThisPtr->OnGeneratePCMDataNative.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
+		}
+
+		if (ThisPtr->OnGeneratePCMData.IsBound())
+		{
+			ThisPtr->OnGeneratePCMData.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
 		}
 	});
 

@@ -40,6 +40,14 @@ public:
 	void ReleaseMemory();
 
 	/**
+	 * Set whether the sound should loop or not
+	 *
+	 * @param bLoop Whether the sound should loop or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Properties")
+	void SetLooping(bool bLoop);
+
+	/**
 	 * Rewind the sound for the specified time
 	 *
 	 * @param PlaybackTime How long to rewind the sound
