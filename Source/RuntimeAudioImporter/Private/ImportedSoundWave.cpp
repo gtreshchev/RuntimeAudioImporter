@@ -64,6 +64,11 @@ void UImportedSoundWave::SetLooping(bool bLoop)
 	bLooping = bLoop;
 }
 
+void UImportedSoundWave::SetSubtitles(const TArray<FSubtitleCue>& InSubtitles)
+{
+	Subtitles = InSubtitles;
+}
+
 bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
 {
 	if (PlaybackTime > Duration)
