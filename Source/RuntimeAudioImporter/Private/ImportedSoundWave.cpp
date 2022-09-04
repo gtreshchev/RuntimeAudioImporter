@@ -64,9 +64,20 @@ void UImportedSoundWave::SetLooping(bool bLoop)
 	bLooping = bLoop;
 }
 
-void UImportedSoundWave::SetSubtitles(const TArray<FSubtitleCue>& InSubtitles)
+void UImportedSoundWave::SetSubtitles(const TArray<FEditableSubtitleCue>& InSubtitles)
 {
-	Subtitles = InSubtitles;
+	Subtitles.Empty();
+
+	for (const FEditableSubtitleCue& Subtitle : InSubtitles)
+	{
+		FSubtitleCue ConvertedSubtitle;
+		{
+			ConvertedSubtitle.Text = Subtitle.Text;
+			ConvertedSubtitle.Time = Subtitle.Time;
+		}
+
+		Subtitles.Add(ConvertedSubtitle);
+	}
 }
 
 bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)

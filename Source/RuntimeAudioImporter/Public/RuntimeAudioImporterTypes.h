@@ -181,11 +181,33 @@ struct FCompressedSoundWaveInfo
 	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.125", ClampMax = "4.0"), Category = "Runtime Audio Importer")
 	float Pitch;
 
+	/** Base constructor */
 	FCompressedSoundWaveInfo()
 		: SoundGroup(ESoundGroup::SOUNDGROUP_Default)
 	  , bLooping(false)
 	  , Volume(1.f)
 	  , Pitch(1.f)
+	{
+	}
+};
+
+/** A line of subtitle text and the time at which it should be displayed. This is the same as FSubtitleCue but editable in Blueprints */
+USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
+struct FEditableSubtitleCue
+{
+	GENERATED_BODY()
+
+	/** The text to appear in the subtitle */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	FText Text;
+
+	/** The time at which the subtitle is to be displayed, in seconds relative to the beginning of the line */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	float Time;
+
+	/** Base constructor */
+	FEditableSubtitleCue()
+		: Time(0)
 	{
 	}
 };
