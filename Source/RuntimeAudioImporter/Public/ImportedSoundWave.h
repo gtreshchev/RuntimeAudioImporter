@@ -53,7 +53,7 @@ public:
 	 * @param InSubtitles Subtitles cues
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Properties")
-	void SetSubtitles(UPARAM(DisplayName = "Subtitles") const TArray<struct FSubtitleCue>& InSubtitles);
+	void SetSubtitles(UPARAM(DisplayName = "Subtitles") const TArray<FEditableSubtitleCue>& InSubtitles);
 
 	/**
 	 * Rewind the sound for the specified time
