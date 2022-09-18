@@ -80,7 +80,17 @@ void UImportedSoundWave::SetSubtitles(const TArray<FEditableSubtitleCue>& InSubt
 	}
 }
 
-bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
+void UImportedSoundWave::SetVolume(float InVolume)
+{
+	Volume = InVolume;
+}
+
+void UImportedSoundWave::SetPitch(float InPitch)
+{
+	Pitch = InPitch;
+}
+
+bool UImportedSoundWave::RewindPlaybackTime(float PlaybackTime)
 {
 	if (PlaybackTime > Duration)
 	{
@@ -91,7 +101,7 @@ bool UImportedSoundWave::RewindPlaybackTime(const float PlaybackTime)
 	return ChangeCurrentFrameCount(PlaybackTime * SampleRate);
 }
 
-bool UImportedSoundWave::ChangeCurrentFrameCount(const uint32 NumOfFrames)
+bool UImportedSoundWave::ChangeCurrentFrameCount(uint32 NumOfFrames)
 {
 	if (NumOfFrames < 0 || NumOfFrames > PCMBufferInfo.PCMNumOfFrames)
 	{

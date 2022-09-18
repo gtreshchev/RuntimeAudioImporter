@@ -56,13 +56,29 @@ public:
 	void SetSubtitles(UPARAM(DisplayName = "Subtitles") const TArray<FEditableSubtitleCue>& InSubtitles);
 
 	/**
+	 * Set sound playback volume
+	 *
+	 * @param InVolume Volume
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Properties")
+	void SetVolume(UPARAM(DisplayName = "Volume") float InVolume = 1);
+
+	/**
+	 * Set sound playback pitch
+	 *
+	 * @param InPitch Pitch
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Properties")
+	void SetPitch(UPARAM(DisplayName = "Pitch") float InPitch = 1);
+
+	/**
 	 * Rewind the sound for the specified time
 	 *
 	 * @param PlaybackTime How long to rewind the sound
 	 * @return Whether the sound was rewound or not
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
-	bool RewindPlaybackTime(const float PlaybackTime);
+	bool RewindPlaybackTime(float PlaybackTime);
 
 	/**
 	 * Change the current number of frames. Usually used to rewind the sound
@@ -70,7 +86,7 @@ public:
 	 * @param NumOfFrames The new number of frames from which to continue playing sound
 	 * @return Whether the frames were changed or not
 	 */
-	bool ChangeCurrentFrameCount(const uint32 NumOfFrames);
+	bool ChangeCurrentFrameCount(uint32 NumOfFrames);
 
 	/**
 	 * Get the current sound wave playback time, in seconds
