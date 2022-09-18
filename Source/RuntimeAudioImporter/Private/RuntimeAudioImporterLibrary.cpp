@@ -28,7 +28,7 @@ bool LoadAudioFileToArray(TArray<uint8>& AudioData, const FString& FilePath)
 		return false;
 	}
 
-	// Removing unused two unitialized bytes
+	// Removing unused two uninitialized bytes
 	AudioData.RemoveAt(AudioData.Num() - 2, 2);
 
 	return true;
@@ -77,7 +77,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 	}
 
 	OnProgress_Internal(35);
-	
+
 	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
 
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioBuffer = MoveTemp(AudioBuffer), Format, SampleRate, NumOfChannels]()
@@ -191,83 +191,133 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 	});
 }
 
-void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat RAWFrom, TArray<uint8>& RAWData_To, ERAWAudioFormat RAWTo)
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, ERAWAudioFormat FormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
 {
-	TArray<uint8> IntermediateRAWBuffer;
-
-	// Transcoding of all formats to unsigned 8-bit PCM format (intermediate)
-	switch (RAWFrom)
+	TranscodeRAWDataFromBuffer(MoveTemp(RAWData_From), FormatFrom, FormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray<uint8>& RAWData)
 	{
-	case ERAWAudioFormat::Int16:
-		{
-			RAWTranscoder::TranscodeRAWData<int16, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
-			break;
-		}
-	case ERAWAudioFormat::Int32:
-		{
-			RAWTranscoder::TranscodeRAWData<int32, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
-			break;
-		}
-	case ERAWAudioFormat::UInt8:
-		{
-			IntermediateRAWBuffer = RAWData_From;
-			break;
-		}
-	case ERAWAudioFormat::Float32:
-		{
-			RAWTranscoder::TranscodeRAWData<float, uint8>(MoveTemp(RAWData_From), IntermediateRAWBuffer);
-			break;
-		}
-	}
-
-	// Transcoding unsigned 8-bit PCM to the specified format
-	switch (RAWTo)
-	{
-	case ERAWAudioFormat::Int16:
-		{
-			RAWTranscoder::TranscodeRAWData<uint8, int16>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
-			break;
-		}
-	case ERAWAudioFormat::Int32:
-		{
-			RAWTranscoder::TranscodeRAWData<uint8, int32>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
-			break;
-		}
-	case ERAWAudioFormat::UInt8:
-		{
-			RAWData_To = IntermediateRAWBuffer;
-			break;
-		}
-	case ERAWAudioFormat::Float32:
-		{
-			RAWTranscoder::TranscodeRAWData<uint8, float>(MoveTemp(IntermediateRAWBuffer), RAWData_To);
-			break;
-		}
-	}
+		Result.ExecuteIfBound(bSucceed, RAWData);
+	}));
 }
 
-bool URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo)
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWData_From, ERAWAudioFormat FormatFrom, ERAWAudioFormat FormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result)
 {
-	TArray<uint8> RAWBufferFrom;
-
-	// Loading a file into a byte array
-	if (!LoadAudioFileToArray(RAWBufferFrom, *FilePathFrom))
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RAWData_From = MoveTemp(RAWData_From), FormatFrom, FormatTo, Result]()
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when reading RAW data on the path '%s'"), *FilePathFrom);
-		return false;
-	}
+		auto ExecuteResult = [Result](bool bSucceed, TArray<uint8>&& AudioData)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceed, AudioData]()
+			{
+				Result.ExecuteIfBound(bSucceed, AudioData);
+			});
+		};
 
-	TArray<uint8> RAWBufferTo;
-	TranscodeRAWDataFromBuffer(RAWBufferFrom, FormatFrom, RAWBufferTo, FormatTo);
+		TArray<uint8> IntermediateRAWBuffer;
 
-	// Writing a file to a specified location
-	if (!FFileHelper::SaveArrayToFile(MoveTemp(RAWBufferTo), *FilePathTo))
+		// Transcoding of all formats to unsigned 8-bit PCM format (intermediate)
+		switch (FormatFrom)
+		{
+		case ERAWAudioFormat::Int16:
+			{
+				RAWTranscoder::TranscodeRAWData<int16, uint8>(RAWData_From, IntermediateRAWBuffer);
+				break;
+			}
+		case ERAWAudioFormat::Int32:
+			{
+				RAWTranscoder::TranscodeRAWData<int32, uint8>(RAWData_From, IntermediateRAWBuffer);
+				break;
+			}
+		case ERAWAudioFormat::UInt8:
+			{
+				IntermediateRAWBuffer = RAWData_From;
+				break;
+			}
+		case ERAWAudioFormat::Float32:
+			{
+				RAWTranscoder::TranscodeRAWData<float, uint8>(RAWData_From, IntermediateRAWBuffer);
+				break;
+			}
+		}
+
+		TArray<uint8> RAWData_To;
+
+		// Transcoding unsigned 8-bit PCM to the specified format
+		switch (FormatTo)
+		{
+		case ERAWAudioFormat::Int16:
+			{
+				RAWTranscoder::TranscodeRAWData<uint8, int16>(IntermediateRAWBuffer, RAWData_To);
+				break;
+			}
+		case ERAWAudioFormat::Int32:
+			{
+				RAWTranscoder::TranscodeRAWData<uint8, int32>(IntermediateRAWBuffer, RAWData_To);
+				break;
+			}
+		case ERAWAudioFormat::UInt8:
+			{
+				RAWData_To = IntermediateRAWBuffer;
+				break;
+			}
+		case ERAWAudioFormat::Float32:
+			{
+				RAWTranscoder::TranscodeRAWData<uint8, float>(IntermediateRAWBuffer, RAWData_To);
+				break;
+			}
+		}
+
+		ExecuteResult(true, MoveTemp(RAWData_To));
+	});
+}
+
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo, const FOnRAWDataTranscodeFromFileResult& Result)
+{
+	TranscodeRAWDataFromFile(FilePathFrom, FormatFrom, FilePathTo, FormatTo, FOnRAWDataTranscodeFromFileResultNative::CreateLambda([Result](bool bSucceed)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving RAW data to the path '%s'"), *FilePathTo);
-		return false;
-	}
+		Result.ExecuteIfBound(bSucceed);
+	}));
+}
 
-	return true;
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERAWAudioFormat FormatFrom, const FString& FilePathTo, ERAWAudioFormat FormatTo, const FOnRAWDataTranscodeFromFileResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [FilePathFrom, FormatFrom, FilePathTo, FormatTo, Result]()
+	{
+		auto ExecuteResult = [Result](bool bSucceed)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceed]()
+			{
+				Result.ExecuteIfBound(bSucceed);
+			});
+		};
+
+		TArray<uint8> RAWBufferFrom;
+
+		// Loading a file into a byte array
+		if (!LoadAudioFileToArray(RAWBufferFrom, *FilePathFrom))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when reading RAW data on the path '%s'"), *FilePathFrom);
+			ExecuteResult(false);
+			return;
+		}
+
+		TranscodeRAWDataFromBuffer(MoveTemp(RAWBufferFrom), FormatFrom, FormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result, ExecuteResult, FilePathTo](bool bSucceed, const TArray<uint8>& RAWBufferTo)
+		{
+			if (!bSucceed)
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when transcoding RAW data from buffer to save to the path '%s'"), *FilePathTo);
+				return;
+			}
+
+			// Writing a file to a specified location
+			if (!FFileHelper::SaveArrayToFile(RAWBufferTo, *FilePathTo))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving RAW data to the path '%s'"), *FilePathTo);
+				ExecuteResult(false);
+				return;
+			}
+
+			ExecuteResult(true);
+		}));
+	});
 }
 
 void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImporterSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result)
@@ -626,7 +676,7 @@ UImportedSoundWave* URuntimeAudioImporterLibrary::CreateImportedSoundWave() cons
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 {
 	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
-	
+
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, Percentage]()
 	{
 		if (!ThisPtr.IsValid())
