@@ -14,6 +14,11 @@ void UImportedSoundWave::BeginDestroy()
 
 void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
+	if (ActiveSound.PlaybackTime == 0.f)
+	{
+		RewindPlaybackTime(ParseParams.StartTime);
+	}
+	
 	ActiveSound.PlaybackTime = GetPlaybackTime();
 
 	if (IsPlaybackFinished())
