@@ -266,7 +266,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 
 	// Transcoding int16 to float format
 	{
-		float* TempFloatBuffer = static_cast<float*>(FMemory::Malloc(DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2 * sizeof(float)));
+		float* TempFloatBuffer;
 		int32 TempFloatSize;
 
 		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, TempPCMDataSize, TempFloatBuffer, TempFloatSize);
