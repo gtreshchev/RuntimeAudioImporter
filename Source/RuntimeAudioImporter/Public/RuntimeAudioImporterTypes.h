@@ -42,7 +42,7 @@ enum class EAudioFormat : uint8
 	Wav UMETA(DisplayName = "wav"),
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
-	Invalid UMETA(DisplayName = "invalid (not defined format, CPP use only)", Hidden)
+	Invalid UMETA(DisplayName = "invalid (not defined format, internal use only)", Hidden)
 };
 
 /** Possible RAW (uncompressed) audio formats */
@@ -68,9 +68,9 @@ struct FSoundWaveBasicStruct
 	float Duration;
 
 	/**
-	 * Converts Sound Wave Basic Struct to a readable format
+	 * Converts the basic sound wave struct to a readable format
 	 *
-	 * @return String representation of the Sound Wave Basic Struct
+	 * @return String representation of the basic sound wave struct
 	 */
 	FString ToString() const
 	{
@@ -78,7 +78,7 @@ struct FSoundWaveBasicStruct
 	}
 };
 
-/** PCM Data buffer structure */
+/** PCM data buffer structure */
 struct FPCMStruct
 {
 	/** 32-bit float PCM data */
@@ -94,7 +94,15 @@ struct FPCMStruct
 	}
 
 	/**
-	 * Converts PCM Struct to a readable format
+	 * Whether the PCM data appear to be valid or not
+	 */
+	bool IsValid() const
+	{
+		return PCMData.GetView().GetData() != nullptr && PCMNumOfFrames > 0 && PCMData.GetView().Num() > 0;
+	}
+
+	/**
+	 * Converts PCM struct to a readable format
 	 *
 	 * @return String representation of the PCM Struct
 	 */
@@ -111,7 +119,7 @@ struct FDecodedAudioStruct
 	/** SoundWave basic info (e.g. duration, number of channels, etc) */
 	FSoundWaveBasicStruct SoundWaveBasicInfo;
 
-	/** PCM Data buffer */
+	/** PCM data buffer */
 	FPCMStruct PCMInfo;
 
 	/**
@@ -154,7 +162,8 @@ struct FEncodedAudioStruct
 	 */
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %d, audio format: %s"), AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), AudioData.GetView().Num(),
+		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %lld, audio format: %s"),
+		                       AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), AudioData.GetView().Num(),
 		                       *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };

@@ -132,7 +132,6 @@ float UImportedSoundWave::GetDurationConst() const
 	return Duration;
 }
 
-
 float UImportedSoundWave::GetDuration()
 #if ENGINE_MAJOR_VERSION >= 5
 const
@@ -148,7 +147,13 @@ float UImportedSoundWave::GetPlaybackPercentage() const
 
 bool UImportedSoundWave::IsPlaybackFinished()
 {
-	return GetPlaybackTime() == GetDurationConst() && PCMBufferInfo.PCMData.GetView().GetData() != nullptr && PCMBufferInfo.PCMNumOfFrames > 0 && PCMBufferInfo.PCMData.GetView().Num() > 0;
+	// Are there enough frames for future playback from the current ones or not
+	const bool bOutOfFrames = static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames;
+
+	// Are PCM data valid
+	const bool bValidPCMData = PCMBufferInfo.IsValid();
+
+	return bOutOfFrames && bValidPCMData;
 }
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
@@ -172,7 +177,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
 
 	// Ensure we got a valid PCM data
-	if (RetrievedPCMDataSize <= 0 || RetrievedPCMData == nullptr)
+	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
 	{
 		return 0;
 	}

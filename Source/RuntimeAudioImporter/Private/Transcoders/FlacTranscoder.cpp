@@ -12,7 +12,7 @@ bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSiz
 {
 	drflac* FLAC{drflac_open_memory(AudioData, AudioDataSize, nullptr)};
 
-	if (FLAC == nullptr)
+	if (!FLAC)
 	{
 		return false;
 	}
@@ -27,7 +27,7 @@ bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudi
 	// Initializing transcoding of audio data in memory
 	drflac* FLAC_Decoder{drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr)};
 
-	if (FLAC_Decoder == nullptr)
+	if (!FLAC_Decoder)
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize FLAC Decoder"));
 		return false;
