@@ -129,17 +129,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Utility")
 	bool IsPlaybackFinished();
 
-	/** Bind to this delegate to know when the audio playback is finished. Recommended for C++ only */
+	/** Bind to this delegate to know when the audio playback is finished. Suitable for use in C++ */
 	FOnAudioPlaybackFinishedNative OnAudioPlaybackFinishedNative;
 	
-	/** Bind to this delegate to know when the audio playback is finished. Recommended for Blueprints only */
+	/** Bind to this delegate to know when the audio playback is finished */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
 
-	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Recommended for C++ only */
+	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Suitable for use in C++ */
 	FOnGeneratePCMDataNative OnGeneratePCMDataNative;
 	
-	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Recommended for Blueprints only */
+	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data) */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnGeneratePCMData OnGeneratePCMData;
 

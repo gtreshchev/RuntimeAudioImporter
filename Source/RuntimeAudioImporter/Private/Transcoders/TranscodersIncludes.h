@@ -1,7 +1,7 @@
 ﻿// Georgy Treshchev 2022.
 
 /**
-* Replacing standard CPP memory methods (malloc, free, realloc, memset, memcpy) with engine ones
+* Replacing the C dynamic memory allocation functions (malloc, free, realloc, memset, memcpy) with FMemory ones
 */
 #undef malloc
 #undef free
@@ -12,6 +12,7 @@
 #define free(Original)				FMemory::Free(Original)
 #define realloc(Original, Count)	FMemory::Realloc(Original, Count)
 #define memset(Dest, Char, Count)	FMemory::Memset(Dest, Char, Count)
+#define memcpy(Dest, Src, Count)	FMemory::Memcpy(Dest, Src, Count)
 
 #ifdef INCLUDE_MP3
 #include "ThirdParty/dr_mp3.h"
@@ -50,3 +51,4 @@ THIRD_PARTY_INCLUDES_END
 #undef free
 #undef realloc
 #undef memset
+#undef memcpy

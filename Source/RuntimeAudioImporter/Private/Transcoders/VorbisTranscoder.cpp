@@ -14,7 +14,7 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 	int32 ErrorCode;
 	stb_vorbis* STBVorbis = stb_vorbis_open_memory(AudioData, AudioDataSize, &ErrorCode, nullptr);
 
-	if (STBVorbis == nullptr)
+	if (!STBVorbis)
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to initialize vorbis encoder"));
 		return false;
@@ -106,7 +106,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 				FramesToEncode = FramesSplitCount;
 			}
 
-			if (CopiedDecodedData.GetData() == nullptr || AnalysisBuffer == nullptr)
+			if (!CopiedDecodedData.GetData() || !AnalysisBuffer)
 			{
 				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to create analysis buffers"));
 				return false;
@@ -203,7 +203,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	int32 ErrorCode;
 	stb_vorbis* Vorbis_Decoder = stb_vorbis_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), &ErrorCode, nullptr);
 
-	if (Vorbis_Decoder == nullptr)
+	if (!Vorbis_Decoder)
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize OGG Vorbis Decoder"));
 		return false;
@@ -219,7 +219,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	int32 TotalSamples = SamplesLimit;
 
 	int16* Int16RAWBuffer = static_cast<int16*>(FMemory::Malloc(TotalSamples * sizeof(int16)));
-	if (Int16RAWBuffer == nullptr)
+	if (!Int16RAWBuffer)
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 		stb_vorbis_close(Vorbis_Decoder);
@@ -241,7 +241,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 
 			int16* Int16RAWBufferFrame = static_cast<int16*>(FMemory::Realloc(Int16RAWBuffer, TotalSamples * sizeof(int16)));
 
-			if (Int16RAWBufferFrame == nullptr)
+			if (!Int16RAWBufferFrame)
 			{
 				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
 
