@@ -3,14 +3,20 @@
 #include "PreImportedSoundFactory.h"
 #include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
-
-DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
-
 #include "RuntimeAudioImporterLibrary.h"
+
+#define LOCTEXT_NAMESPACE "PreImportedSoundFactory"
+DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
 UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
-	Formats.Add(TEXT("imp;IMP Pre-imported Audio Format"));
+	Formats.Add(TEXT("imp;Runtime Audio Importer any supported format (mp3, wav, flac and ogg)"));
+
+	Formats.Add(TEXT("mp3;MPEG-2 Audio"));
+	Formats.Add(TEXT("wav;Wave Audio File"));
+	Formats.Add(TEXT("flac;Free Lossless Audio Codec"));
+	Formats.Add(TEXT("ogg;OGG Vorbis bitstream format"));
+
 	SupportedClass = StaticClass();
 	bCreateNew = false; // turned off for import
 	bEditAfterNew = false; // turned off for import
@@ -26,39 +32,94 @@ bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	UPreImportedSoundAsset* PreImportedSoundAsset;
+	TArray<uint8> AudioData;
 
-	TArray<uint8> AudioDataArray;
-
-	if (FFileHelper::LoadFileToArray(AudioDataArray, *Filename))
+	if (!FFileHelper::LoadFileToArray(AudioData, *Filename))
 	{
-		FDecodedAudioStruct DecodedAudioInfo;
-
-		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioDataArray.Num() - 2), AudioDataArray.GetData(), AudioDataArray.Num() - 2));
-		FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioDataArray.Num() - 2, EAudioFormat::Auto);
-
-		if (!URuntimeAudioImporterLibrary::DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
-		{
-			UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to decode the audio file '%s'"), *Filename);
-			return nullptr;
-		}
-
-		PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
-		PreImportedSoundAsset->AudioDataArray = AudioDataArray;
-		PreImportedSoundAsset->AudioFormat = EncodedAudioInfo.AudioFormat;
-		PreImportedSoundAsset->SourceFilePath = Filename;
-
-		PreImportedSoundAsset->SoundDuration = URuntimeAudioImporterLibrary::ConvertSecondsToString(DecodedAudioInfo.SoundWaveBasicInfo.Duration);
-		PreImportedSoundAsset->NumberOfChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
-		PreImportedSoundAsset->SampleRate = DecodedAudioInfo.SoundWaveBasicInfo.SampleRate;
-	}
-	else
-	{
-		UE_LOG(LogPreImportedSoundFactory, Error, TEXT("Unable to read the audio file '%s'. Check file permissions"), *Filename);
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_ReadError", "Unable to read the audio file '{0}'. Check file permissions'"), FText::FromString(Filename)));
 		return nullptr;
 	}
 
+	// Removing unused two uninitialized bytes
+	AudioData.RemoveAt(AudioData.Num() - 2, 2);
+
+	FDecodedAudioStruct DecodedAudioInfo;
+
+	uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
+	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioData.Num(), EAudioFormat::Auto);
+
+	if (!URuntimeAudioImporterLibrary::DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
+	{
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_DecodeError", "Unable to decode the audio file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
+		return nullptr;
+	}
+
+	UPreImportedSoundAsset* PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
+	PreImportedSoundAsset->AudioDataArray = AudioData;
+	PreImportedSoundAsset->AudioFormat = EncodedAudioInfo.AudioFormat;
+	PreImportedSoundAsset->SourceFilePath = Filename;
+
+	PreImportedSoundAsset->SoundDuration = URuntimeAudioImporterLibrary::ConvertSecondsToString(DecodedAudioInfo.SoundWaveBasicInfo.Duration);
+	PreImportedSoundAsset->NumberOfChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
+	PreImportedSoundAsset->SampleRate = DecodedAudioInfo.SoundWaveBasicInfo.SampleRate;
+
 	bOutOperationCanceled = false;
+
+	UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Successfully imported sound asset '%s'"), *Filename);
 
 	return PreImportedSoundAsset;
 }
+
+bool UPreImportedSoundFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)
+{
+	if (const UPreImportedSoundAsset* PreImportedSoundAsset = Cast<UPreImportedSoundAsset>(Obj))
+	{
+		OutFilenames.Add(PreImportedSoundAsset->SourceFilePath);
+		return true;
+	}
+
+	return false;
+}
+
+void UPreImportedSoundFactory::SetReimportPaths(UObject* Obj, const TArray<FString>& NewReimportPaths)
+{
+	UPreImportedSoundAsset* PreImportedSoundAsset = Cast<UPreImportedSoundAsset>(Obj);
+
+	if (PreImportedSoundAsset && ensure(NewReimportPaths.Num() == 1))
+	{
+		PreImportedSoundAsset->SourceFilePath = NewReimportPaths[0];
+	}
+}
+
+EReimportResult::Type UPreImportedSoundFactory::Reimport(UObject* Obj)
+{
+	const UPreImportedSoundAsset* PreImportedSoundAsset = Cast<UPreImportedSoundAsset>(Obj);
+
+	if (!PreImportedSoundAsset)
+	{
+		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The sound asset '%s' cannot be re-imported because the object is corrupted"), *PreImportedSoundAsset->SourceFilePath);
+		return EReimportResult::Failed;
+	}
+
+	if (PreImportedSoundAsset->SourceFilePath.IsEmpty() || !FPaths::FileExists(PreImportedSoundAsset->SourceFilePath))
+	{
+		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The sound asset '%s' cannot be re-imported because the path to the source file cannot be found"), *PreImportedSoundAsset->SourceFilePath);
+		return EReimportResult::Failed;
+	}
+
+	bool OutCanceled = false;
+	if (ImportObject(Obj->GetClass(), Obj->GetOuter(), *Obj->GetName(), RF_Public | RF_Standalone, PreImportedSoundAsset->SourceFilePath, nullptr, OutCanceled))
+	{
+		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Successfully re-imported sound asset '%s'"), *PreImportedSoundAsset->SourceFilePath);
+		return EReimportResult::Succeeded;
+	}
+
+	return OutCanceled ? EReimportResult::Cancelled : EReimportResult::Failed;
+}
+
+int32 UPreImportedSoundFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
+#undef LOCTEXT_NAMESPACE
