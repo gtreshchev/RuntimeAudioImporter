@@ -19,6 +19,7 @@ public class RuntimeAudioImporterEditor : ModuleRules
 			new string[]
 			{
 				"Core",
+				"UnrealEd",
 				"RuntimeAudioImporter"
 			}
 		);
