@@ -13,8 +13,8 @@ UCLASS(BlueprintType, Category = "Pre Imported Sound Asset")
 class RUNTIMEAUDIOIMPORTER_API UPreImportedSoundAsset : public UObject
 {
 	GENERATED_BODY()
-public:
 
+public:
 	UPreImportedSoundAsset();
 
 	/** Audio data array */

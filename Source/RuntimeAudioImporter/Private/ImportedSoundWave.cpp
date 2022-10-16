@@ -5,6 +5,12 @@
 #include "AudioDevice.h"
 #include "Async/Async.h"
 
+UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+  , CurrentNumOfFrames(0)
+{
+}
+
 void UImportedSoundWave::BeginDestroy()
 {
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
@@ -18,7 +24,7 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 	{
 		RewindPlaybackTime(ParseParams.StartTime);
 	}
-	
+
 	ActiveSound.PlaybackTime = GetPlaybackTime();
 
 	if (IsPlaybackFinished())
@@ -142,7 +148,7 @@ const
 
 float UImportedSoundWave::GetPlaybackPercentage() const
 {
-	return (GetPlaybackTime() / GetDurationConst()) * 100;
+	return static_cast<float>(CurrentNumOfFrames) / PCMBufferInfo.PCMNumOfFrames * 100;
 }
 
 bool UImportedSoundWave::IsPlaybackFinished()

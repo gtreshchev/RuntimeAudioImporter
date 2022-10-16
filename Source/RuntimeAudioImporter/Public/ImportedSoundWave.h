@@ -27,7 +27,10 @@ UCLASS(BlueprintType, Category = "Imported Sound Wave")
 class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 {
 	GENERATED_BODY()
+
 public:
+	UImportedSoundWave(const FObjectInitializer& ObjectInitializer);
+	
 	//~ Begin USoundWave Interface
 	virtual void BeginDestroy() override;
 	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
@@ -131,14 +134,14 @@ public:
 
 	/** Bind to this delegate to know when the audio playback is finished. Suitable for use in C++ */
 	FOnAudioPlaybackFinishedNative OnAudioPlaybackFinishedNative;
-	
+
 	/** Bind to this delegate to know when the audio playback is finished */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnAudioPlaybackFinished OnAudioPlaybackFinished;
 
 	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data). Suitable for use in C++ */
 	FOnGeneratePCMDataNative OnGeneratePCMDataNative;
-	
+
 	/** Bind to this delegate to receive PCM data during playback (may be useful for analyzing audio data) */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnGeneratePCMData OnGeneratePCMData;
@@ -170,7 +173,7 @@ public:
 
 	/** The current number of processed frames */
 	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
-	int32 CurrentNumOfFrames = 0;
+	int32 CurrentNumOfFrames;
 
 	/** Contains PCM data for sound wave playback */
 	FPCMStruct PCMBufferInfo;
