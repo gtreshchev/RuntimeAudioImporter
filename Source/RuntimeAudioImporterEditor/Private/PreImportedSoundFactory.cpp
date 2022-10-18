@@ -3,6 +3,7 @@
 #include "PreImportedSoundFactory.h"
 #include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
+#include "Logging/MessageLog.h"
 #include "RuntimeAudioImporterLibrary.h"
 
 #define LOCTEXT_NAMESPACE "PreImportedSoundFactory"
