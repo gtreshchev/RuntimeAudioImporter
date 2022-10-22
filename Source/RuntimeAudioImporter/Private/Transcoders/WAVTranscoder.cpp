@@ -8,12 +8,12 @@
 #include "TranscodersIncludes.h"
 #undef INCLUDE_WAV
 
-bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
+bool WAVTranscoder::CheckAndFixWavDurationErrors(FBulkDataBuffer<uint8>& WavData)
 {
 	drwav WAV;
 
 	// Initializing transcoding of audio data in memory
-	if (!drwav_init_memory(&WAV, WavData.GetData(), WavData.Num(), nullptr))
+	if (!drwav_init_memory(&WAV, WavData.GetView().GetData(), WavData.GetView().Num(), nullptr))
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Unable to initialize WAV Decoder"));
 		return false;
@@ -29,19 +29,19 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	// Get 4-byte field at byte 4, which is the overall file size as uint32, according to RIFF specification.
 	// If the field is set to nothing (hex FFFFFFFF), replace the incorrectly set field with the actual size.
 	// The field should be (size of file - 8 bytes), as the chunk identifier for the whole file (4 bytes spelling out RIFF at the start of the file), and the chunk length (4 bytes that we're replacing) are excluded.
-	if (BytesToHex(WavData.GetData() + 4, 4) == "FFFFFFFF")
+	if (BytesToHex(WavData.GetView().GetData() + 4, 4) == "FFFFFFFF")
 	{
-		const int32 ActualFileSize = WavData.Num() - 8;
-		FMemory::Memcpy(WavData.GetData() + 4, &ActualFileSize, 4);
+		const int32 ActualFileSize = WavData.GetView().Num() - 8;
+		FMemory::Memcpy(WavData.GetView().GetData() + 4, &ActualFileSize, 4);
 	}
 
 	// Search for the place in the file after the chunk id "data", which is where the data length is stored.
 	// First 36 bytes are skipped, as they're always "RIFF", 4 bytes filesize, "WAVE", "fmt ", and 20 bytes of format data.
 	uint32 DataSizeLocation = INDEX_NONE;
-	for (uint32 Index = 36; Index < static_cast<uint32>(WavData.Num()) - 4; ++Index)
+	for (uint32 Index = 36; Index < static_cast<uint32>(WavData.GetView().Num()) - 4; ++Index)
 	{
 		// "64617461" - hex for string "data"
-		if (BytesToHex(WavData.GetData() + Index, 4) == "64617461")
+		if (BytesToHex(WavData.GetView().GetData() + Index, 4) == "64617461")
 		{
 			DataSizeLocation = Index + 4;
 			break;
@@ -57,12 +57,12 @@ bool WAVTranscoder::CheckAndFixWavDurationErrors(TArray<uint8>& WavData)
 	}
 
 	// Same process as replacing full file size, except DataSize counts bytes from end of DataSize int to end of file.
-	if (BytesToHex(WavData.GetData() + DataSizeLocation, 4) == "FFFFFFFF")
+	if (BytesToHex(WavData.GetView().GetData() + DataSizeLocation, 4) == "FFFFFFFF")
 	{
 		// -4 to not include the DataSize int itself
-		const uint32 ActualDataSize = WavData.Num() - DataSizeLocation - 4;
+		const uint32 ActualDataSize = WavData.GetView().Num() - DataSizeLocation - 4;
 
-		FMemory::Memcpy(WavData.GetData() + DataSizeLocation, &ActualDataSize, 4);
+		FMemory::Memcpy(WavData.GetView().GetData() + DataSizeLocation, &ActualDataSize, 4);
 	}
 
 	drwav_uninit(&WAV);
