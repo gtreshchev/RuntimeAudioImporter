@@ -272,12 +272,11 @@ public:
 	/**
 	 * Import audio from 32-bit float PCM data
 	 *
-	 * @param PCMData Pointer to memory location of the PCM data
-	 * @param PCMDataSize Memory size allocated for the PCM data
+	 * @param PCMData PCM data
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromFloat32Buffer(uint8* PCMData, int32 PCMDataSize, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>&& PCMData, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Create Imported Sound Wave and finish importing.

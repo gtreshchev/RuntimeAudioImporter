@@ -140,7 +140,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		return;
 	}
 
-	ImportAudioFromFloat32Buffer(reinterpret_cast<uint8*>(PCMData), PCMDataSize, SampleRate, NumOfChannels);
+	ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(PCMData), PCMDataSize), SampleRate, NumOfChannels);
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAsset)
@@ -150,13 +150,6 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
 {
-	if (AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(AudioData)) return;
-
-	if (AudioFormat == EAudioFormat::Auto)
-	{
-		AudioFormat = GetAudioFormat(AudioData.GetData(), AudioData.Num());
-	}
-
 	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
@@ -175,6 +168,13 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 		}
 
 		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
+
+		if (!EncodedAudioDataPtr)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for compressed audio data"));
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+			return;
+		}
 
 		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
 
@@ -537,14 +537,14 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData
 	return EAudioFormat::Invalid;
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(uint8* PCMData, int32 PCMDataSize, int32 SampleRate, int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>&& PCMData, int32 SampleRate, int32 NumOfChannels)
 {
 	FDecodedAudioStruct DecodedAudioInfo;
 
 	// Filling in the required information
 	{
-		DecodedAudioInfo.PCMInfo.PCMData = FBulkDataBuffer<uint8>(PCMData, PCMDataSize);
-		DecodedAudioInfo.PCMInfo.PCMNumOfFrames = PCMDataSize / sizeof(float) / NumOfChannels;
+		DecodedAudioInfo.PCMInfo.PCMData = MoveTemp(PCMData);
+		DecodedAudioInfo.PCMInfo.PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() / sizeof(float) / NumOfChannels;
 
 		DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels = NumOfChannels;
 		DecodedAudioInfo.SoundWaveBasicInfo.SampleRate = SampleRate;
@@ -583,6 +583,12 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto)
 	{
 		EncodedAudioInfo.AudioFormat = GetAudioFormat(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+	}
+
+	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Wav && !WAVTranscoder::CheckAndFixWavDurationErrors(EncodedAudioInfo.AudioData))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while fixing Wav audio data duration error"));
+		return false;
 	}
 
 	switch (EncodedAudioInfo.AudioFormat)
