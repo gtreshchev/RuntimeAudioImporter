@@ -79,6 +79,7 @@ bool WAVTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize
 		return false;
 	}
 
+	drwav_uninit(&WAV);
 	return true;
 }
 
@@ -105,10 +106,10 @@ uint32 ConvertFormat(EWAVEncodingFormat Format)
 	}
 }
 
-bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
+bool WAVTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s.\nEncoding audio format: %s"),
-	                                                                *DecodedData.ToString(), *Format.ToString()));
+	                                                              *DecodedData.ToString(), *Format.ToString()));
 
 	drwav WAV_Encoder;
 
@@ -137,13 +138,13 @@ bool WAVTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudio
 		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), AudioDataSize);
 		EncodedData.AudioFormat = EAudioFormat::Wav;
 	}
-	
+
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully encoded uncompressed audio data to WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	return true;
 }
 
-bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
+bool WAVTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
@@ -157,15 +158,21 @@ bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 	}
 
 	// Allocating memory for PCM data
-	uint8* TempPCMData = static_cast<uint8*>(FMemory::Malloc(WAV_Decoder.totalPCMFrameCount * WAV_Decoder.channels * sizeof(float)));
+	float* TempPCMData = static_cast<float*>(FMemory::Malloc(WAV_Decoder.totalPCMFrameCount * WAV_Decoder.channels * sizeof(float)));
+
+	if (!TempPCMData)
+	{
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for WAV Decoder"));
+		return false;
+	}
 
 	// Filling PCM data and getting the number of frames
-	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&WAV_Decoder, WAV_Decoder.totalPCMFrameCount, reinterpret_cast<float*>(TempPCMData));
+	DecodedData.PCMInfo.PCMNumOfFrames = drwav_read_pcm_frames_f32(&WAV_Decoder, WAV_Decoder.totalPCMFrameCount, TempPCMData);
 
 	// Getting PCM data size
 	const int32 TempPCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * WAV_Decoder.channels * sizeof(float));
 
-	DecodedData.PCMInfo.PCMData =FBulkDataBuffer<uint8>(TempPCMData, TempPCMDataSize);
+	DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 
 	// Getting basic audio information
 	{
@@ -176,7 +183,7 @@ bool WAVTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudio
 
 	// Uninitializing transcoding of audio data in memory
 	drwav_uninit(&WAV_Decoder);
-	
+
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully decoded WAV audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;

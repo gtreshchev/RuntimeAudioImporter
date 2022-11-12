@@ -187,13 +187,13 @@ public:
 	/**
 	 * Export the imported sound wave to file. Suitable for use in C++
 	 *
-	 * @param ImportedSoundWave Reference to the imported sound wave
+	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
 	 * @param SavePath Path to save the file
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result);
+	static void ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result);
 
 	/**
 	 * Export the imported sound wave to buffer
@@ -209,12 +209,12 @@ public:
 	/**
 	 * Export the imported sound wave to buffer. Suitable for use in C++
 	 *
-	 * @param ImportedSoundWave Reference to the imported sound wave
+	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result);
+	static void ExportSoundWaveToBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result);
 
 	/**
 	 * Get audio format by extension
@@ -249,7 +249,7 @@ public:
 	 * @param DecodedAudioInfo Decoded audio data
 	 * @return Whether the decoding was successful or not
 	 */
-	static bool DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
+	static bool DecodeAudioData(FEncodedAudioStruct&& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo);
 
 	/**
 	 * Encode uncompressed audio data to compressed
@@ -259,7 +259,7 @@ public:
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @return Whether the encoding was successful or not
 	 */
-	static bool EncodeAudioData(const FDecodedAudioStruct& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
+	static bool EncodeAudioData(FDecodedAudioStruct&& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
 
 	/**
 	 * Determine audio format based on audio data
@@ -276,48 +276,16 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>&& PCMData, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>&& PCMData, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Create Imported Sound Wave and finish importing.
 	 *
 	 * @param DecodedAudioInfo Decoded audio data
 	 */
-	void ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo);
-
-	/**
-	 * Define SoundWave object reference
-	 *
-	 * @param ImportedSoundWave Reference to the imported sound wave
-	 * @param DecodedAudioInfo Decoded audio data
-	 * @return Whether the defining was successful or not
-	 */
-	virtual void DefineSoundWave(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo);
-
-	/**
-	 * Fill SoundWave basic information (e.g. duration, number of channels, etc)
-	 *
-	 * @param ImportedSoundWave Reference to the imported sound wave
-	 * @param DecodedAudioInfo Decoded audio data
-	 */
-	static void FillSoundWaveBasicInfo(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo);
-
-	/**
-	 * Fill SoundWave PCM data buffer
-	 *
-	 * @param ImportedSoundWave Reference to the imported sound wave
-	 * @param DecodedAudioInfo Decoded audio data
-	 */
-	static void FillPCMData(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo);
+	void ImportAudioFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo);
 
 protected:
-	/**
-	 * Create a new instance of the imported sound wave
-	 *
-	 * @return Created imported sound wave
-	 */
-	virtual UImportedSoundWave* CreateImportedSoundWave() const;
-
 	/**
 	 * Audio transcoding progress callback
 	 * 

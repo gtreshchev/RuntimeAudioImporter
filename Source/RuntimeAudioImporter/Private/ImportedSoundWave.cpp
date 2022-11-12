@@ -7,8 +7,99 @@
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-  , CurrentNumOfFrames(0)
+  , PlaybackFinishedBroadcast(false)
+  , PlayedNumOfFrames(0)
+  , PCMBufferInfo(MakeUnique<FPCMStruct>())
+  , bStopSoundOnPlaybackFinish(true)
 {
+	ensure(PCMBufferInfo);
+
+	SetSampleRate(0);
+	NumChannels = 0;
+	Duration = 0;
+	bProcedural = true;
+	DecompressionType = EDecompressionType::DTYPE_Procedural;
+	SoundGroup = ESoundGroup::SOUNDGROUP_Default;
+}
+
+UImportedSoundWave* UImportedSoundWave::CreateImportedSoundWave()
+{
+	if (!IsInGameThread())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to create a sound wave outside of the game thread"));
+		return nullptr;
+	}
+
+	return NewObject<UImportedSoundWave>();
+}
+
+Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMDataFormat() const
+{
+	return Audio::EAudioMixerStreamDataFormat::Type::Float;
+}
+
+int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+
+	if (!PCMBufferInfo.IsValid())
+	{
+		return 0;
+	}
+
+	// Ensure there is enough number of frames. Lack of frames means audio playback has finished
+	if (GetNumOfPlayedFrames_Internal() >= PCMBufferInfo->PCMNumOfFrames)
+	{
+		return 0;
+	}
+
+	// Getting the remaining number of samples if the required number of samples is greater than the total available number
+	if (GetNumOfPlayedFrames_Internal() + (static_cast<uint32>(NumSamples) / static_cast<uint32>(NumChannels)) >= PCMBufferInfo->PCMNumOfFrames)
+	{
+		NumSamples = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels;
+	}
+
+	// Retrieving a part of PCM data
+	float* RetrievedPCMDataPtr = PCMBufferInfo->PCMData.GetView().GetData() + (GetNumOfPlayedFrames_Internal() * NumChannels);
+	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
+
+	// Ensure we got a valid PCM data
+	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMDataPtr)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get PCM audio from imported sound wave since the retrieved PCM data is invalid"));
+		return 0;
+	}
+
+	// Filling in OutAudio array with the retrieved PCM data
+	OutAudio = TArray<uint8>(reinterpret_cast<uint8*>(RetrievedPCMDataPtr), RetrievedPCMDataSize);
+
+	// Increasing the number of frames played
+	SetNumOfPlayedFrames_Internal(GetNumOfPlayedFrames_Internal() + (NumSamples / NumChannels));
+
+	TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+	if (OnGeneratePCMDataNative.IsBound() || OnGeneratePCMData.IsBound())
+	{
+		TArray<float> PCMData(RetrievedPCMDataPtr, NumSamples);
+		AsyncTask(ENamedThreads::GameThread, [ThisPtr, PCMData = MoveTemp(PCMData)]
+		{
+			if (!ThisPtr.IsValid())
+			{
+				return;
+			}
+
+			if (ThisPtr->OnGeneratePCMDataNative.IsBound())
+			{
+				ThisPtr->OnGeneratePCMDataNative.Broadcast(PCMData);
+			}
+
+			if (ThisPtr->OnGeneratePCMData.IsBound())
+			{
+				ThisPtr->OnGeneratePCMData.Broadcast(PCMData);
+			}
+		});
+	}
+
+	return NumSamples;
 }
 
 void UImportedSoundWave::BeginDestroy()
@@ -20,19 +111,21 @@ void UImportedSoundWave::BeginDestroy()
 
 void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+
 	if (ActiveSound.PlaybackTime == 0.f)
 	{
-		RewindPlaybackTime(ParseParams.StartTime);
+		RewindPlaybackTime_Internal(ParseParams.StartTime);
 	}
 
-	ActiveSound.PlaybackTime = GetPlaybackTime();
+	ActiveSound.PlaybackTime = GetPlaybackTime_Internal();
 
-	if (IsPlaybackFinished())
+	if (IsPlaybackFinished_Internal())
 	{
-		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
-
 		if (!PlaybackFinishedBroadcast)
 		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Playback of the sound wave '%s' has been completed"), *GetName());
+
 			PlaybackFinishedBroadcast = true;
 
 			if (OnAudioPlaybackFinishedNative.IsBound())
@@ -48,26 +141,61 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 
 		if (!bLooping)
 		{
-			AudioDevice->StopActiveSound(&ActiveSound);
+			if (bStopSoundOnPlaybackFinish)
+			{
+				UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Playback of the sound wave '%s' has reached the end and will be stopped"), *GetName());
+				AudioDevice->StopActiveSound(&ActiveSound);
+			}
 		}
 		else
 		{
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The sound wave '%s' will be looped"), *GetName());
 			ActiveSound.PlaybackTime = 0.f;
-			RewindPlaybackTime(0.f);
+			RewindPlaybackTime_Internal(0.f);
 		}
 	}
 
 	Super::Parse(AudioDevice, NodeWaveInstanceHash, ActiveSound, ParseParams, WaveInstances);
 }
 
+void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+
+	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
+
+	Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
+	SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
+	NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
+
+	PCMBufferInfo->PCMData = MoveTemp(DecodedAudioInfo.PCMInfo.PCMData);
+	PCMBufferInfo->PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data has been populated successfully. Information about audio data:\n%s"), *DecodedAudioInfoString);
+}
+
 void UImportedSoundWave::ReleaseMemory()
 {
+	if (!IsInAudioThread())
+	{
+		TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+		FAudioThread::RunCommandOnAudioThread([ThisPtr]
+		{
+			if (!ThisPtr.IsValid())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to release memory of imported sound wave: sound wave has been garbage collected"));
+				return;
+			}
+			ThisPtr->ReleaseMemory();
+		});
+		return;
+	}
+
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
 
-	PCMBufferInfo.PCMData.Empty();
-
-	PCMBufferInfo.~FPCMStruct();
+	PCMBufferInfo.Reset();
 }
 
 void UImportedSoundWave::SetLooping(bool bLoop)
@@ -103,37 +231,76 @@ void UImportedSoundWave::SetPitch(float InPitch)
 
 bool UImportedSoundWave::RewindPlaybackTime(float PlaybackTime)
 {
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return RewindPlaybackTime_Internal(PlaybackTime);
+}
+
+bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
+{
 	if (PlaybackTime > Duration)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to rewind playback time for the imported sound wave '%s' by time '%f' because total length is '%f'"), *GetName(), PlaybackTime, Duration);
 		return false;
 	}
 
-	return ChangeCurrentFrameCount(PlaybackTime * SampleRate);
+	return SetNumOfPlayedFrames_Internal(PlaybackTime * SampleRate);
 }
 
-bool UImportedSoundWave::ChangeCurrentFrameCount(uint32 NumOfFrames)
+bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
-	if (NumOfFrames < 0 || NumOfFrames > PCMBufferInfo.PCMNumOfFrames)
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return SetNumOfPlayedFrames_Internal(NumOfFrames);
+}
+
+bool UImportedSoundWave::SetNumOfPlayedFrames_Internal(uint32 NumOfFrames)
+{
+	if (NumOfFrames < 0 || NumOfFrames > PCMBufferInfo->PCMNumOfFrames)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Cannot change the current frame for the imported sound wave '%s' to frame '%d' because the total number of frames is '%d'"), *GetName(), NumOfFrames, PCMBufferInfo.PCMNumOfFrames);
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Cannot change the current frame for the imported sound wave '%s' to frame '%d' because the total number of frames is '%d'"), *GetName(), NumOfFrames, PCMBufferInfo->PCMNumOfFrames);
 		return false;
 	}
 
-	CurrentNumOfFrames = NumOfFrames;
+	PlayedNumOfFrames = NumOfFrames;
 
-	// Setting "PlaybackFinishedBroadcast" to "false" in order to re-broadcast the "OnAudioPlaybackFinished" delegate again
-	PlaybackFinishedBroadcast = false;
+	ResetPlaybackFinish();
 
 	return true;
 }
 
+uint32 UImportedSoundWave::GetNumOfPlayedFrames() const
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return GetNumOfPlayedFrames_Internal();
+}
+
+uint32 UImportedSoundWave::GetNumOfPlayedFrames_Internal() const
+{
+	return PlayedNumOfFrames;
+}
+
 float UImportedSoundWave::GetPlaybackTime() const
 {
-	return static_cast<float>(CurrentNumOfFrames) / SampleRate;
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return GetPlaybackTime_Internal();
+}
+
+float UImportedSoundWave::GetPlaybackTime_Internal() const
+{
+	if (GetNumOfPlayedFrames() == 0 || SampleRate <= 0)
+	{
+		return 0;
+	}
+
+	return static_cast<float>(GetNumOfPlayedFrames()) / SampleRate;
 }
 
 float UImportedSoundWave::GetDurationConst() const
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return GetDurationConst_Internal();
+}
+
+float UImportedSoundWave::GetDurationConst_Internal() const
 {
 	return Duration;
 }
@@ -146,76 +313,46 @@ const
 	return GetDurationConst();
 }
 
-float UImportedSoundWave::GetPlaybackPercentage() const
+int32 UImportedSoundWave::GetSampleRate() const
 {
-	return static_cast<float>(CurrentNumOfFrames) / PCMBufferInfo.PCMNumOfFrames * 100;
+	return SampleRate;
 }
 
-bool UImportedSoundWave::IsPlaybackFinished()
+float UImportedSoundWave::GetPlaybackPercentage() const
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+
+	if (GetNumOfPlayedFrames() == 0 || PCMBufferInfo->PCMNumOfFrames == 0)
+	{
+		return 0;
+	}
+
+	return static_cast<float>(PlayedNumOfFrames) / PCMBufferInfo->PCMNumOfFrames * 100;
+}
+
+bool UImportedSoundWave::IsPlaybackFinished() const
+{
+	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	return IsPlaybackFinished_Internal();
+}
+
+bool UImportedSoundWave::IsPlaybackFinished_Internal() const
 {
 	// Are there enough frames for future playback from the current ones or not
-	const bool bOutOfFrames = static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames;
+	const bool bOutOfFrames = PlayedNumOfFrames >= PCMBufferInfo->PCMNumOfFrames;
 
-	// Are PCM data valid
+	// Is PCM data valid
 	const bool bValidPCMData = PCMBufferInfo.IsValid();
 
 	return bOutOfFrames && bValidPCMData;
 }
 
-int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
+void UImportedSoundWave::ResetPlaybackFinish()
 {
-	TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
-
-	// Ensure there is enough number of frames. Lack of frames means audio playback has finished
-	if (static_cast<uint32>(CurrentNumOfFrames) >= PCMBufferInfo.PCMNumOfFrames)
-	{
-		return 0;
-	}
-
-	// Getting the remaining number of samples if the required number of samples is greater than the total available number
-	if (static_cast<uint32>(CurrentNumOfFrames) + static_cast<uint32>(NumSamples) / static_cast<uint32>(NumChannels) >= PCMBufferInfo.PCMNumOfFrames)
-	{
-		NumSamples = (PCMBufferInfo.PCMNumOfFrames - CurrentNumOfFrames) * NumChannels;
-	}
-
-	// Retrieving a part of PCM data
-	uint8* RetrievedPCMData = PCMBufferInfo.PCMData.GetView().GetData() + (CurrentNumOfFrames * NumChannels * sizeof(float));
-	const int32 RetrievedPCMDataSize = NumSamples * sizeof(float);
-
-	// Ensure we got a valid PCM data
-	if (RetrievedPCMDataSize <= 0 || !RetrievedPCMData)
-	{
-		return 0;
-	}
-
-	// Filling in OutAudio array with the retrieved PCM data
-	OutAudio = TArray<uint8>(RetrievedPCMData, RetrievedPCMDataSize);
-
-	// Increasing CurrentFrameCount for correct iteration sequence
-	CurrentNumOfFrames = CurrentNumOfFrames + (NumSamples / NumChannels);
-
-	AsyncTask(ENamedThreads::GameThread, [ThisPtr, RetrievedPCMData, RetrievedPCMDataSize = NumSamples]()
-	{
-		if (!ThisPtr.IsValid())
-		{
-			return;
-		}
-
-		if (ThisPtr->OnGeneratePCMDataNative.IsBound())
-		{
-			ThisPtr->OnGeneratePCMDataNative.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
-		}
-
-		if (ThisPtr->OnGeneratePCMData.IsBound())
-		{
-			ThisPtr->OnGeneratePCMData.Broadcast(TArray<float>(reinterpret_cast<float*>(RetrievedPCMData), RetrievedPCMDataSize));
-		}
-	});
-
-	return NumSamples;
+	PlaybackFinishedBroadcast = false;
 }
 
-Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMDataFormat() const
+const FPCMStruct& UImportedSoundWave::GetPCMBuffer() const
 {
-	return Audio::EAudioMixerStreamDataFormat::Type::Float;
+	return *PCMBufferInfo.Get();
 }

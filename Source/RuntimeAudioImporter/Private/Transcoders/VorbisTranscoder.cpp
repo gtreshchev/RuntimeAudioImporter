@@ -20,23 +20,22 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 		return false;
 	}
 
+	stb_vorbis_close(STBVorbis);
+
 	return true;
 }
 
-bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
+bool VorbisTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to Vorbis audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
-	
+
 #if PLATFORM_SUPPORTS_VORBIS_CODEC
 
 	TArray<uint8> EncodedAudioData;
-	
+
 	const uint32 NumOfFrames = DecodedData.PCMInfo.PCMNumOfFrames;
 	const uint32 NumOfChannels = DecodedData.SoundWaveBasicInfo.NumOfChannels;
 	const uint32 SampleRate = DecodedData.SoundWaveBasicInfo.SampleRate;
-
-	// Copying decoded data to prevent crash if the task is interrupted
-	const TArray<float> CopiedDecodedData{reinterpret_cast<float*>(DecodedData.PCMInfo.PCMData.GetView().GetData()), static_cast<int32>(DecodedData.PCMInfo.PCMData.GetView().Num()) / static_cast<int32>(sizeof(float))};
 
 	// Encoding Vorbis data
 	{
@@ -46,7 +45,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 		if (vorbis_encode_init_vbr(&VorbisInfo, NumOfChannels, SampleRate, static_cast<float>(Quality) / 100) < 0)
 		{
 			vorbis_info_clear(&VorbisInfo);
-			
+
 			RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to initialize vorbis encoder"));
 			return false;
 		}
@@ -87,13 +86,13 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 		}
 
 		uint32 FramesEncoded{0}, FramesRead{0};
-		
+
 		bool bEndOfBitstream{false};
 
 		while (!bEndOfBitstream)
 		{
 			constexpr uint32 FramesSplitCount = 1024;
-			
+
 			// Getting frames for encoding
 			uint32 FramesToEncode{NumOfFrames - FramesRead};
 
@@ -106,7 +105,7 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 				FramesToEncode = FramesSplitCount;
 			}
 
-			if (!CopiedDecodedData.GetData() || !AnalysisBuffer)
+			if (!DecodedData.PCMInfo.PCMData.GetView().GetData() || !AnalysisBuffer)
 			{
 				RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to create analysis buffers"));
 				return false;
@@ -115,8 +114,8 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 			// Deinterleave for the encoder
 			for (uint32 FrameIndex = 0; FrameIndex < FramesToEncode; ++FrameIndex)
 			{
-				const float* Frame = CopiedDecodedData.GetData() + (FrameIndex + FramesEncoded) * NumOfChannels;
-				
+				const float* Frame = DecodedData.PCMInfo.PCMData.GetView().GetData() + (FrameIndex + FramesEncoded) * NumOfChannels;
+
 				for (uint32 ChannelIndex = 0; ChannelIndex < NumOfChannels; ++ChannelIndex)
 				{
 					AnalysisBuffer[ChannelIndex][FrameIndex] = Frame[ChannelIndex];
@@ -183,12 +182,12 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 		EncodedData.AudioFormat = EAudioFormat::OggVorbis;
 		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
-	
+
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully encoded uncompressed audio data to Vorbis audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
 	return true;
 
-	#undef FRAMES_SPLIT_COUNT
+#undef FRAMES_SPLIT_COUNT
 
 #else
 	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Your platform (%hs) does not support Vorbis encoding"), FGenericPlatformProperties::IniPlatformName()));
@@ -196,10 +195,10 @@ bool VorbisTranscoder::Encode(const FDecodedAudioStruct& DecodedData, FEncodedAu
 #endif
 }
 
-bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
+bool VorbisTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Vorbis audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
-	
+
 	int32 ErrorCode;
 	stb_vorbis* Vorbis_Decoder = stb_vorbis_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), &ErrorCode, nullptr);
 
@@ -219,6 +218,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 	int32 TotalSamples = SamplesLimit;
 
 	int16* Int16RAWBuffer = static_cast<int16*>(FMemory::Malloc(TotalSamples * sizeof(int16)));
+
 	if (!Int16RAWBuffer)
 	{
 		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for OGG Vorbis Decoder"));
@@ -270,9 +270,9 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 		int32 TempFloatSize;
 
 		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, TempPCMDataSize, TempFloatBuffer, TempFloatSize);
-		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(TempFloatBuffer), TempFloatSize);
+		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempFloatBuffer, TempFloatSize);
 	}
-	
+
 	FMemory::Free(Int16RAWBuffer);
 
 	// Getting basic audio information
@@ -281,7 +281,7 @@ bool VorbisTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAu
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = NumOfChannels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = SampleRate;
 	}
-	
+
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Successfully decoded Vorbis audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString()));
 
 	return true;
