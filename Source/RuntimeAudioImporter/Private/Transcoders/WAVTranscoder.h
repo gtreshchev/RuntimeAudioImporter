@@ -74,10 +74,10 @@ public:
 	/**
 	 * Encode uncompressed data to WAV format
 	 */
-	static bool Encode(const FDecodedAudioStruct& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format);
+	static bool Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format);
 
 	/**
 	 * Decode compressed WAV data to PCM format
 	 */
-	static bool Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData);
+	static bool Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData);
 };

@@ -17,13 +17,15 @@ bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSiz
 		return false;
 	}
 
+	drflac_close(FLAC);
+
 	return true;
 }
 
-bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudioStruct& DecodedData)
+bool FlacTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
-	
+
 	// Initializing transcoding of audio data in memory
 	drflac* FLAC_Decoder{drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr)};
 
@@ -34,15 +36,21 @@ bool FlacTranscoder::Decode(const FEncodedAudioStruct& EncodedData, FDecodedAudi
 	}
 
 	// Allocating memory for PCM data
-	uint8* TempPCMData = static_cast<uint8*>(FMemory::Malloc(FLAC_Decoder->totalPCMFrameCount * FLAC_Decoder->channels * sizeof(float)));
+	float* TempPCMData = static_cast<float*>(FMemory::Malloc(FLAC_Decoder->totalPCMFrameCount * FLAC_Decoder->channels * sizeof(float)));
+
+	if (!TempPCMData)
+	{
+		RuntimeAudioImporter_TranscoderLogs::PrintError(TEXT("Failed to allocate memory for FLAC Decoder"));
+		return false;
+	}
 
 	// Filling in PCM data and getting the number of frames
-	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(FLAC_Decoder, FLAC_Decoder->totalPCMFrameCount, reinterpret_cast<float*>(TempPCMData));
+	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(FLAC_Decoder, FLAC_Decoder->totalPCMFrameCount, TempPCMData);
 
 	// Getting PCM data size
 	const int32 TempPCMDataSize = static_cast<int32>(DecodedData.PCMInfo.PCMNumOfFrames * FLAC_Decoder->channels * sizeof(float));
 
-	DecodedData.PCMInfo.PCMData = FBulkDataBuffer<uint8>(TempPCMData, TempPCMDataSize);
+	DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 
 	// Getting basic audio information
 	{

@@ -55,7 +55,7 @@ enum class ERAWAudioFormat : uint8
 	Float32 UMETA(DisplayName = "32-bit float")
 };
 
-/** Basic SoundWave data. CPP use only. */
+/** Basic sound wave data */
 struct FSoundWaveBasicStruct
 {
 	/** Number of channels */
@@ -66,6 +66,14 @@ struct FSoundWaveBasicStruct
 
 	/** Sound wave duration, sec */
 	float Duration;
+
+	/**
+	 * Whether the sound wave data appear to be valid or not
+	 */
+	bool IsValid() const
+	{
+		return NumOfChannels > 0 && Duration > 0;
+	}
 
 	/**
 	 * Converts the basic sound wave struct to a readable format
@@ -81,16 +89,40 @@ struct FSoundWaveBasicStruct
 /** PCM data buffer structure */
 struct FPCMStruct
 {
+public:
 	/** 32-bit float PCM data */
-	FBulkDataBuffer<uint8> PCMData;
+	FBulkDataBuffer<float> PCMData;
 
 	/** Number of PCM frames */
 	uint32 PCMNumOfFrames;
 
-	/** Base constructor */
+private:
+
+	/** Data guard (mutex) for thread safety */
+	mutable FCriticalSection DataGuard;
+
+public:
+	FCriticalSection* GetDataGuard() const
+	{
+		return &DataGuard;
+	}
+
 	FPCMStruct()
 		: PCMNumOfFrames(0)
 	{
+	}
+
+	FPCMStruct(const FPCMStruct& PCMInfo)
+		: PCMData(PCMInfo.PCMData)
+	  , PCMNumOfFrames(PCMInfo.PCMNumOfFrames)
+	{
+	}
+
+	FPCMStruct& operator=(const FPCMStruct& PCMInfo)
+	{
+		PCMData = PCMInfo.PCMData;
+		PCMNumOfFrames = PCMInfo.PCMNumOfFrames;
+		return *this;
 	}
 
 	/**
@@ -98,7 +130,7 @@ struct FPCMStruct
 	 */
 	bool IsValid() const
 	{
-		return PCMData.GetView().GetData() != nullptr && PCMNumOfFrames > 0 && PCMData.GetView().Num() > 0;
+		return PCMData.GetView().GetData() && PCMNumOfFrames > 0 && PCMData.GetView().Num() > 0;
 	}
 
 	/**
@@ -109,7 +141,7 @@ struct FPCMStruct
 	FString ToString() const
 	{
 		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %lld"),
-		                       PCMData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, PCMData.GetView().Num());
+		                       PCMData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, static_cast<int64>(PCMData.GetView().Num()));
 	}
 };
 
@@ -121,6 +153,14 @@ struct FDecodedAudioStruct
 
 	/** PCM data buffer */
 	FPCMStruct PCMInfo;
+
+	/**
+	 * Whether the decoded audio data appear to be valid or not
+	 */
+	bool IsValid() const
+	{
+		return SoundWaveBasicInfo.IsValid() && PCMInfo.IsValid();
+	}
 
 	/**
 	 * Converts Decoded Audio Struct to a readable format
@@ -163,7 +203,7 @@ struct FEncodedAudioStruct
 	FString ToString() const
 	{
 		return FString::Printf(TEXT("Validity of audio data in memory: %s, audio data size: %lld, audio format: %s"),
-		                       AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), AudioData.GetView().Num(),
+		                       AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), static_cast<int64>(AudioData.GetView().Num()),
 		                       *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 };

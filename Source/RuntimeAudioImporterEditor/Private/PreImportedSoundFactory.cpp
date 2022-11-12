@@ -3,8 +3,8 @@
 #include "PreImportedSoundFactory.h"
 #include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
-#include "Logging/MessageLog.h"
 #include "RuntimeAudioImporterLibrary.h"
+#include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "PreImportedSoundFactory"
 DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
@@ -47,9 +47,16 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	FDecodedAudioStruct DecodedAudioInfo;
 
 	uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
+
+	if (!EncodedAudioDataPtr)
+	{
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_AllocateError", "Unable to decode the audio file '{0}'. Failed to allocate memory'"), FText::FromString(Filename)));
+		return nullptr;
+	}
+	
 	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioData.Num(), EAudioFormat::Auto);
 
-	if (!URuntimeAudioImporterLibrary::DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
+	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 	{
 		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_DecodeError", "Unable to decode the audio file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
 		return nullptr;

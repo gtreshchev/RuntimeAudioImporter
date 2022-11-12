@@ -22,7 +22,6 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 
 bool LoadAudioFileToArray(TArray<uint8>& AudioData, const FString& FilePath)
 {
-	// Filling AudioBuffer with a binary file
 	if (!FFileHelper::LoadFileToArray(AudioData, *FilePath))
 	{
 		return false;
@@ -41,23 +40,20 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	{
 		if (!ThisPtr.IsValid())
 		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file: the runtime audio importer has been garbage collected"));
 			return;
 		}
 
-		// Checking if the file exists
 		if (!FPaths::FileExists(FilePath))
 		{
 			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::AudioDoesNotExist);
 			return;
 		}
 
-		// Getting the audio format
 		AudioFormat = AudioFormat == EAudioFormat::Auto ? GetAudioFormat(FilePath) : AudioFormat;
 		AudioFormat = AudioFormat == EAudioFormat::Invalid ? EAudioFormat::Auto : AudioFormat;
 
 		TArray<uint8> AudioBuffer;
-
-		// Filling AudioBuffer with a binary file
 		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
 		{
 			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
@@ -68,6 +64,57 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	});
 }
 
+void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAsset)
+{
+	ImportAudioFromBuffer(PreImportedSoundAsset->AudioDataArray, PreImportedSoundAsset->AudioFormat);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
+{
+	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
+	{
+		if (!ThisPtr.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from buffer: the runtime audio importer has been garbage collected"));
+			return;
+		}
+
+		ThisPtr->OnProgress_Internal(15);
+
+		if (AudioFormat == EAudioFormat::Invalid)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for import"));
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
+			return;
+		}
+
+		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
+
+		if (!EncodedAudioDataPtr)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for compressed audio data"));
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+			return;
+		}
+
+		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
+
+		ThisPtr->OnProgress_Internal(25);
+
+		FDecodedAudioStruct DecodedAudioInfo;
+		if (!DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+		{
+			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
+			return;
+		}
+
+		ThisPtr->OnProgress_Internal(65);
+
+		ThisPtr->ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+	});
+}
+
 void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)
 {
 	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
@@ -75,6 +122,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 	{
 		if (!ThisPtr.IsValid())
 		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file: the runtime audio importer has been garbage collected"));
 			return;
 		}
 
@@ -106,6 +154,8 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 	float* PCMData{nullptr};
 	int32 PCMDataSize{0};
 
+	OnProgress_Internal(15);
+
 	// Transcoding RAW data to 32-bit float data
 	{
 		switch (RAWFormat)
@@ -134,64 +184,15 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 		}
 	}
 
+	OnProgress_Internal(35);
+
 	if (!PCMData || PCMDataSize <= 0)
 	{
 		OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
 		return;
 	}
 
-	ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>(reinterpret_cast<uint8*>(PCMData), PCMDataSize), SampleRate, NumOfChannels);
-}
-
-void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAsset)
-{
-	ImportAudioFromBuffer(PreImportedSoundAsset->AudioDataArray, PreImportedSoundAsset->AudioFormat);
-}
-
-void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
-{
-	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
-	{
-		if (!ThisPtr.IsValid())
-		{
-			return;
-		}
-
-		ThisPtr->OnProgress_Internal(5);
-
-		if (AudioFormat == EAudioFormat::Invalid)
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for import"));
-			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::InvalidAudioFormat);
-			return;
-		}
-
-		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
-
-		if (!EncodedAudioDataPtr)
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for compressed audio data"));
-			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-			return;
-		}
-
-		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
-
-		ThisPtr->OnProgress_Internal(10);
-
-		FDecodedAudioStruct DecodedAudioInfo;
-		if (!DecodeAudioData(EncodedAudioInfo, DecodedAudioInfo))
-		{
-			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::FailedToReadAudioDataArray);
-			return;
-		}
-
-		ThisPtr->OnProgress_Internal(65);
-
-		// Finalizing import
-		ThisPtr->ImportAudioFromDecodedInfo(DecodedAudioInfo);
-	});
+	ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>(PCMData, PCMDataSize), SampleRate, NumOfChannels);
 }
 
 void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
@@ -293,8 +294,6 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 		};
 
 		TArray<uint8> RAWBufferFrom;
-
-		// Loading a file into a byte array
 		if (!LoadAudioFileToArray(RAWBufferFrom, *FilePathFrom))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when reading RAW data on the path '%s'"), *FilePathFrom);
@@ -310,7 +309,6 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 				return;
 			}
 
-			// Writing a file to a specified location
 			if (!FFileHelper::SaveArrayToFile(RAWBufferTo, *FilePathTo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving RAW data to the path '%s'"), *FilePathTo);
@@ -325,25 +323,30 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 
 void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result)
 {
+	if (!IsValid(ImportedSoundWave))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
+		Result.ExecuteIfBound(false);
+		return;
+	}
+
 	ExportSoundWaveToFile(ImportedSoundWave, SavePath, AudioFormat, Quality, FOnAudioExportToFileResultNative::CreateLambda([Result](bool bSucceed)
 	{
 		Result.ExecuteIfBound(bSucceed);
 	}));
 }
 
-void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result)
+void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result)
 {
 	AudioFormat = AudioFormat == EAudioFormat::Auto ? GetAudioFormat(SavePath) : AudioFormat;
 
-	// Exporting a sound wave to a buffer
-	ExportSoundWaveToBuffer(ImportedSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, const TArray<uint8>& AudioData)
+	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, const TArray<uint8>& AudioData)
 	{
 		if (!bSucceed)
 		{
 			return;
 		}
 
-		// Writing encoded data to specified location
 		if (!FFileHelper::SaveArrayToFile(AudioData, *SavePath))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
@@ -357,42 +360,55 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* Imp
 
 void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result)
 {
+	if (!IsValid(ImportedSoundWave))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
+		Result.ExecuteIfBound(false, TArray<uint8>());
+		return;
+	}
+
 	ExportSoundWaveToBuffer(ImportedSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray<uint8>& AudioData)
 	{
 		Result.ExecuteIfBound(bSucceed, AudioData);
 	}));
 }
 
-void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result)
+void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWave, AudioFormat, Quality, Result]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWavePtr, AudioFormat, Quality, Result]
 	{
 		auto ExecuteResult = [Result](bool bSucceed, TArray<uint8>&& AudioData)
 		{
-			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceed, AudioData]()
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceed, AudioData = MoveTemp(AudioData)]()
 			{
 				Result.ExecuteIfBound(bSucceed, AudioData);
 			});
 		};
 
-		if (!ImportedSoundWave)
+		if (!ImportedSoundWavePtr.IsValid())
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
 			ExecuteResult(false, TArray<uint8>());
 			return;
 		}
 
-		// Filling in decoded audio info
+		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as the PCM data is invalid"));
+			ExecuteResult(false, TArray<uint8>());
+			return;
+		}
+
 		FDecodedAudioStruct DecodedAudioInfo;
 		{
-			DecodedAudioInfo.PCMInfo = ImportedSoundWave->PCMBufferInfo;
+			DecodedAudioInfo.PCMInfo = ImportedSoundWavePtr->GetPCMBuffer();
 			FSoundWaveBasicStruct SoundWaveBasicInfo;
 			{
-				SoundWaveBasicInfo.NumOfChannels = ImportedSoundWave->NumChannels;
-				SoundWaveBasicInfo.SampleRate = ImportedSoundWave->SamplingRate;
-				SoundWaveBasicInfo.Duration = ImportedSoundWave->Duration;
+				SoundWaveBasicInfo.NumOfChannels = ImportedSoundWavePtr->NumChannels;
+				SoundWaveBasicInfo.SampleRate = ImportedSoundWavePtr->GetSampleRate();
+				SoundWaveBasicInfo.Duration = ImportedSoundWavePtr->Duration;
 			}
-			DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
+			DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 		}
 
 		FEncodedAudioStruct EncodedAudioInfo;
@@ -400,10 +416,9 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* I
 			EncodedAudioInfo.AudioFormat = AudioFormat;
 		}
 
-		// Encoding to the specified format
-		if (!EncodeAudioData(DecodedAudioInfo, EncodedAudioInfo, Quality))
+		if (!EncodeAudioData(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, Quality))
 		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImportedSoundWave->GetName());
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImportedSoundWavePtr->GetName());
 			ExecuteResult(false, TArray<uint8>());
 			return;
 		}
@@ -412,68 +427,42 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* I
 	});
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(const FDecodedAudioStruct& DecodedAudioInfo)
+void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
 		TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, DecodedAudioInfo]() { if (ThisPtr.IsValid()) ThisPtr->ImportAudioFromDecodedInfo(DecodedAudioInfo); });
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+		{
+			if (!ThisPtr.IsValid())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from decoded info: the runtime audio importer has been garbage collected"));
+				return;
+			}
+			ThisPtr->ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		});
 		return;
 	}
 
-	UImportedSoundWave* ImportedSoundWave = CreateImportedSoundWave();
+	UImportedSoundWave* ImportedSoundWave = UImportedSoundWave::CreateImportedSoundWave();
 
-	if (!ImportedSoundWave)
+	if (!IsValid(ImportedSoundWave))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while creating the imported sound wave"));
 		OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
 		return;
 	}
 
-	DefineSoundWave(ImportedSoundWave, DecodedAudioInfo);
-
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data was successfully imported. Information about imported data:\n%s"), *DecodedAudioInfo.ToString());
-	OnProgress_Internal(100);
-	OnResult_Internal(ImportedSoundWave, ETranscodingStatus::SuccessfulImport);
-}
-
-void URuntimeAudioImporterLibrary::DefineSoundWave(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo)
-{
-	OnProgress_Internal(70);
-
-	// Filling in a sound wave basic information (e.g. duration, number of channels, etc)
-	FillSoundWaveBasicInfo(ImportedSoundWave, DecodedAudioInfo);
-
 	OnProgress_Internal(75);
 
-	// Filling in PCM data buffer
-	FillPCMData(ImportedSoundWave, DecodedAudioInfo);
+	ImportedSoundWave->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 
-	OnProgress_Internal(95);
-}
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data was successfully imported"));
 
-void URuntimeAudioImporterLibrary::FillSoundWaveBasicInfo(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo)
-{
-	ImportedSoundWave->Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
-	ImportedSoundWave->SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
-	ImportedSoundWave->SamplingRate = DecodedAudioInfo.SoundWaveBasicInfo.SampleRate;
-	ImportedSoundWave->NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
-	ImportedSoundWave->SoundGroup = SOUNDGROUP_Default;
+	OnProgress_Internal(100);
 
-	if (ImportedSoundWave->NumChannels == 4)
-	{
-		ImportedSoundWave->bIsAmbisonics = 1;
-	}
-
-	ImportedSoundWave->bProcedural = true;
-	ImportedSoundWave->DecompressionType = EDecompressionType::DTYPE_Procedural;
-}
-
-void URuntimeAudioImporterLibrary::FillPCMData(UImportedSoundWave* ImportedSoundWave, const FDecodedAudioStruct& DecodedAudioInfo)
-{
-	ImportedSoundWave->PCMBufferInfo = DecodedAudioInfo.PCMInfo;
-	ImportedSoundWave->RawPCMDataSize = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
+	OnResult_Internal(ImportedSoundWave, ETranscodingStatus::SuccessfulImport);
 }
 
 EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePath)
@@ -500,7 +489,7 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const FString& FilePat
 		return EAudioFormat::OggVorbis;
 	}
 
-	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to determine audio file format with path '%s' by name"), *FilePath);
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to determine audio file format with path '%s' by name"), *FilePath);
 
 	return EAudioFormat::Invalid;
 }
@@ -537,11 +526,9 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData
 	return EAudioFormat::Invalid;
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FBulkDataBuffer<uint8>&& PCMData, int32 SampleRate, int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>&& PCMData, int32 SampleRate, int32 NumOfChannels)
 {
 	FDecodedAudioStruct DecodedAudioInfo;
-
-	// Filling in the required information
 	{
 		DecodedAudioInfo.PCMInfo.PCMData = MoveTemp(PCMData);
 		DecodedAudioInfo.PCMInfo.PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() / sizeof(float) / NumOfChannels;
@@ -551,10 +538,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FBulkDataBuffer<
 		DecodedAudioInfo.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedAudioInfo.PCMInfo.PCMNumOfFrames) / SampleRate;
 	}
 
-	OnProgress_Internal(50);
+	OnProgress_Internal(65);
 
-	// Finalizing import
-	ImportAudioFromDecodedInfo(DecodedAudioInfo);
+	ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 }
 
 FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int32 Seconds)
@@ -578,7 +564,7 @@ FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int32 Seconds)
 	return FinalString;
 }
 
-bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
+bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct&& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
 {
 	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto)
 	{
@@ -595,7 +581,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 	{
 	case EAudioFormat::Mp3:
 		{
-			if (!MP3Transcoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!MP3Transcoder::Decode(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Mp3 audio data"));
 				return false;
@@ -604,7 +590,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 		}
 	case EAudioFormat::Wav:
 		{
-			if (!WAVTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!WAVTranscoder::Decode(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Wav audio data"));
 				return false;
@@ -613,7 +599,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 		}
 	case EAudioFormat::Flac:
 		{
-			if (!FlacTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!FlacTranscoder::Decode(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Flac audio data"));
 				return false;
@@ -622,7 +608,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 		}
 	case EAudioFormat::OggVorbis:
 		{
-			if (!VorbisTranscoder::Decode(EncodedAudioInfo, DecodedAudioInfo))
+			if (!VorbisTranscoder::Decode(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding Vorbis audio data"));
 				return false;
@@ -639,7 +625,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct& EncodedA
 	return true;
 }
 
-bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality)
+bool URuntimeAudioImporterLibrary::EncodeAudioData(FDecodedAudioStruct&& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality)
 {
 	if (EncodedAudioInfo.AudioFormat == EAudioFormat::Auto || EncodedAudioInfo.AudioFormat == EAudioFormat::Invalid)
 	{
@@ -656,7 +642,7 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& De
 		}
 	case EAudioFormat::Wav:
 		{
-			if (!WAVTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_IEEE_FLOAT, 32)))
+			if (!WAVTranscoder::Encode(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, FWAVEncodingFormat(EWAVEncodingFormat::FORMAT_IEEE_FLOAT, 32)))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Wav audio data"));
 				return false;
@@ -670,7 +656,7 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& De
 		}
 	case EAudioFormat::OggVorbis:
 		{
-			if (!VorbisTranscoder::Encode(DecodedAudioInfo, EncodedAudioInfo, Quality))
+			if (!VorbisTranscoder::Encode(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, Quality))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
 				return false;
@@ -687,47 +673,50 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(const FDecodedAudioStruct& De
 	return true;
 }
 
-UImportedSoundWave* URuntimeAudioImporterLibrary::CreateImportedSoundWave() const
-{
-	if (!IsInGameThread())
-	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to create a sound wave outside of the game thread"));
-		return nullptr;
-	}
-
-	return NewObject<UImportedSoundWave>();
-}
-
 void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 {
-	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
-
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, Percentage]() { if (ThisPtr.IsValid()) ThisPtr->OnProgress_Internal(Percentage); });
+		TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, Percentage]()
+		{
+			if (!ThisPtr.IsValid())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to handle on progress execution: the runtime audio importer has been garbage collected"));
+				return;
+			}
+			ThisPtr->OnProgress_Internal(Percentage);
+		});
 		return;
 	}
 
-	if (ThisPtr->OnProgress.IsBound())
+	if (OnProgress.IsBound())
 	{
-		ThisPtr->OnProgress.Broadcast(Percentage);
+		OnProgress.Broadcast(Percentage);
 	}
 
-	if (ThisPtr->OnProgressNative.IsBound())
+	if (OnProgressNative.IsBound())
 	{
-		ThisPtr->OnProgressNative.Broadcast(Percentage);
+		OnProgressNative.Broadcast(Percentage);
 	}
 }
 
 void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* ImportedSoundWave, ETranscodingStatus Status)
 {
-	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
-
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, ImportedSoundWave, Status]() { if (ThisPtr.IsValid()) ThisPtr->OnResult_Internal(ImportedSoundWave, Status); });
+		TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, ImportedSoundWave, Status]()
+		{
+			if (!ThisPtr.IsValid())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to handle on result execution: the runtime audio importer has been garbage collected"));
+				return;
+			}
+			ThisPtr->OnResult_Internal(ImportedSoundWave, Status);
+		});
 		return;
 	}
 
@@ -736,13 +725,13 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* Importe
 	if (OnResultNative.IsBound())
 	{
 		bBroadcasted = true;
-		ThisPtr->OnResultNative.Broadcast(this, ImportedSoundWave, Status);
+		OnResultNative.Broadcast(this, ImportedSoundWave, Status);
 	}
 
 	if (OnResult.IsBound())
 	{
 		bBroadcasted = true;
-		ThisPtr->OnResult.Broadcast(this, ImportedSoundWave, Status);
+		OnResult.Broadcast(this, ImportedSoundWave, Status);
 	}
 
 	if (!bBroadcasted)

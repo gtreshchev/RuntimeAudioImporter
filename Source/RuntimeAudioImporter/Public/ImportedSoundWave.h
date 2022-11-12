@@ -21,7 +21,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMData, const TArray<flo
 
 
 /**
- * The main sound wave class used to play imported audio from the Runtime Audio Importer
+ * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
+ * Audio data preparation takes place in the Runtime Audio Importer library
  */
 UCLASS(BlueprintType, Category = "Imported Sound Wave")
 class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
@@ -30,11 +31,30 @@ class RUNTIMEAUDIOIMPORTER_API UImportedSoundWave : public USoundWaveProcedural
 
 public:
 	UImportedSoundWave(const FObjectInitializer& ObjectInitializer);
-	
+
+	/**
+	 * Create a new instance of the imported sound wave
+	 *
+	 * @return Created imported sound wave
+	 */
+	static UImportedSoundWave* CreateImportedSoundWave();
+
 	//~ Begin USoundWave Interface
 	virtual void BeginDestroy() override;
 	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
+	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
 	//~ End USoundWave Interface
+
+	//~ Begin USoundWaveProcedural Interface
+	virtual int32 OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
+	//~ End USoundWaveProcedural Interface
+
+	/**
+	 * Populate audio data from decoded info
+	 *
+	 * @param DecodedAudioInfo Decoded audio data
+	 */
+	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo);
 
 	/**
 	 * Release sound wave data. Call it manually only if you are sure of it
@@ -84,12 +104,37 @@ public:
 	bool RewindPlaybackTime(float PlaybackTime);
 
 	/**
-	 * Change the current number of frames. Usually used to rewind the sound
+	 * Thread-unsafe equivalent of RewindPlaybackTime
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	bool RewindPlaybackTime_Internal(float PlaybackTime);
+
+	/**
+	 * Change the number of frames played back. Used to rewind the sound
 	 *
 	 * @param NumOfFrames The new number of frames from which to continue playing sound
 	 * @return Whether the frames were changed or not
 	 */
-	bool ChangeCurrentFrameCount(uint32 NumOfFrames);
+	bool SetNumOfPlayedFrames(uint32 NumOfFrames);
+
+	/**
+	 * Thread-unsafe equivalent of SetNumOfPlayedFrames
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	bool SetNumOfPlayedFrames_Internal(uint32 NumOfFrames);
+
+	/**
+	 * Get the number of frames played back
+	 *
+	 * @return The number of frames played back
+	 */
+	uint32 GetNumOfPlayedFrames() const;
+
+	/**
+	 * Thread-unsafe equivalent of GetNumOfPlayedFrames
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	uint32 GetNumOfPlayedFrames_Internal() const;
 
 	/**
 	 * Get the current sound wave playback time, in seconds
@@ -98,10 +143,22 @@ public:
 	float GetPlaybackTime() const;
 
 	/**
+	 * Thread-unsafe equivalent of GetPlaybackTime
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	float GetPlaybackTime_Internal() const;
+
+	/**
 	 * Constant alternative for getting the length of the sound wave, in seconds
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get Duration"))
 	float GetDurationConst() const;
+
+	/**
+	 * Thread-unsafe equivalent of GetDurationConst
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	float GetDurationConst_Internal() const;
 
 	/**
 	 * Get the length of the sound wave, in seconds
@@ -115,22 +172,33 @@ public:
 #endif
 
 	/**
+	 * Get sample rate
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
+	int32 GetSampleRate() const;
+
+	/**
 	 * Get the current sound playback percentage, 0-100%
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	float GetPlaybackPercentage() const;
 
 	/**
-	 * Sampling Rate (samples per second)
-	 */
-	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
-	int32 SamplingRate;
-
-	/**
 	 * Check if audio playback has finished or not
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Utility")
-	bool IsPlaybackFinished();
+	bool IsPlaybackFinished() const;
+
+	/**
+	 * Thread-unsafe equivalent of IsPlaybackFinished
+	 * Should only be used if access to the PCM buffer is locked
+	 */
+	bool IsPlaybackFinished_Internal() const;
+
+	/**
+	 * Makes it possible to broadcast OnAudioPlaybackFinished again
+	 */
+	void ResetPlaybackFinish();
 
 	/** Bind to this delegate to know when the audio playback is finished. Suitable for use in C++ */
 	FOnAudioPlaybackFinishedNative OnAudioPlaybackFinishedNative;
@@ -148,33 +216,23 @@ public:
 
 private:
 	/** Bool to control the behaviour of the OnAudioPlaybackFinished delegate */
-	bool PlaybackFinishedBroadcast = false;
+	bool PlaybackFinishedBroadcast;
 
 public:
-	//~ Begin UProceduralSoundWave Interface
-
 	/**
-	 * Generating PCM data by splitting it into samples
+	 * Get immutable PCM buffer. Use PopulateAudioDataFromDecodedInfo to populate it
 	 *
-	 * @param OutAudio Retrieved PCM data array
-	 * @param NumSamples Required number of samples
-	 * @return Number of retrieved samples (usually equals to NumSamples)
+	 * @return PCM buffer
 	 */
-	virtual int32 OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
+	const FPCMStruct& GetPCMBuffer() const;
 
-	/**
-	 * Getting the format of the retrieved PCM data
-	 *
-	 * @note Since we are using 32-bit float, there will be no PCM transcoding in the engine, which will improve audio processing performance
-	 */
-	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
-
-	//~ End UProceduralSoundWave Interface
-
-	/** The current number of processed frames */
-	UPROPERTY(BlueprintReadOnly, Category = "Imported Sound Wave|Info")
-	int32 CurrentNumOfFrames;
+protected:
+	/** The number of frames played. Increments during playback, should not be > PCMBufferInfo.PCMNumOfFrames */
+	uint32 PlayedNumOfFrames;
 
 	/** Contains PCM data for sound wave playback */
-	FPCMStruct PCMBufferInfo;
+	TUniquePtr<FPCMStruct> PCMBufferInfo;
+
+	/** Whether to stop the sound at the end of playback or not. Sound wave will not be garbage collected if playback was completed while this parameter is set to false */
+	bool bStopSoundOnPlaybackFinish;
 };
