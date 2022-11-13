@@ -2,10 +2,11 @@
 
 #pragma once
 
-#include "ImportedSoundWave.h"
+#include "Sound/ImportedSoundWave.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioImporterLibrary.generated.h"
 
+class UPreImportedSoundAsset;
 class URuntimeAudioImporterLibrary;
 
 /** Static delegate broadcasting the audio importer progress */
@@ -95,7 +96,7 @@ public:
 	 * @param PreImportedSoundAsset PreImportedSoundAsset object reference
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromPreImportedSound(class UPreImportedSoundAsset* PreImportedSoundAsset);
+	void ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAsset);
 
 	/**
 	 * Import audio from buffer

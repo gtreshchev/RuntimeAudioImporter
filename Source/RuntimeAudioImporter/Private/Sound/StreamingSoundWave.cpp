@@ -1,6 +1,6 @@
 ﻿// Georgy Treshchev 2022.
 
-#include "StreamingSoundWave.h"
+#include "Sound/StreamingSoundWave.h"
 #include "RuntimeAudioImporterLibrary.h"
 #include "Transcoders/RAWTranscoder.h"
 
@@ -9,6 +9,8 @@
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PlaybackFinishedBroadcast = true;
+
 	// No need to stop the sound after the end of streaming sound wave playback, assuming the PCM data can be filled after that
 	// (except if this is overridden in SetStopSoundOnPlaybackFinish)
 	bStopSoundOnPlaybackFinish = false;
@@ -28,7 +30,7 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 
 	if (!DecodedAudioInfo.IsValid())
 	{
