@@ -1,12 +1,13 @@
 // Georgy Treshchev 2022.
 
-#include "ImportedSoundWave.h"
+#include "Sound/ImportedSoundWave.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+  , DurationOffset(0)
   , PlaybackFinishedBroadcast(false)
   , PlayedNumOfFrames(0)
   , PCMBufferInfo(MakeUnique<FPCMStruct>())
@@ -40,7 +41,7 @@ Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMData
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 
 	if (!PCMBufferInfo.IsValid())
 	{
@@ -111,7 +112,7 @@ void UImportedSoundWave::BeginDestroy()
 
 void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 
 	if (ActiveSound.PlaybackTime == 0.f)
 	{
@@ -160,7 +161,7 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 
 void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 
 	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
 
@@ -176,26 +177,69 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 
 void UImportedSoundWave::ReleaseMemory()
 {
-	if (!IsInAudioThread())
-	{
-		TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
-		FAudioThread::RunCommandOnAudioThread([ThisPtr]
-		{
-			if (!ThisPtr.IsValid())
-			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to release memory of imported sound wave: sound wave has been garbage collected"));
-				return;
-			}
-			ThisPtr->ReleaseMemory();
-		});
-		return;
-	}
-
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
-
+	FScopeLock Lock(&DataGuard);
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
-
 	PCMBufferInfo.Reset();
+}
+
+void UImportedSoundWave::ReleasePlayedAudioData()
+{
+	TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr]() mutable
+	{
+		if (!ThisPtr.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to release already played audio data: the streaming sound wave has been garbage collected"));
+			return;
+		}
+
+		FScopeLock Lock(&ThisPtr->DataGuard);
+
+		if (ThisPtr->GetNumOfPlayedFrames_Internal() == 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("No audio data will be released because the current playback time is zero"));
+			return;
+		}
+
+		const int64 OldNumOfPCMData = ThisPtr->PCMBufferInfo->PCMData.GetView().Num();
+
+		if (ThisPtr->GetNumOfPlayedFrames_Internal() >= ThisPtr->PCMBufferInfo->PCMNumOfFrames)
+		{
+			ThisPtr->ReleaseMemory();
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released all PCM data (%lld)"), OldNumOfPCMData);
+			return;
+		}
+
+		const int64 NewPCMDataSize = (ThisPtr->PCMBufferInfo->PCMNumOfFrames - ThisPtr->GetNumOfPlayedFrames_Internal()) * ThisPtr->NumChannels * sizeof(float);
+		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
+
+		if (!NewPCMDataPtr)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate new memory to free already played audio data"));
+			return;
+		}
+
+		// PCM data offset to retrieve remaining data for playback
+		const int64 PCMDataOffset = ThisPtr->GetNumOfPlayedFrames_Internal() * ThisPtr->NumChannels;
+
+		FMemory::Memcpy(NewPCMDataPtr, ThisPtr->PCMBufferInfo->PCMData.GetView().GetData() + PCMDataOffset, NewPCMDataSize);
+
+		ThisPtr->PCMBufferInfo->PCMData = FBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+
+		// Decreasing the amount of PCM frames
+		ThisPtr->PCMBufferInfo->PCMNumOfFrames -= ThisPtr->GetNumOfPlayedFrames_Internal();
+
+		// Decreasing duration and increasing duration offset
+		{
+			const float DurationOffsetToReduce = ThisPtr->GetNumOfPlayedFrames_Internal() / ThisPtr->SampleRate;
+			ThisPtr->Duration -= DurationOffsetToReduce;
+			ThisPtr->DurationOffset += DurationOffsetToReduce;
+		}
+
+		ThisPtr->PlayedNumOfFrames = 0;
+
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released %lld number of PCM data"), static_cast<int64>(OldNumOfPCMData - ThisPtr->PCMBufferInfo->PCMData.GetView().Num()));
+	});
 }
 
 void UImportedSoundWave::SetLooping(bool bLoop)
@@ -231,8 +275,8 @@ void UImportedSoundWave::SetPitch(float InPitch)
 
 bool UImportedSoundWave::RewindPlaybackTime(float PlaybackTime)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
-	return RewindPlaybackTime_Internal(PlaybackTime);
+	FScopeLock Lock(&DataGuard);
+	return RewindPlaybackTime_Internal(PlaybackTime - GetDurationOffset_Internal());
 }
 
 bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
@@ -248,7 +292,7 @@ bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
 
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 	return SetNumOfPlayedFrames_Internal(NumOfFrames);
 }
 
@@ -269,7 +313,7 @@ bool UImportedSoundWave::SetNumOfPlayedFrames_Internal(uint32 NumOfFrames)
 
 uint32 UImportedSoundWave::GetNumOfPlayedFrames() const
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 	return GetNumOfPlayedFrames_Internal();
 }
 
@@ -280,8 +324,8 @@ uint32 UImportedSoundWave::GetNumOfPlayedFrames_Internal() const
 
 float UImportedSoundWave::GetPlaybackTime() const
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
-	return GetPlaybackTime_Internal();
+	FScopeLock Lock(&DataGuard);
+	return GetPlaybackTime_Internal() + GetDurationOffset_Internal();
 }
 
 float UImportedSoundWave::GetPlaybackTime_Internal() const
@@ -296,8 +340,8 @@ float UImportedSoundWave::GetPlaybackTime_Internal() const
 
 float UImportedSoundWave::GetDurationConst() const
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
-	return GetDurationConst_Internal();
+	FScopeLock Lock(&DataGuard);
+	return GetDurationConst_Internal() + GetDurationOffset_Internal();
 }
 
 float UImportedSoundWave::GetDurationConst_Internal() const
@@ -320,26 +364,37 @@ int32 UImportedSoundWave::GetSampleRate() const
 
 float UImportedSoundWave::GetPlaybackPercentage() const
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 
-	if (GetNumOfPlayedFrames() == 0 || PCMBufferInfo->PCMNumOfFrames == 0)
+	if (GetNumOfPlayedFrames_Internal() == 0 || PCMBufferInfo->PCMNumOfFrames == 0)
 	{
 		return 0;
 	}
 
-	return static_cast<float>(PlayedNumOfFrames) / PCMBufferInfo->PCMNumOfFrames * 100;
+	return static_cast<float>(GetNumOfPlayedFrames_Internal()) / PCMBufferInfo->PCMNumOfFrames * 100;
 }
 
 bool UImportedSoundWave::IsPlaybackFinished() const
 {
-	FScopeLock Lock(PCMBufferInfo->GetDataGuard());
+	FScopeLock Lock(&DataGuard);
 	return IsPlaybackFinished_Internal();
+}
+
+float UImportedSoundWave::GetDurationOffset() const
+{
+	FScopeLock Lock(&DataGuard);
+	return DurationOffset;
+}
+
+float UImportedSoundWave::GetDurationOffset_Internal() const
+{
+	return DurationOffset;
 }
 
 bool UImportedSoundWave::IsPlaybackFinished_Internal() const
 {
 	// Are there enough frames for future playback from the current ones or not
-	const bool bOutOfFrames = PlayedNumOfFrames >= PCMBufferInfo->PCMNumOfFrames;
+	const bool bOutOfFrames = GetNumOfPlayedFrames_Internal() >= PCMBufferInfo->PCMNumOfFrames;
 
 	// Is PCM data valid
 	const bool bValidPCMData = PCMBufferInfo.IsValid();

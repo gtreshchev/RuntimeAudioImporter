@@ -6,7 +6,6 @@
 #include "Sound/SoundGroups.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "Serialization/BulkDataBuffer.h"
-#include "HAL/UnrealMemory.h"
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
@@ -67,6 +66,10 @@ struct FSoundWaveBasicStruct
 	/** Sound wave duration, sec */
 	float Duration;
 
+	FSoundWaveBasicStruct()
+		: NumOfChannels(0), SampleRate(0), Duration(0)
+	{}
+
 	/**
 	 * Whether the sound wave data appear to be valid or not
 	 */
@@ -96,33 +99,9 @@ public:
 	/** Number of PCM frames */
 	uint32 PCMNumOfFrames;
 
-private:
-
-	/** Data guard (mutex) for thread safety */
-	mutable FCriticalSection DataGuard;
-
-public:
-	FCriticalSection* GetDataGuard() const
-	{
-		return &DataGuard;
-	}
-
 	FPCMStruct()
 		: PCMNumOfFrames(0)
 	{
-	}
-
-	FPCMStruct(const FPCMStruct& PCMInfo)
-		: PCMData(PCMInfo.PCMData)
-	  , PCMNumOfFrames(PCMInfo.PCMNumOfFrames)
-	{
-	}
-
-	FPCMStruct& operator=(const FPCMStruct& PCMInfo)
-	{
-		PCMData = PCMInfo.PCMData;
-		PCMNumOfFrames = PCMInfo.PCMNumOfFrames;
-		return *this;
 	}
 
 	/**
@@ -191,7 +170,7 @@ struct FEncodedAudioStruct
 	/** Custom constructor */
 	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
 		: AudioData(AudioData, AudioDataSize)
-	  , AudioFormat{AudioFormat}
+	  , AudioFormat(AudioFormat)
 	{
 	}
 

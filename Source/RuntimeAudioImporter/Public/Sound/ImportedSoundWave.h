@@ -63,6 +63,13 @@ public:
 	void ReleaseMemory();
 
 	/**
+	 * Remove previously played audio data. Adds a duration offset from the removed audio data
+	 * This re-allocates all audio data memory, so should not be called too frequently
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
+	void ReleasePlayedAudioData();
+
+	/**
 	 * Set whether the sound should loop or not
 	 *
 	 * @param bLoop Whether the sound should loop or not
@@ -97,6 +104,7 @@ public:
 	/**
 	 * Rewind the sound for the specified time
 	 *
+	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 * @param PlaybackTime How long to rewind the sound
 	 * @return Whether the sound was rewound or not
 	 */
@@ -105,7 +113,8 @@ public:
 
 	/**
 	 * Thread-unsafe equivalent of RewindPlaybackTime
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
+	 * @note This does not add a duration offset
 	 */
 	bool RewindPlaybackTime_Internal(float PlaybackTime);
 
@@ -119,7 +128,7 @@ public:
 
 	/**
 	 * Thread-unsafe equivalent of SetNumOfPlayedFrames
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
 	 */
 	bool SetNumOfPlayedFrames_Internal(uint32 NumOfFrames);
 
@@ -132,36 +141,41 @@ public:
 
 	/**
 	 * Thread-unsafe equivalent of GetNumOfPlayedFrames
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
 	 */
 	uint32 GetNumOfPlayedFrames_Internal() const;
 
 	/**
 	 * Get the current sound wave playback time, in seconds
+	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	float GetPlaybackTime() const;
 
 	/**
 	 * Thread-unsafe equivalent of GetPlaybackTime
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
+	 * @note This does not add a duration offset
 	 */
 	float GetPlaybackTime_Internal() const;
 
 	/**
 	 * Constant alternative for getting the length of the sound wave, in seconds
+	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get Duration"))
 	float GetDurationConst() const;
 
 	/**
 	 * Thread-unsafe equivalent of GetDurationConst
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
+	 * @note This does not add a duration offset
 	 */
 	float GetDurationConst_Internal() const;
 
 	/**
 	 * Get the length of the sound wave, in seconds
+	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	virtual float GetDuration()
@@ -186,12 +200,25 @@ public:
 	/**
 	 * Check if audio playback has finished or not
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Utility")
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	bool IsPlaybackFinished() const;
 
 	/**
+	 * Get the duration offset if some played back audio data was removed during playback (eg in ReleasePlayedAudioData)
+	 * The sound wave starts playing from this time as from the very beginning
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
+	float GetDurationOffset() const;
+
+	/**
+	 * Thread-unsafe equivalent of GetDurationOffset
+	 * Should only be used if DataGuard is locked
+	 */
+	float GetDurationOffset_Internal() const;
+
+	/**
 	 * Thread-unsafe equivalent of IsPlaybackFinished
-	 * Should only be used if access to the PCM buffer is locked
+	 * Should only be used if DataGuard is locked
 	 */
 	bool IsPlaybackFinished_Internal() const;
 
@@ -214,11 +241,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnGeneratePCMData OnGeneratePCMData;
 
-private:
-	/** Bool to control the behaviour of the OnAudioPlaybackFinished delegate */
-	bool PlaybackFinishedBroadcast;
-
-public:
 	/**
 	 * Get immutable PCM buffer. Use PopulateAudioDataFromDecodedInfo to populate it
 	 *
@@ -226,7 +248,16 @@ public:
 	 */
 	const FPCMStruct& GetPCMBuffer() const;
 
+	/** Data guard (mutex) for thread safety */
+	mutable FCriticalSection DataGuard;
+
 protected:
+	/** Duration offset, needed to track the clearing of part of the audio data of the sound wave during playback (see ReleasePlayedAudioData) */
+	float DurationOffset;
+
+	/** Bool to control the behaviour of the OnAudioPlaybackFinished delegate */
+	bool PlaybackFinishedBroadcast;
+
 	/** The number of frames played. Increments during playback, should not be > PCMBufferInfo.PCMNumOfFrames */
 	uint32 PlayedNumOfFrames;
 
