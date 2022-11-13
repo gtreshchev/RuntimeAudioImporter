@@ -26,7 +26,7 @@
 - Supported for major audio formats: MP3, WAV, FLAC and OGG Vorbis
 - Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float
 - Automatic detection of audio format
-- Sound wave compression
+- Audio streaming functionality
 - Exporting a sound wave to a separate file
 - Pre-imported sound assets
 - No any static libraries and external dependencies
