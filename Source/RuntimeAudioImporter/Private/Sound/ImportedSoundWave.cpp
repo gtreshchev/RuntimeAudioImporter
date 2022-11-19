@@ -129,14 +129,26 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 
 			PlaybackFinishedBroadcast = true;
 
-			if (OnAudioPlaybackFinishedNative.IsBound())
+			if (OnAudioPlaybackFinishedNative.IsBound() || OnAudioPlaybackFinished.IsBound())
 			{
-				OnAudioPlaybackFinishedNative.Broadcast();
-			}
+				TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+				AsyncTask(ENamedThreads::GameThread, [ThisPtr]()
+				{
+					if (!ThisPtr.IsValid())
+					{
+						return;
+					}
 
-			if (OnAudioPlaybackFinished.IsBound())
-			{
-				OnAudioPlaybackFinished.Broadcast();
+					if (ThisPtr->OnAudioPlaybackFinishedNative.IsBound())
+					{
+						ThisPtr->OnAudioPlaybackFinishedNative.Broadcast();
+					}
+
+					if (ThisPtr->OnAudioPlaybackFinished.IsBound())
+					{
+						ThisPtr->OnAudioPlaybackFinished.Broadcast();
+					}
+				});
 			}
 		}
 
