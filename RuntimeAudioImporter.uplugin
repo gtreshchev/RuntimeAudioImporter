@@ -14,22 +14,12 @@
   "IsBetaVersion": false,
   "IsExperimentalVersion": false,
   "Installed": true,
-  "EngineVersion": "5.0.0",
+  "EngineVersion": "5.1.0",
   "Modules": [
     {
       "Name": "RuntimeAudioImporter",
       "Type": "Runtime",
-      "LoadingPhase": "Default",
-      "PlatformAllowList": [
-        "Win64",
-        "Mac",
-        "Android",
-        "IOS",
-        "Linux",
-        "LinuxArm64",
-        "PS4",
-        "Switch"
-      ]
+      "LoadingPhase": "Default"
     },
     {
       "Name": "RuntimeAudioImporterEditor",
