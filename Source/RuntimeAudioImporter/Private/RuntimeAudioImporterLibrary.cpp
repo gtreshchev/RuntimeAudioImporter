@@ -20,7 +20,7 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 	return NewObject<URuntimeAudioImporterLibrary>();
 }
 
-bool LoadAudioFileToArray(TArray<uint8>& AudioData, const FString& FilePath)
+bool LoadAudioFileToArray(TArray64<uint8>& AudioData, const FString& FilePath)
 {
 	if (!FFileHelper::LoadFileToArray(AudioData, *FilePath))
 	{
@@ -53,7 +53,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 		AudioFormat = AudioFormat == EAudioFormat::Auto ? GetAudioFormat(FilePath) : AudioFormat;
 		AudioFormat = AudioFormat == EAudioFormat::Invalid ? EAudioFormat::Auto : AudioFormat;
 
-		TArray<uint8> AudioBuffer;
+		TArray64<uint8> AudioBuffer;
 		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
 		{
 			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
@@ -70,6 +70,11 @@ void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedS
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat)
+{
+	ImportAudioFromBuffer(TArray64<uint8>(MoveTemp(AudioData)), AudioFormat);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray64<uint8> AudioData, EAudioFormat AudioFormat)
 {
 	TWeakObjectPtr<URuntimeAudioImporterLibrary> ThisPtr(this);
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
@@ -134,7 +139,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 
 		ThisPtr->OnProgress_Internal(5);
 
-		TArray<uint8> AudioBuffer;
+		TArray64<uint8> AudioBuffer;
 		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
 		{
 			ThisPtr->OnResult_Internal(nullptr, ETranscodingStatus::LoadFileToArrayError);
@@ -148,11 +153,16 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 
 void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)
 {
+	ImportAudioFromRAWBuffer(TArray64<uint8>(MoveTemp(RAWBuffer)), RAWFormat, SampleRate, NumOfChannels);
+}
+
+void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray64<uint8> RAWBuffer, ERAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)
+{
 	uint8* RAWData{RAWBuffer.GetData()};
-	const int32 RAWDataSize{RAWBuffer.Num()};
+	const int64 RAWDataSize{RAWBuffer.Num()};
 
 	float* PCMData{nullptr};
-	int32 PCMDataSize{0};
+	int64 PCMDataSize{0};
 
 	OnProgress_Internal(15);
 
@@ -197,17 +207,17 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuf
 
 void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
 {
-	TranscodeRAWDataFromBuffer(MoveTemp(RAWDataFrom), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray<uint8>& RAWData)
+	TranscodeRAWDataFromBuffer(TArray64<uint8>(MoveTemp(RAWDataFrom)), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray64<uint8>& RAWData)
 	{
-		Result.ExecuteIfBound(bSucceed, RAWData);
+		Result.ExecuteIfBound(bSucceed, TArray<uint8>(RAWData));
 	}));
 }
 
-void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result)
+void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result)
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RAWDataFrom = MoveTemp(RAWDataFrom), RAWFormatFrom, RAWFormatTo, Result]()
 	{
-		auto ExecuteResult = [Result](bool bSucceed, TArray<uint8>&& AudioData)
+		auto ExecuteResult = [Result](bool bSucceed, TArray64<uint8>&& AudioData)
 		{
 			AsyncTask(ENamedThreads::GameThread, [Result, bSucceed, AudioData]()
 			{
@@ -215,7 +225,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 			});
 		};
 
-		TArray<uint8> IntermediateRAWBuffer;
+		TArray64<uint8> IntermediateRAWBuffer;
 
 		// Transcoding of all formats to unsigned 8-bit PCM format (intermediate)
 		switch (RAWFormatFrom)
@@ -242,7 +252,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 			}
 		}
 
-		TArray<uint8> RAWData_To;
+		TArray64<uint8> RAWData_To;
 
 		// Transcoding unsigned 8-bit PCM to the specified format
 		switch (RAWFormatTo)
@@ -293,7 +303,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 			});
 		};
 
-		TArray<uint8> RAWBufferFrom;
+		TArray64<uint8> RAWBufferFrom;
 		if (!LoadAudioFileToArray(RAWBufferFrom, *FilePathFrom))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when reading RAW data on the path '%s'"), *FilePathFrom);
@@ -301,7 +311,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromFile(const FString& FileP
 			return;
 		}
 
-		TranscodeRAWDataFromBuffer(MoveTemp(RAWBufferFrom), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result, ExecuteResult, FilePathTo](bool bSucceed, const TArray<uint8>& RAWBufferTo)
+		TranscodeRAWDataFromBuffer(MoveTemp(RAWBufferFrom), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result, ExecuteResult, FilePathTo](bool bSucceed, const TArray64<uint8>& RAWBufferTo)
 		{
 			if (!bSucceed)
 			{
@@ -340,7 +350,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(TWeakObjectPtr<UImporte
 {
 	AudioFormat = AudioFormat == EAudioFormat::Auto ? GetAudioFormat(SavePath) : AudioFormat;
 
-	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, const TArray<uint8>& AudioData)
+	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceed, const TArray64<uint8>& AudioData)
 	{
 		if (!bSucceed)
 		{
@@ -367,9 +377,16 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(UImportedSoundWave* I
 		return;
 	}
 
-	ExportSoundWaveToBuffer(ImportedSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray<uint8>& AudioData)
+	ExportSoundWaveToBuffer(ImportedSoundWave, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result](bool bSucceed, const TArray64<uint8>& AudioData)
 	{
-		Result.ExecuteIfBound(bSucceed, AudioData);
+		if (AudioData.Num() > TNumericLimits<int32>::Max())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Array with int32 size (max length: %d) cannot fit int64 size data (retrieved length: %lld)\nA standard byte array can hold a maximum of 2 GB of data"), MAX_int32, AudioData.Num());
+			Result.ExecuteIfBound(false, TArray<uint8>());
+			return;
+		}
+		
+		Result.ExecuteIfBound(bSucceed, TArray<uint8>(AudioData));
 	}));
 }
 
@@ -377,7 +394,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(TWeakObjectPtr<UImpor
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWavePtr, AudioFormat, Quality, Result]
 	{
-		auto ExecuteResult = [Result](bool bSucceed, TArray<uint8>&& AudioData)
+		auto ExecuteResult = [Result](bool bSucceed, TArray64<uint8>&& AudioData)
 		{
 			AsyncTask(ENamedThreads::GameThread, [Result, bSucceed, AudioData = MoveTemp(AudioData)]()
 			{
@@ -388,14 +405,14 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(TWeakObjectPtr<UImpor
 		if (!ImportedSoundWavePtr.IsValid())
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
-			ExecuteResult(false, TArray<uint8>());
+			ExecuteResult(false, TArray64<uint8>());
 			return;
 		}
 
 		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as the PCM data is invalid"));
-			ExecuteResult(false, TArray<uint8>());
+			ExecuteResult(false, TArray64<uint8>());
 			return;
 		}
 
@@ -419,11 +436,11 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(TWeakObjectPtr<UImpor
 		if (!EncodeAudioData(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, Quality))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave '%s'"), *ImportedSoundWavePtr->GetName());
-			ExecuteResult(false, TArray<uint8>());
+			ExecuteResult(false, TArray64<uint8>());
 			return;
 		}
 
-		ExecuteResult(true, TArray<uint8>(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num()));
+		ExecuteResult(true, TArray64<uint8>(EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num()));
 	});
 }
 
@@ -499,7 +516,17 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormatAdvanced(const TArray<u
 	return GetAudioFormat(AudioData.GetData(), AudioData.Num());
 }
 
+EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormatAdvanced(const TArray64<uint8>& AudioData)
+{
+	return GetAudioFormat(AudioData.GetData(), AudioData.Num());
+}
+
 EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData, int32 AudioDataSize)
+{
+	return GetAudioFormat(AudioData, static_cast<int64>(AudioDataSize));
+}
+
+EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData, int64 AudioDataSize)
 {
 	if (MP3Transcoder::CheckAudioFormat(AudioData, AudioDataSize))
 	{

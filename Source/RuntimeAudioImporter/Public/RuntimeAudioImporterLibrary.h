@@ -23,7 +23,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, URuntimeA
 
 
 /** Static delegate broadcasting the result of the audio export to buffer */
-DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, const TArray<uint8>&);
+DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, const TArray64<uint8>&);
 
 /** Dynamic delegate broadcasting the result of the audio export to buffer */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnAudioExportToBufferResult, bool, bSucceeded, const TArray<uint8>&, AudioData);
@@ -36,7 +36,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAudioExportToFileResult, bool, bSucceeded);
 
 
 /** Static delegate broadcasting the result of the RAW data transcoded from buffer */
-DECLARE_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResultNative, bool, const TArray<uint8>&);
+DECLARE_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResultNative, bool, const TArray64<uint8>&);
 
 /** Dynamic delegate broadcasting the result of the RAW data transcoded from buffer */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResult, bool, bSucceeded, UPARAM(DisplayName = "RAW Data") const TArray<uint8>&, RAWData);
@@ -108,6 +108,14 @@ public:
 	void ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat);
 
 	/**
+	 * Import audio from buffer. Prefer to use this function if possible
+	 *
+	 * @param AudioData Audio data array
+	 * @param AudioFormat Audio format
+	 */
+	void ImportAudioFromBuffer(TArray64<uint8> AudioData, EAudioFormat AudioFormat);
+
+	/**
 	 * Import audio from RAW file. Audio data must not have headers and must be uncompressed
 	 *
 	 * @param FilePath Path to the audio file to import
@@ -130,6 +138,16 @@ public:
 	void ImportAudioFromRAWBuffer(UPARAM(DisplayName = "RAW Buffer") TArray<uint8> RAWBuffer, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
+	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed. Prefer to use this function if possible
+	 *
+	 * @param RAWBuffer RAW audio buffer
+	 * @param RAWFormat RAW audio format
+	 * @param SampleRate The number of samples per second
+	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
+	 */
+	void ImportAudioFromRAWBuffer(TArray64<uint8> RAWBuffer, ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+
+	/**
 	 * Transcoding one RAW Data format to another from buffer
 	 *
 	 * @param RAWDataFrom RAW data for transcoding
@@ -141,14 +159,14 @@ public:
 	static void TranscodeRAWDataFromBuffer(UPARAM(DisplayName = "RAW Data From") TArray<uint8> RAWDataFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result);
 
 	/**
-	 * Transcoding one RAW Data format to another from buffer
+	 * Transcoding one RAW Data format to another from buffer. Prefer to use this function if possible
 	 *
 	 * @param RAWDataFrom RAW data for transcoding
 	 * @param RAWFormatFrom Original format
 	 * @param RAWFormatTo Required format
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void TranscodeRAWDataFromBuffer(UPARAM(DisplayName = "RAW Data From") TArray<uint8> RAWDataFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result);
+	static void TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result);
 
 	/**
 	 * Transcoding one RAW Data format to another from file. Suitable for use in C++
@@ -236,6 +254,14 @@ public:
 	static EAudioFormat GetAudioFormatAdvanced(const TArray<uint8>& AudioData);
 
 	/**
+	 * Determine audio format based on audio data. A more advanced way to get the format. Prefer to use this function if possible
+	 *
+	 * @param AudioData Audio data array
+	 * @return The found audio format (e.g. mp3. flac, etc)
+	 */
+	static EAudioFormat GetAudioFormatAdvanced(const TArray64<uint8>& AudioData);
+
+	/**
 	 * Convert seconds to string (hh:mm:ss or mm:ss depending on the number of seconds)
 	 *
 	 * @return hh:mm:ss or mm:ss string representation
@@ -267,8 +293,18 @@ public:
 	 *
 	 * @param AudioData Pointer to in-memory audio data
 	 * @param AudioDataSize Size of in-memory audio data
+	 * @return The found audio format (e.g. mp3. flac, etc)
 	 */
 	static EAudioFormat GetAudioFormat(const uint8* AudioData, int32 AudioDataSize);
+
+	/**
+	 * Determine audio format based on audio data. Prefer to use this function if possible
+	 *
+	 * @param AudioData Pointer to in-memory audio data
+	 * @param AudioDataSize Size of in-memory audio data
+	 * @return The found audio format (e.g. mp3. flac, etc)
+	 */
+	static EAudioFormat GetAudioFormat(const uint8* AudioData, int64 AudioDataSize);
 
 	/**
 	 * Import audio from 32-bit float PCM data
