@@ -262,12 +262,12 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioSt
 	DecodedData.PCMInfo.PCMNumOfFrames = NumOfFrames;
 
 	// Getting PCM data size
-	const int32 TempPCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
+	const int64 TempPCMDataSize = DecodedData.PCMInfo.PCMNumOfFrames * NumOfChannels * 2;
 
 	// Transcoding int16 to float format
 	{
 		float* TempFloatBuffer;
-		int32 TempFloatSize;
+		int64 TempFloatSize;
 
 		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, TempPCMDataSize, TempFloatBuffer, TempFloatSize);
 		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempFloatBuffer, TempFloatSize);

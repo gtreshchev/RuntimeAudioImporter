@@ -52,17 +52,17 @@ public:
 	 * @param RAWData_To Transcoded RAW data with the specified format
 	 */
 	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	static void TranscodeRAWData(const TArray<uint8>& RAWData_From, TArray<uint8>& RAWData_To)
+	static void TranscodeRAWData(const TArray64<uint8>& RAWData_From, TArray64<uint8>& RAWData_To)
 	{
 		const IntegralTypeFrom* DataFrom = reinterpret_cast<const IntegralTypeFrom*>(RAWData_From.GetData());
-		const int32 DataFrom_Size = RAWData_From.Num();
+		const int64 DataFrom_Size = RAWData_From.Num();
 
 		IntegralTypeTo* DataTo = nullptr;
-		int32 DataTo_Size = 0;
+		int64 DataTo_Size = 0;
 
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
 
-		RAWData_To = TArray<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
+		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
 		
 		FMemory::Free(DataTo);
 	}
@@ -76,10 +76,10 @@ public:
 	 * @param RAWDataSize_To Memory size allocated for the RAW data
 	 */
 	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	static void TranscodeRAWData(const IntegralTypeFrom* RAWData_From, int32 RAWDataSize_From, IntegralTypeTo*& RAWData_To, int32& RAWDataSize_To)
+	static void TranscodeRAWData(const IntegralTypeFrom* RAWData_From, int64 RAWDataSize_From, IntegralTypeTo*& RAWData_To, int64& RAWDataSize_To)
 	{
 		/** Getting the required number of samples to transcode */
-		const int32 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
+		const int64 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
 
 		/** Getting the required PCM size */
 		RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);

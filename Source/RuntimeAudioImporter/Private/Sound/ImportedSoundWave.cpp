@@ -21,6 +21,7 @@ UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializ
 	bProcedural = true;
 	DecompressionType = EDecompressionType::DTYPE_Procedural;
 	SoundGroup = ESoundGroup::SOUNDGROUP_Default;
+	SetPrecacheState(ESoundWavePrecacheState::Done);
 }
 
 UImportedSoundWave* UImportedSoundWave::CreateImportedSoundWave()
@@ -114,10 +115,12 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 {
 	FScopeLock Lock(&DataGuard);
 
+#if ENGINE_MAJOR_VERSION >= 5
 	if (ActiveSound.PlaybackTime == 0.f)
 	{
 		RewindPlaybackTime_Internal(ParseParams.StartTime);
 	}
+#endif
 
 	ActiveSound.PlaybackTime = GetPlaybackTime_Internal();
 

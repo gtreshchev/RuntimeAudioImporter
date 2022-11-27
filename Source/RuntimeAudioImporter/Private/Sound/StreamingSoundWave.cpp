@@ -137,7 +137,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudi
 		const int32 RAWDataSize{RAWData.Num()};
 
 		float* PCMData{nullptr};
-		int32 PCMDataSize{0};
+		int64 PCMDataSize{0};
 
 		// Transcoding RAW data to 32-bit float data
 		{

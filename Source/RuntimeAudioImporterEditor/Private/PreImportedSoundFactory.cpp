@@ -13,10 +13,13 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
 	Formats.Add(TEXT("imp;Runtime Audio Importer any supported format (mp3, wav, flac and ogg)"));
 
+	// Removed for consistency with other modules
+	/*
 	Formats.Add(TEXT("mp3;MPEG-2 Audio"));
 	Formats.Add(TEXT("wav;Wave Audio File"));
 	Formats.Add(TEXT("flac;Free Lossless Audio Codec"));
 	Formats.Add(TEXT("ogg;OGG Vorbis bitstream format"));
+	*/
 
 	SupportedClass = StaticClass();
 	bCreateNew = false; // turned off for import
