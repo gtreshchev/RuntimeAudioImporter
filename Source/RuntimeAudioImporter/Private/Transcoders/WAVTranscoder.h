@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RuntimeAudioImporterTypes.h"
 
 struct FDecodedAudioStruct;
 struct FEncodedAudioStruct;
@@ -64,7 +65,7 @@ public:
 	 *
 	 * @param WavData Buffer of the wav data
 	 */
-	static bool CheckAndFixWavDurationErrors(FBulkDataBuffer<uint8>& WavData);
+	static bool CheckAndFixWavDurationErrors(const FRuntimeBulkDataBuffer<uint8>& WavData);
 
 	/**
 	 * Check if the given WAV audio data seems to be valid

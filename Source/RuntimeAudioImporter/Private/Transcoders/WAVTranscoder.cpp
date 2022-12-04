@@ -8,7 +8,7 @@
 #include "TranscodersIncludes.h"
 #undef INCLUDE_WAV
 
-bool WAVTranscoder::CheckAndFixWavDurationErrors(FBulkDataBuffer<uint8>& WavData)
+bool WAVTranscoder::CheckAndFixWavDurationErrors(const FRuntimeBulkDataBuffer<uint8>& WavData)
 {
 	drwav WAV;
 
@@ -135,7 +135,7 @@ bool WAVTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruc
 	drwav_uninit(&WAV_Encoder);
 
 	{
-		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), AudioDataSize);
+		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), static_cast<int64>(AudioDataSize));
 		EncodedData.AudioFormat = EAudioFormat::Wav;
 	}
 
@@ -172,7 +172,7 @@ bool WAVTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruc
 	// Getting PCM data size
 	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * WAV_Decoder.channels * sizeof(float));
 
-	DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
+	DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 
 	// Getting basic audio information
 	{

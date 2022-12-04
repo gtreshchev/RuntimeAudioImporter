@@ -203,7 +203,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray64<uint8> RAWB
 		return;
 	}
 
-	ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>(PCMData, PCMDataSize), SampleRate, NumOfChannels);
+	ImportAudioFromFloat32Buffer(FRuntimeBulkDataBuffer<float>(PCMData, PCMDataSize), SampleRate, NumOfChannels);
 }
 
 void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
@@ -556,7 +556,7 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData
 	return EAudioFormat::Invalid;
 }
 
-void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>&& PCMData, int32 SampleRate, int32 NumOfChannels)
+void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FRuntimeBulkDataBuffer<float>&& PCMData, int32 SampleRate, int32 NumOfChannels)
 {
 	FDecodedAudioStruct DecodedAudioInfo;
 	{

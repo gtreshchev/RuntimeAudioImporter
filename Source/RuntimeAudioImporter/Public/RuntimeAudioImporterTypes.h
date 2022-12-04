@@ -5,7 +5,6 @@
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
 #include "RuntimeAudioImporterDefines.h"
-#include "Serialization/BulkDataBuffer.h"
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
@@ -54,6 +53,99 @@ enum class ERAWAudioFormat : uint8
 	Float32 UMETA(DisplayName = "32-bit float")
 };
 
+/**
+ * Alternative to FBulkDataBuffer with data types consistency
+ */
+template <typename DataType>
+class FRuntimeBulkDataBuffer
+{
+public:
+	using ViewType = TArrayView64<DataType>;
+
+	FRuntimeBulkDataBuffer() = default;
+
+	FRuntimeBulkDataBuffer(const FRuntimeBulkDataBuffer& Other)
+	{
+		*this = Other;
+	}
+
+	FRuntimeBulkDataBuffer(FRuntimeBulkDataBuffer&& Other) noexcept
+	{
+		View = MoveTemp(Other.View);
+		Other.View = ViewType();
+	}
+
+	FRuntimeBulkDataBuffer(DataType* InBuffer, int64 InNumberOfElements)
+		: View(InBuffer, InNumberOfElements)
+	{
+	}
+
+	~FRuntimeBulkDataBuffer()
+	{
+		FreeBuffer();
+	}
+
+	FRuntimeBulkDataBuffer& operator =(const FRuntimeBulkDataBuffer& Other)
+	{
+		FreeBuffer();
+
+		if (this != &Other)
+		{
+			const int64 BufferSize = Other.View.Num();
+
+			DataType* BufferCopy = static_cast<DataType*>(FMemory::Malloc(BufferSize));
+			FMemory::Memcpy(BufferCopy, Other.View.GetData(), BufferSize);
+
+			View = ViewType(BufferCopy, BufferSize);
+		}
+
+		return *this;
+	}
+
+	FRuntimeBulkDataBuffer& operator =(FRuntimeBulkDataBuffer&& Other) noexcept
+	{
+		if (this != &Other)
+		{
+			FreeBuffer();
+
+			View = Other.View;
+			Other.View = ViewType();
+		}
+
+		return *this;
+	}
+
+	void Empty()
+	{
+		FreeBuffer();
+
+		View = ViewType();
+	}
+
+	void Reset(DataType* InBuffer, int64 InNumberOfElements)
+	{
+		FreeBuffer();
+
+		View = ViewType(InBuffer, InNumberOfElements);
+	}
+
+	const ViewType& GetView() const
+	{
+		return View;
+	}
+
+private:
+	void FreeBuffer()
+	{
+		if (View.GetData() != nullptr)
+		{
+			FMemory::Free(View.GetData());
+		}
+	}
+
+	ViewType View;
+};
+
 /** Basic sound wave data */
 struct FSoundWaveBasicStruct
 {
@@ -67,8 +159,11 @@ struct FSoundWaveBasicStruct
 	float Duration;
 
 	FSoundWaveBasicStruct()
-		: NumOfChannels(0), SampleRate(0), Duration(0)
-	{}
+		: NumOfChannels(0)
+	  , SampleRate(0)
+	  , Duration(0)
+	{
+	}
 
 	/**
 	 * Whether the sound wave data appear to be valid or not
@@ -94,7 +189,7 @@ struct FPCMStruct
 {
 public:
 	/** 32-bit float PCM data */
-	FBulkDataBuffer<float> PCMData;
+	FRuntimeBulkDataBuffer<float> PCMData;
 
 	/** Number of PCM frames */
 	uint32 PCMNumOfFrames;
@@ -156,7 +251,7 @@ struct FDecodedAudioStruct
 struct FEncodedAudioStruct
 {
 	/** Audio data */
-	FBulkDataBuffer<uint8> AudioData;
+	FRuntimeBulkDataBuffer<uint8> AudioData;
 
 	/** Format of the audio data (e.g. mp3, flac, etc) */
 	EAudioFormat AudioFormat;
@@ -168,7 +263,7 @@ struct FEncodedAudioStruct
 	}
 
 	/** Custom constructor */
-	FEncodedAudioStruct(uint8* AudioData, int32 AudioDataSize, EAudioFormat AudioFormat)
+	FEncodedAudioStruct(uint8* AudioData, int64 AudioDataSize, EAudioFormat AudioFormat)
 		: AudioData(AudioData, AudioDataSize)
 	  , AudioFormat(AudioFormat)
 	{
