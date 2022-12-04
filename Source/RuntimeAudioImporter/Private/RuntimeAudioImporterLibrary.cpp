@@ -14,6 +14,7 @@
 
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
+#include "UObject/GCObjectScopeGuard.h"
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -470,6 +471,8 @@ void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(FDecodedAudioStruc
 		OnResult_Internal(nullptr, ETranscodingStatus::SoundWaveDeclarationError);
 		return;
 	}
+
+	FGCObjectScopeGuard ImportedSoundWaveGuard(ImportedSoundWave);
 
 	OnProgress_Internal(75);
 
