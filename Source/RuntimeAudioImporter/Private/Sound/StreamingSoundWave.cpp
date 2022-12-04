@@ -69,7 +69,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		FMemory::Memcpy(NewPCMDataPtr + (PCMBufferInfo->PCMData.GetView().Num() / sizeof(float)), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
 	}
 
-	PCMBufferInfo->PCMData = FBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+	PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
 	PCMBufferInfo->PCMNumOfFrames += DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
 
 	Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
@@ -177,7 +177,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudi
 		{
 			FPCMStruct PCMInfo;
 			{
-				PCMInfo.PCMData = FBulkDataBuffer<float>(PCMData, PCMDataSize);
+				PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(PCMData, PCMDataSize);
 				PCMInfo.PCMNumOfFrames = PCMDataSize / sizeof(float) / NumOfChannels;
 			}
 			DecodedAudioInfo.PCMInfo = MoveTemp(PCMInfo);

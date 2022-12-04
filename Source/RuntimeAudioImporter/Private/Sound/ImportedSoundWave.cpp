@@ -239,7 +239,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 
 		FMemory::Memcpy(NewPCMDataPtr, ThisPtr->PCMBufferInfo->PCMData.GetView().GetData() + PCMDataOffset, NewPCMDataSize);
 
-		ThisPtr->PCMBufferInfo->PCMData = FBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+		ThisPtr->PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
 
 		// Decreasing the amount of PCM frames
 		ThisPtr->PCMBufferInfo->PCMNumOfFrames -= ThisPtr->GetNumOfPlayedFrames_Internal();

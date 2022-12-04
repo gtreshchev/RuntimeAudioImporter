@@ -313,7 +313,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromFloat32Buffer(FBulkDataBuffer<float>&& PCMData, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromFloat32Buffer(FRuntimeBulkDataBuffer<float>&& PCMData, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Create Imported Sound Wave and finish importing.

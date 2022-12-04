@@ -50,7 +50,7 @@ bool FlacTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStru
 	// Getting PCM data size
 	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * FLAC_Decoder->channels * sizeof(float));
 
-	DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
+	DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 
 	// Getting basic audio information
 	{

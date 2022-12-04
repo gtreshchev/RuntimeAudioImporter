@@ -178,7 +178,7 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioSt
 
 	// Filling in the encoded audio data
 	{
-		EncodedData.AudioData = FBulkDataBuffer<uint8>(static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num())), EncodedAudioData.Num());
+		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num())), EncodedAudioData.Num());
 		EncodedData.AudioFormat = EAudioFormat::OggVorbis;
 		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
@@ -270,7 +270,7 @@ bool VorbisTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioSt
 		int64 TempFloatSize;
 
 		RAWTranscoder::TranscodeRAWData<int16, float>(Int16RAWBuffer, TempPCMDataSize, TempFloatBuffer, TempFloatSize);
-		DecodedData.PCMInfo.PCMData = FBulkDataBuffer<float>(TempFloatBuffer, TempFloatSize);
+		DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempFloatBuffer, TempFloatSize);
 	}
 
 	FMemory::Free(Int16RAWBuffer);
