@@ -6,20 +6,18 @@ public class RuntimeAudioImporterEditor : ModuleRules
 {
 	public RuntimeAudioImporterEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		// Change to toggle MetaSounds support
+		bool bEnableMetaSoundSupport = false;
 
-		PublicDefinitions.AddRange(
-			new string[]
-			{
-				"DR_MP3_IMPLEMENTATION=1"
-			}
-		);
+		// MetaSound is only supported in Unreal Engine version >= 5.2
+		bEnableMetaSoundSupport &= (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2) || Target.Version.MajorVersion > 5;
+
+		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
-				"UnrealEd",
 				"RuntimeAudioImporter"
 			}
 		);
@@ -32,5 +30,17 @@ public class RuntimeAudioImporterEditor : ModuleRules
 				"UnrealEd"
 			}
 		);
+
+		if (bEnableMetaSoundSupport)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"MetasoundGraphCore",
+					"MetasoundFrontend",
+					"MetasoundEditor"
+				}
+			);
+		}
 	}
 }
