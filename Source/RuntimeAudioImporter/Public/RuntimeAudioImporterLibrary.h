@@ -10,13 +10,13 @@ class UPreImportedSoundAsset;
 class URuntimeAudioImporterLibrary;
 
 /** Static delegate broadcasting the audio importer progress */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, int32 Percentage);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, int32);
 
 /** Dynamic delegate broadcasting the audio importer progress */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, int32, Percentage);
 
 /** Static delegate broadcasting the audio importer result */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, URuntimeAudioImporterLibrary* Importer, UImportedSoundWave* ImportedSoundWave, ETranscodingStatus Status);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, URuntimeAudioImporterLibrary*, UImportedSoundWave*, ETranscodingStatus);
 
 /** Dynamic delegate broadcasting the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ETranscodingStatus, Status);
@@ -39,7 +39,7 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAudioExportToFileResult, bool, bSucceeded);
 DECLARE_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResultNative, bool, const TArray64<uint8>&);
 
 /** Dynamic delegate broadcasting the result of the RAW data transcoded from buffer */
-DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResult, bool, bSucceeded, UPARAM(DisplayName = "RAW Data") const TArray<uint8>&, RAWData);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRAWDataTranscodeFromBufferResult, bool, bSucceeded, const TArray<uint8>&, RAWData);
 
 
 /** Static delegate broadcasting the result of the RAW data transcoded from file */

@@ -4,6 +4,7 @@
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
+#include "Transcoders/VorbisTranscoder.h"
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -39,6 +40,72 @@ Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMData
 {
 	return Audio::EAudioMixerStreamDataFormat::Type::Float;
 }
+
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+TUniquePtr<Audio::IProxyData> UImportedSoundWave::CreateNewProxyData(const Audio::FProxyDataInitParams& InitParams)
+{
+	if (SoundWaveDataPtr)
+	{
+		SoundWaveDataPtr->OverrideRuntimeFormat(Audio::NAME_OGG);
+	}
+	return USoundWave::CreateNewProxyData(InitParams);
+}
+
+bool UImportedSoundWave::InitAudioResource(FName Format)
+{
+	// Only OGG format is supported for audio resource initialization
+	if (Format != Audio::NAME_OGG)
+	{
+		ensureMsgf(false, TEXT("RuntimeAudioImporter does not support audio format '%s' for initialization. Please explicitly set the audio format to '%s' in your project settings"), *Format.ToString(), *Audio::NAME_OGG.ToString());
+		return false;
+	}
+
+	if (SoundWaveDataPtr->GetResourceSize() > 0)
+	{
+		return true;
+	}
+
+	FDecodedAudioStruct DecodedAudioInfo;
+	{
+		FScopeLock Lock(&DataGuard);
+		{
+			DecodedAudioInfo.PCMInfo = GetPCMBuffer();
+			FSoundWaveBasicStruct SoundWaveBasicInfo;
+			{
+				SoundWaveBasicInfo.NumOfChannels = NumChannels;
+				SoundWaveBasicInfo.SampleRate = GetSampleRate();
+				SoundWaveBasicInfo.Duration = Duration;
+			}
+			DecodedAudioInfo.SoundWaveBasicInfo = SoundWaveBasicInfo;
+		}
+	}
+
+	FEncodedAudioStruct EncodedAudioInfo;
+	if (!VorbisTranscoder::Encode(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, 100))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
+		return false;
+	}
+
+	if (EncodedAudioInfo.AudioData.GetView().Num() <= 0)
+	{
+		return false;
+	}
+
+	FByteBulkData CompressedBulkData;
+
+	// Filling in the compressed data
+	{
+		CompressedBulkData.Lock(LOCK_READ_WRITE);
+		FMemory::Memcpy(CompressedBulkData.Realloc(EncodedAudioInfo.AudioData.GetView().Num()), EncodedAudioInfo.AudioData.GetView().GetData(), EncodedAudioInfo.AudioData.GetView().Num());
+		CompressedBulkData.Unlock();
+	}
+
+	USoundWave::InitAudioResource(CompressedBulkData);
+
+	return true;
+}
+#endif
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)
 {
@@ -190,6 +257,47 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data has been populated successfully. Information about audio data:\n%s"), *DecodedAudioInfoString);
 }
 
+void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSounds& Result)
+{
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+	PrepareSoundWaveForMetaSounds(FOnPreparedSoundWaveForMetaSoundsNative::CreateWeakLambda(this, [Result](bool bSucceeded)
+	{
+		Result.ExecuteIfBound(bSucceeded);
+	}));
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2"));
+	Result.ExecuteIfBound(false);
+#endif
+}
+
+void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSoundsNative& Result)
+{
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+	TWeakObjectPtr<UImportedSoundWave> ThisPtr(this);
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, ThisPtr]()
+	{
+		if (!ThisPtr.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to prepare sound wave for metasounds: the imported sound wave has been garbage collected"));
+			return;
+		}
+
+		auto ExecuteResult = [Result](bool bSucceeded)
+		{
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
+			{
+				Result.ExecuteIfBound(bSucceeded);
+			});
+		};
+
+		ExecuteResult(ThisPtr->InitAudioResource(Audio::NAME_OGG));
+	});
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2"));
+	Result.ExecuteIfBound(false);
+#endif
+}
+
 void UImportedSoundWave::ReleaseMemory()
 {
 	FScopeLock Lock(&DataGuard);
@@ -204,7 +312,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 	{
 		if (!ThisPtr.IsValid())
 		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to release already played audio data: the streaming sound wave has been garbage collected"));
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to release already played audio data: the imported sound wave has been garbage collected"));
 			return;
 		}
 

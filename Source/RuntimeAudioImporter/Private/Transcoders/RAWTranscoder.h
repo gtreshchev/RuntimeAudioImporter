@@ -85,7 +85,7 @@ public:
 		RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);
 
 		/** Creating an empty PCM buffer */
-		IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::MallocZeroed(RAWDataSize_To));
+		IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::Malloc(RAWDataSize_To));
 
 		const TTuple<float, float> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
 		const TTuple<float, float> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};

@@ -4,7 +4,6 @@
 
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
-#include "RuntimeAudioImporterDefines.h"
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
@@ -60,7 +59,11 @@ template <typename DataType>
 class FRuntimeBulkDataBuffer
 {
 public:
+#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+	using ViewType = TArrayView<DataType>;
+#else
 	using ViewType = TArrayView64<DataType>;
+#endif
 
 	FRuntimeBulkDataBuffer() = default;
 

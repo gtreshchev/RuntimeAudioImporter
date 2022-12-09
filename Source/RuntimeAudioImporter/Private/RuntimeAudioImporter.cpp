@@ -5,8 +5,22 @@
 
 #define LOCTEXT_NAMESPACE "FRuntimeAudioImporterModule"
 
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+#include "MetasoundDataTypeRegistrationMacro.h"
+#include "MetasoundFrontendRegistries.h"
+#include "MetasoundWave.h"
+#include "MetaSound/MetasoundImportedWave.h"
+#include "Sound/ImportedSoundWave.h"
+
+REGISTER_METASOUND_DATATYPE(RuntimeAudioImporter::FImportedWave, "ImportedWave", Metasound::ELiteralType::UObjectProxy, UImportedSoundWave);
+#endif
+
 void FRuntimeAudioImporterModule::StartupModule()
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+	FModuleManager::Get().LoadModuleChecked("MetasoundEngine");
+	FMetasoundFrontendRegistryContainer::Get()->RegisterPendingNodes();
+#endif
 }
 
 void FRuntimeAudioImporterModule::ShutdownModule()

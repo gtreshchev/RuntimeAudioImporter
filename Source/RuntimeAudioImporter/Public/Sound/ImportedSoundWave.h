@@ -20,6 +20,13 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMDataNative, const TArray<float
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMData, const TArray<float>&, PCMData);
 
 
+/** Static delegate broadcasting the result of preparing a sound wave for MetaSounds */
+DECLARE_DELEGATE_OneParam(FOnPreparedSoundWaveForMetaSoundsNative, bool);
+
+/** Dynamic delegate broadcasting the result of preparing a sound wave for MetaSounds */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreparedSoundWaveForMetaSounds, bool, bSucceeded);
+
+
 /**
  * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
  * Audio data preparation takes place in the Runtime Audio Importer library
@@ -43,6 +50,10 @@ public:
 	virtual void BeginDestroy() override;
 	virtual void Parse(class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
 	virtual Audio::EAudioMixerStreamDataFormat::Type GetGeneratedPCMDataFormat() const override;
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+	virtual TUniquePtr<Audio::IProxyData> CreateNewProxyData(const Audio::FProxyDataInitParams& InitParams) override;
+	virtual bool InitAudioResource(FName Format) override;
+#endif
 	//~ End USoundWave Interface
 
 	//~ Begin USoundWaveProcedural Interface
@@ -55,6 +66,20 @@ public:
 	 * @param DecodedAudioInfo Decoded audio data
 	 */
 	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo);
+
+	/**
+	 * Prepare this sound wave to be able to set wave parameter for MetaSounds
+	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
+	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|MetaSounds")
+	void PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSounds& Result);
+
+	/**
+	 * Prepare this sound wave to be able to set wave parameter for MetaSounds. Suitable for use in C++
+	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
+	 */
+	void PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSoundsNative& Result);
 
 	/**
 	 * Release sound wave data. Call it manually only if you are sure of it
@@ -222,11 +247,13 @@ public:
 	 */
 	bool IsPlaybackFinished_Internal() const;
 
+protected:
 	/**
 	 * Makes it possible to broadcast OnAudioPlaybackFinished again
 	 */
 	void ResetPlaybackFinish();
 
+public:
 	/** Bind to this delegate to know when the audio playback is finished. Suitable for use in C++ */
 	FOnAudioPlaybackFinishedNative OnAudioPlaybackFinishedNative;
 
