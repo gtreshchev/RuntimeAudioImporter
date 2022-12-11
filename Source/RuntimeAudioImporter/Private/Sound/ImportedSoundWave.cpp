@@ -105,6 +105,12 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 
 	return true;
 }
+
+bool UImportedSoundWave::IsSeekable() const
+{
+	FScopeLock Lock(&DataGuard);
+	return PCMBufferInfo.IsValid() && PCMBufferInfo.Get()->PCMData.GetView().Num() > 0 && PCMBufferInfo.Get()->PCMNumOfFrames > 0;
+}
 #endif
 
 int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples)

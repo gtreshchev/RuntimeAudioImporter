@@ -53,6 +53,7 @@ public:
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 	virtual TUniquePtr<Audio::IProxyData> CreateNewProxyData(const Audio::FProxyDataInitParams& InitParams) override;
 	virtual bool InitAudioResource(FName Format) override;
+	virtual bool IsSeekable() const override;
 #endif
 	//~ End USoundWave Interface
 

@@ -44,8 +44,8 @@ namespace RuntimeAudioImporter
 					Metasound::FNodeClassName{"RuntimeAudioImporter", "ImportedWaveToWaveAsset", ""},
 					1, // Major Version
 					0, // Minor Version
-					LOCTEXT("ImportedWaveToWaveAssetNode_Name", "Runtime Wave To Wave Asset"),
-					LOCTEXT("ImportedWaveToWaveAssetNode_Description", "Converts Runtime Wave to Wave Asset parameter."),
+					LOCTEXT("ImportedWaveToWaveAssetNode_Name", "Imported Wave To Wave Asset"),
+					LOCTEXT("ImportedWaveToWaveAssetNode_Description", "Converts Imported Wave to Wave Asset parameter."),
 					RuntimeAudioImporter::PluginAuthor,
 					RuntimeAudioImporter::PluginNodeMissingPrompt,
 					GetDefaultInterface(),
