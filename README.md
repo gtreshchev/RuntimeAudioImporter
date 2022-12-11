@@ -22,9 +22,10 @@
 
 ## Features
 
-- Fast transcoding speed (≈ 200-900 ms)
+- Fast transcoding speed
 - Supported for major audio formats: MP3, WAV, FLAC and OGG Vorbis
 - Supported for RAW formats: Signed 16-bit, Signed 32-bit, Unsigned 8-bit, 32-bit float
+- Same behavior as regular sound wave, including SoundCue, MetaSounds (starting from 5.2), etc
 - Automatic detection of audio format
 - Audio streaming functionality
 - Exporting a sound wave to a separate file
