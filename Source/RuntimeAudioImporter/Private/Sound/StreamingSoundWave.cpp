@@ -5,6 +5,7 @@
 #include "Transcoders/RAWTranscoder.h"
 
 #include "Async/Async.h"
+#include "UObject/GCObjectScopeGuard.h"
 
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -92,14 +93,9 @@ UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 
 void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, EAudioFormat AudioFormat)
 {
-	TWeakObjectPtr<UStreamingSoundWave> ThisPtr(this);
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, AudioData = MoveTemp(AudioData), AudioFormat]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
-		if (!ThisPtr.IsValid())
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to append audio data from encoded: the streaming sound wave has been garbage collected"));
-			return;
-		}
+		FGCObjectScopeGuard Guard(this);
 
 		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
 
@@ -118,20 +114,15 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, EA
 			return;
 		}
 
-		ThisPtr->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 	});
 }
 
 void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
 {
-	TWeakObjectPtr<UStreamingSoundWave> ThisPtr(this);
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ThisPtr, RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 	{
-		if (!ThisPtr.IsValid())
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to append audio data from encoded: the streaming sound wave has been garbage collected"));
-			return;
-		}
+		FGCObjectScopeGuard Guard(this);
 
 		uint8* RAWDataPtr{RAWData.GetData()};
 		const int32 RAWDataSize{RAWData.Num()};
@@ -191,7 +182,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudi
 			DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 		}
 
-		ThisPtr->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 	});
 }
 
