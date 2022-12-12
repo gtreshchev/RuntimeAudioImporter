@@ -7,7 +7,7 @@ public class RuntimeAudioImporterEditor : ModuleRules
 	public RuntimeAudioImporterEditor(ReadOnlyTargetRules Target) : base(Target)
 	{
 		// Change to toggle MetaSounds support
-		bool bEnableMetaSoundSupport = false;
+		bool bEnableMetaSoundSupport = true;
 
 		// MetaSound is only supported in Unreal Engine version >= 5.2
 		bEnableMetaSoundSupport &= (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2) || Target.Version.MajorVersion > 5;
