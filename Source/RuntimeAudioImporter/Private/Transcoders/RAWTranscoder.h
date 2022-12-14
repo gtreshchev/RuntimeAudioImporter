@@ -16,33 +16,33 @@ public:
 	 * @note Key - Minimum, Value - Maximum
 	 */
 	template <typename IntegralType>
-	static TTuple<float, float> GetRawMinAndMaxValues()
+	static TTuple<double, double> GetRawMinAndMaxValues()
 	{
 		/** Signed 16-bit PCM */
 		if (TIsSame<IntegralType, int16>::Value)
 		{
-			return TTuple<float, float>(-32767.f, 32768.f);
+			return TTuple<double, double>(-32767.f, 32768.f);
 		}
 
 		/** Signed 32-bit PCM */
 		if (TIsSame<IntegralType, int32>::Value)
 		{
-			return TTuple<float, float>(-2147483648.f, 2147483647.f);
+			return TTuple<double, double>(-2147483648.f, 2147483647.f);
 		}
 
 		/** Unsigned 8-bit PCM */
 		if (TIsSame<IntegralType, uint8>::Value)
 		{
-			return TTuple<float, float>(0.f, 255.f);
+			return TTuple<double, double>(0.f, 255.f);
 		}
 
 		/** 32-bit float */
 		if (TIsSame<IntegralType, float>::Value)
 		{
-			return TTuple<float, float>(-1.f, 1.f);
+			return TTuple<double, double>(-1.f, 1.f);
 		}
 
-		return TTuple<float, float>(-1.f, 1.f);
+		return TTuple<double, double>(-1.f, 1.f);
 	}
 
 	/**
@@ -79,7 +79,7 @@ public:
 	static void TranscodeRAWData(const IntegralTypeFrom* RAWData_From, int64 RAWDataSize_From, IntegralTypeTo*& RAWData_To, int64& RAWDataSize_To)
 	{
 		/** Getting the required number of samples to transcode */
-		const int64 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
+		const uint64 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
 
 		/** Getting the required PCM size */
 		RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);
@@ -87,11 +87,11 @@ public:
 		/** Creating an empty PCM buffer */
 		IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::Malloc(RAWDataSize_To));
 
-		const TTuple<float, float> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
-		const TTuple<float, float> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
+		const TTuple<double, double> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
+		const TTuple<double, double> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
 
 		/** Iterating through the RAW Data to transcode values using a divisor */
-		for (int32 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+		for (uint64 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 		{
 			TempPCMData[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWData_From[SampleIndex]));
 		}
@@ -99,7 +99,7 @@ public:
 		/** Returning the transcoded data as bytes */
 		RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
 
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%d' (min: %f, max: %f) to size '%d' (min: %f, max: %f)"),
-		       static_cast<int32>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<int32>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %f, max: %f) to size '%llu' (min: %f, max: %f)"),
+		       static_cast<uint64>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<uint64>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
 	}
 };
