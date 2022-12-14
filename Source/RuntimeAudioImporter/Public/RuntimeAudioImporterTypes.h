@@ -4,6 +4,7 @@
 
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
+#include "Launch/Resources/Version.h"
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
