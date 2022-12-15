@@ -30,11 +30,10 @@ public:
 	/**
 	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended
 	 *
-	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate
-	 * @note The unit must be specified in 32-bit float PCM format
+	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate. The unit must be specified in 32-bit float PCM format
 	 */
-	UFUNCTION(BlueprintCallable)
-	void PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate);
+	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation", meta = (DisplayName = "Pre Allocate PCM Data"))
+	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate);
 
 	/**
 	 * Append audio data to the end of existing data from encoded audio data
