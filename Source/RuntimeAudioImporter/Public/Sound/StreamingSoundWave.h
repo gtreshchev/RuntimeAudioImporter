@@ -6,11 +6,11 @@
 #include "ImportedSoundWave.h"
 #include "StreamingSoundWave.generated.h"
 
-/** Static delegate broadcasting the result of PCM data pre-allocation */
-DECLARE_DELEGATE_OneParam(FOnPreAllocatePCMDataResultNative, bool);
+/** Static delegate broadcasting the result of audio data pre-allocation */
+DECLARE_DELEGATE_OneParam(FOnPreAllocateAudioDataResultNative, bool);
 
-/** Dynamic delegate broadcasting the result of PCM data pre-allocation */
-DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocatePCMDataResult, bool, bSucceeded);
+/** Dynamic delegate broadcasting the result of audio data pre-allocation */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocateAudioDataResult, bool, bSucceeded);
 
 /**
  * Streaming sound wave. Can append audio data dynamically, including during playback
@@ -36,19 +36,19 @@ public:
 	/**
 	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended
 	 *
-	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate. The unit must be specified in 32-bit float PCM format
+	 * @param NumOfBytesToPreAllocate Number of bytes data to pre-allocate
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation", meta = (DisplayName = "Pre Allocate PCM Data"))
-	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResult& Result);
+	void PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResult& Result);
 
 	/**
 	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended. Suitable for use in C++
 	 *
-	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate. The unit must be specified in 32-bit float PCM format
+	 * @param NumOfBytesToPreAllocate Number of bytes to pre-allocate
 	 * @param Result Delegate broadcasting the result
 	 */
-	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResultNative& Result);
+	void PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResultNative& Result);
 
 	/**
 	 * Append audio data to the end of existing data from encoded audio data
