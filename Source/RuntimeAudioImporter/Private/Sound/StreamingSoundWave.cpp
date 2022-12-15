@@ -61,10 +61,11 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	{
 		FMemory::Memcpy(PCMBufferInfo->PCMData.GetView().GetData() + ((PCMBufferInfo->PCMData.GetView().Num() - NumOfPreAllocatedPCMData) / sizeof(float)), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
 		NumOfPreAllocatedPCMData -= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
+		NumOfPreAllocatedPCMData = NumOfPreAllocatedPCMData < 0 ? 0 : NumOfPreAllocatedPCMData;
 	}
 	else
 	{
-		const int32 NewPCMDataSize = PCMBufferInfo->PCMData.GetView().Num() + DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() - NumOfPreAllocatedPCMData;
+		const int64 NewPCMDataSize = (PCMBufferInfo->PCMData.GetView().Num() + DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() - NumOfPreAllocatedPCMData);
 		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
 
 		if (!NewPCMDataPtr)
@@ -102,17 +103,17 @@ UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 	return NewObject<UStreamingSoundWave>();
 }
 
-void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResult& Result)
+void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResult& Result)
 {
-	PreAllocatePCMData(NumOfPCMDataToPreAllocate, FOnPreAllocatePCMDataResultNative::CreateLambda([Result](bool bSucceeded)
+	PreAllocateAudioData(NumOfBytesToPreAllocate, FOnPreAllocateAudioDataResultNative::CreateLambda([Result](bool bSucceeded)
 	{
 		Result.ExecuteIfBound(bSucceeded);
 	}));
 }
 
-void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResultNative& Result)
+void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResultNative& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, NumOfPCMDataToPreAllocate, Result]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, NumOfBytesToPreAllocate, Result]()
 	{
 		FGCObjectScopeGuard Guard(this);
 		FScopeLock Lock(&DataGuard);
@@ -125,15 +126,15 @@ void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, co
 			});
 		};
 
-		if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+		if (PCMBufferInfo->PCMData.GetView().Num() > 0 || NumOfPreAllocatedPCMData > 0)
 		{
 			ensureMsgf(false, TEXT("Pre-allocation of PCM data can only be applied if the PCM data has not yet been allocated"));
 			ExecuteResult(false);
 			return;
 		}
 
-		const int32 NewPCMDataSize = PCMBufferInfo->PCMData.GetView().Num() + NumOfPCMDataToPreAllocate;
-		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
+		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NumOfBytesToPreAllocate));
+		const int64 NewPCMDataSize = NumOfBytesToPreAllocate;
 
 		if (!NewPCMDataPtr)
 		{
@@ -142,14 +143,12 @@ void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, co
 			return;
 		}
 
-		NumOfPreAllocatedPCMData += NumOfPCMDataToPreAllocate;
-
-		// Adding new PCM data
-		{
-			FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
-		}
+		NumOfPreAllocatedPCMData = NewPCMDataSize;
 
 		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully pre-allocated '%lld' number of bytes"), NumOfBytesToPreAllocate);
+
 		ExecuteResult(true);
 	});
 }
