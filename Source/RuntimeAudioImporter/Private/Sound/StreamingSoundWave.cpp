@@ -27,6 +27,7 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 	}
 
 	bFilledInitialAudioData = false;
+	NumOfPreAllocatedPCMData = 0;
 }
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
@@ -55,22 +56,32 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		return;
 	}
 
-	const int32 NewPCMDataSize = PCMBufferInfo->PCMData.GetView().Num() + DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
-	float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
-
-	if (!NewPCMDataPtr)
+	// Do not reallocate the entire PCM buffer if it has free space to fill in
+	if (NumOfPreAllocatedPCMData >= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num())
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to populate streaming sound wave audio data"));
-		return;
+		FMemory::Memcpy(PCMBufferInfo->PCMData.GetView().GetData() + ((PCMBufferInfo->PCMData.GetView().Num() - NumOfPreAllocatedPCMData) / sizeof(float)), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
+		NumOfPreAllocatedPCMData -= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num();
+	}
+	else
+	{
+		const int32 NewPCMDataSize = PCMBufferInfo->PCMData.GetView().Num() + DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() - NumOfPreAllocatedPCMData;
+		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
+
+		if (!NewPCMDataPtr)
+		{
+			return;
+		}
+
+		// Adding new PCM data at the end
+		{
+			FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num() - NumOfPreAllocatedPCMData);
+			FMemory::Memcpy(NewPCMDataPtr + ((PCMBufferInfo->PCMData.GetView().Num() - NumOfPreAllocatedPCMData) / sizeof(float)), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
+		}
+
+		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+		NumOfPreAllocatedPCMData = 0;
 	}
 
-	// Adding new PCM data at the end
-	{
-		FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
-		FMemory::Memcpy(NewPCMDataPtr + (PCMBufferInfo->PCMData.GetView().Num() / sizeof(float)), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
-	}
-
-	PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
 	PCMBufferInfo->PCMNumOfFrames += DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
 
 	Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
@@ -89,6 +100,39 @@ UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 	}
 
 	return NewObject<UStreamingSoundWave>();
+}
+
+void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, NumOfPCMDataToPreAllocate]()
+	{
+		FGCObjectScopeGuard Guard(this);
+		FScopeLock Lock(&DataGuard);
+
+		if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+		{
+			ensureMsgf(false, TEXT("Pre-allocation of PCM data can only be applied if the PCM data has not yet been allocated"));
+			return;
+		}
+
+		const int32 NewPCMDataSize = PCMBufferInfo->PCMData.GetView().Num() + NumOfPCMDataToPreAllocate;
+		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
+
+		if (!NewPCMDataPtr)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to pre-allocate streaming sound wave audio data"));
+			return;
+		}
+
+		NumOfPreAllocatedPCMData += NumOfPCMDataToPreAllocate;
+
+		// Adding new PCM data
+		{
+			FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
+		}
+
+		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+	});
 }
 
 void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, EAudioFormat AudioFormat)

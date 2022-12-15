@@ -338,7 +338,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 
 		// Decreasing duration and increasing duration offset
 		{
-			const float DurationOffsetToReduce = GetNumOfPlayedFrames_Internal() / SampleRate;
+			const float DurationOffsetToReduce = GetPlaybackTime_Internal();
 			Duration -= DurationOffsetToReduce;
 			DurationOffset += DurationOffsetToReduce;
 		}
