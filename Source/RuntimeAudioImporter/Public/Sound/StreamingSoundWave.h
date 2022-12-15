@@ -9,7 +9,7 @@
 /**
  * Streaming sound wave. Can append audio data dynamically, including during playback
  * It will live indefinitely, even if the sound wave has finished playing, until SetStopSoundOnPlaybackFinish is called.
- * Audio data is always accumulated, clear memory manually via ReleaseMemory if necessary.
+ * Audio data is always accumulated, clear memory manually via ReleaseMemory or ReleasePlayedAudioData if necessary.
  */
 UCLASS(BlueprintType, Category = "Streaming Sound Wave")
 class RUNTIMEAUDIOIMPORTER_API UStreamingSoundWave : public UImportedSoundWave
@@ -26,6 +26,15 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Main")
 	static UStreamingSoundWave* CreateStreamingSoundWave();
+
+	/**
+	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended
+	 *
+	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate
+	 * @note The unit must be specified in 32-bit float PCM format
+	 */
+	UFUNCTION(BlueprintCallable)
+	void PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate);
 
 	/**
 	 * Append audio data to the end of existing data from encoded audio data
@@ -61,4 +70,7 @@ public:
 private:
 	/** Whether the initial audio data is filled in or not */
 	bool bFilledInitialAudioData;
+
+	/** Number of pre-allocated PCM data */
+	int64 NumOfPreAllocatedPCMData;
 };
