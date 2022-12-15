@@ -6,6 +6,12 @@
 #include "ImportedSoundWave.h"
 #include "StreamingSoundWave.generated.h"
 
+/** Static delegate broadcasting the result of PCM data pre-allocation */
+DECLARE_DELEGATE_OneParam(FOnPreAllocatePCMDataResultNative, bool);
+
+/** Dynamic delegate broadcasting the result of PCM data pre-allocation */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocatePCMDataResult, bool, bSucceeded);
+
 /**
  * Streaming sound wave. Can append audio data dynamically, including during playback
  * It will live indefinitely, even if the sound wave has finished playing, until SetStopSoundOnPlaybackFinish is called.
@@ -31,9 +37,18 @@ public:
 	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended
 	 *
 	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate. The unit must be specified in 32-bit float PCM format
+	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation", meta = (DisplayName = "Pre Allocate PCM Data"))
-	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate);
+	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResult& Result);
+
+	/**
+	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended. Suitable for use in C++
+	 *
+	 * @param NumOfPCMDataToPreAllocate Number of PCM data to pre-allocate. The unit must be specified in 32-bit float PCM format
+	 * @param Result Delegate broadcasting the result
+	 */
+	void PreAllocatePCMData(UPARAM(DisplayName = "Num Of PCM Data To Pre Allocate") int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResultNative& Result);
 
 	/**
 	 * Append audio data to the end of existing data from encoded audio data
@@ -54,7 +69,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Append Audio Data From RAW"), Category = "Streaming Sound Wave|Append")
 	void AppendAudioDataFromRAW(UPARAM(DisplayName = "RAW Data") TArray<uint8> RAWData, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, UPARAM(DisplayName = "Sample Rate") int32 InSampleRate = 44100, int32 NumOfChannels = 1);
-	
+
 	/**
 	 * Set whether the sound should stop after playback is complete or not (play "blank sound"). False by default
 	 * Setting it to True also makes the sound wave eligible for garbage collection after it has finished playing

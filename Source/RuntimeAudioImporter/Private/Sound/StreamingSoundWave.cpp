@@ -102,16 +102,33 @@ UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 	return NewObject<UStreamingSoundWave>();
 }
 
-void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate)
+void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResult& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, NumOfPCMDataToPreAllocate]()
+	PreAllocatePCMData(NumOfPCMDataToPreAllocate, FOnPreAllocatePCMDataResultNative::CreateLambda([Result](bool bSucceeded)
+	{
+		Result.ExecuteIfBound(bSucceeded);
+	}));
+}
+
+void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate, const FOnPreAllocatePCMDataResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, NumOfPCMDataToPreAllocate, Result]()
 	{
 		FGCObjectScopeGuard Guard(this);
 		FScopeLock Lock(&DataGuard);
 
+		auto ExecuteResult = [Result](bool bSucceeded)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceeded]()
+			{
+				Result.ExecuteIfBound(bSucceeded);
+			});
+		};
+
 		if (PCMBufferInfo->PCMData.GetView().Num() > 0)
 		{
 			ensureMsgf(false, TEXT("Pre-allocation of PCM data can only be applied if the PCM data has not yet been allocated"));
+			ExecuteResult(false);
 			return;
 		}
 
@@ -121,6 +138,7 @@ void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate)
 		if (!NewPCMDataPtr)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to pre-allocate streaming sound wave audio data"));
+			ExecuteResult(false);
 			return;
 		}
 
@@ -132,6 +150,7 @@ void UStreamingSoundWave::PreAllocatePCMData(int64 NumOfPCMDataToPreAllocate)
 		}
 
 		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+		ExecuteResult(true);
 	});
 }
 
