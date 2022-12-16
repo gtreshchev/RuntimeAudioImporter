@@ -92,6 +92,28 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
 
+void UStreamingSoundWave::ReleaseMemory()
+{
+	Super::ReleaseMemory();
+	NumOfPreAllocatedPCMData = 0;
+}
+
+void UStreamingSoundWave::ReleasePlayedAudioData()
+{
+	{
+		FScopeLock Lock(&DataGuard);
+		const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels * sizeof(float);
+
+		if (GetNumOfPlayedFrames_Internal() > 0 && NumOfPreAllocatedPCMData > 0 && NewPCMDataSize < PCMBufferInfo->PCMData.GetView().Num())
+		{
+			NumOfPreAllocatedPCMData -= PCMBufferInfo->PCMData.GetView().Num() - NewPCMDataSize;
+			NumOfPreAllocatedPCMData = NumOfPreAllocatedPCMData < 0 ? 0 : NumOfPreAllocatedPCMData;
+		}
+	}
+	
+	Super::ReleasePlayedAudioData();
+}
+
 UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 {
 	if (!IsInGameThread())
@@ -134,7 +156,7 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 		}
 
 		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NumOfBytesToPreAllocate));
-		const int64 NewPCMDataSize = NumOfBytesToPreAllocate;
+		const int64 NewPCMDataSize = NumOfBytesToPreAllocate / sizeof(float);
 
 		if (!NewPCMDataPtr)
 		{

@@ -292,7 +292,8 @@ void UImportedSoundWave::ReleaseMemory()
 {
 	FScopeLock Lock(&DataGuard);
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
-	PCMBufferInfo.Reset();
+	PCMBufferInfo->PCMData.Empty();
+	PCMBufferInfo->PCMNumOfFrames = 0;
 }
 
 void UImportedSoundWave::ReleasePlayedAudioData()
