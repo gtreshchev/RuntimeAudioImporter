@@ -79,6 +79,7 @@ public:
 	/**
 	 * Prepare this sound wave to be able to set wave parameter for MetaSounds. Suitable for use in C++
 	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
+	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
 	 */
 	void PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSoundsNative& Result);
 
@@ -86,14 +87,14 @@ public:
 	 * Release sound wave data. Call it manually only if you are sure of it
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
-	void ReleaseMemory();
+	virtual void ReleaseMemory();
 
 	/**
 	 * Remove previously played audio data. Adds a duration offset from the removed audio data
 	 * This re-allocates all audio data memory, so should not be called too frequently
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
-	void ReleasePlayedAudioData();
+	virtual void ReleasePlayedAudioData();
 
 	/**
 	 * Set whether the sound should loop or not

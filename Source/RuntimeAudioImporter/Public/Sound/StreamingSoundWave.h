@@ -79,6 +79,8 @@ public:
 
 	//~ Begin UImportedSoundWave Interface
 	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo) override;
+	virtual void ReleaseMemory() override;
+	virtual void ReleasePlayedAudioData() override;
 	//~ End UImportedSoundWave Interface
 
 private:
