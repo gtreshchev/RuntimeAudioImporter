@@ -36,7 +36,7 @@ public:
 	/**
 	 * Pre-allocate PCM data, to avoid reallocating memory each time audio data is appended
 	 *
-	 * @param NumOfBytesToPreAllocate Number of bytes data to pre-allocate
+	 * @param NumOfBytesToPreAllocate Number of bytes to pre-allocate
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation", meta = (DisplayName = "Pre Allocate PCM Data"))
