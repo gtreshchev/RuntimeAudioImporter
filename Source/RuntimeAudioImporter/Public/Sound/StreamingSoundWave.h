@@ -39,7 +39,7 @@ public:
 	 * @param NumOfBytesToPreAllocate Number of bytes to pre-allocate
 	 * @param Result Delegate broadcasting the result
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation", meta = (DisplayName = "Pre Allocate PCM Data"))
+	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Allocation")
 	void PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResult& Result);
 
 	/**
