@@ -17,6 +17,9 @@ UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializ
 {
 	ensure(PCMBufferInfo);
 
+#if ENGINE_MAJOR_VERSION >= 5
+	SetImportedSampleRate(0);
+#endif
 	SetSampleRate(0);
 	NumChannels = 0;
 	Duration = 0;
@@ -43,13 +46,13 @@ Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMData
 }
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
-TUniquePtr<Audio::IProxyData> UImportedSoundWave::CreateNewProxyData(const Audio::FProxyDataInitParams& InitParams)
+TSharedPtr<Audio::IProxyData> UImportedSoundWave::CreateProxyData(const Audio::FProxyDataInitParams& InitParams)
 {
 	if (SoundWaveDataPtr)
 	{
 		SoundWaveDataPtr->OverrideRuntimeFormat(Audio::NAME_OGG);
 	}
-	return USoundWave::CreateNewProxyData(InitParams);
+	return USoundWave::CreateProxyData(InitParams);
 }
 
 bool UImportedSoundWave::InitAudioResource(FName Format)
@@ -151,7 +154,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 
 	// Increasing the number of frames played
 	SetNumOfPlayedFrames_Internal(GetNumOfPlayedFrames_Internal() + (NumSamples / NumChannels));
-	
+
 	if (OnGeneratePCMDataNative.IsBound() || OnGeneratePCMData.IsBound())
 	{
 		TArray<float> PCMData(RetrievedPCMDataPtr, NumSamples);
@@ -243,6 +246,9 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
 
 	Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
+#if ENGINE_MAJOR_VERSION >= 5
+	SetImportedSampleRate(0);
+#endif
 	SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
 	NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
 

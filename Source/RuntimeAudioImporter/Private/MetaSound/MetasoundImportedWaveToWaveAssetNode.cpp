@@ -124,7 +124,7 @@ namespace RuntimeAudioImporter
 				if (!WaveAsset->GetSoundWaveProxy().IsValid())
 				{
 					UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully transmitted proxy data from Imported Wave to Wave Asset"));
-					*WaveAsset = FWaveAsset(MakeUnique<FSoundWaveProxy>(*ImportedWave->GetSoundWaveProxy().Get()));
+					*WaveAsset = FWaveAsset(MakeShared<FSoundWaveProxy>(*ImportedWave->GetSoundWaveProxy().Get()));
 				}
 			}
 		}
