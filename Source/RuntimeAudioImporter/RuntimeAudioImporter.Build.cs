@@ -45,7 +45,7 @@ public class RuntimeAudioImporter : ModuleRules
 					"MetasoundEngine",
 					"MetasoundFrontend",
 					"MetasoundGraphCore",
-                    "AudioExtensions"
+					"AudioExtensions"
                 }
 			);
 
