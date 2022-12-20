@@ -44,8 +44,9 @@ public class RuntimeAudioImporter : ModuleRules
 				{
 					"MetasoundEngine",
 					"MetasoundFrontend",
-					"MetasoundGraphCore"
-				}
+					"MetasoundGraphCore",
+                    "AudioExtensions"
+                }
 			);
 
 			PublicDefinitions.Add("WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT=1");
