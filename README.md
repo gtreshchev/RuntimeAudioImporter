@@ -1,6 +1,6 @@
 <br/>
 <p align="center">
-  <a href="https://github.com/gtreshchev/runtimeaudioimporter">
+  <a href="https://github.com/gtreshchev/RuntimeAudioImporter">
     <img src="Resources/Icon128.png" alt="Logo" width="80" height="80">
   </a>
 
@@ -15,9 +15,11 @@
     <br/>
     <a href="https://unrealengine.com/marketplace/product/runtime-audio-importer">Marketplace</a>
     .
-    <a href="https://github.com/gtreshchev/runtimeaudioimporter/releases">Releases</a>
+    <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
+    <br/>
+    <a href="https://t.me/georgydev">Telegram</a>
     .
-    <a href="https://t.me/georgydev">Support Chat</a>
+    <a href="https://discord.gg/s3e53uByCq">Discord</a>
   </p>
 
 ## Features
