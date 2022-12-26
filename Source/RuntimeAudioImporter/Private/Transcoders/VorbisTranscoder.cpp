@@ -187,8 +187,6 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioSt
 
 	return true;
 
-#undef FRAMES_SPLIT_COUNT
-
 #else
 	RuntimeAudioImporter_TranscoderLogs::PrintError(FString::Printf(TEXT("Your platform (%hs) does not support Vorbis encoding"), FGenericPlatformProperties::IniPlatformName()));
 	return false;
