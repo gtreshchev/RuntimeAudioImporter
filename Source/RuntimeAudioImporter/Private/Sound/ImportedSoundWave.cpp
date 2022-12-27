@@ -258,10 +258,10 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data has been populated successfully. Information about audio data:\n%s"), *DecodedAudioInfoString);
 }
 
-void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSounds& Result)
+void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResult& Result)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
-	PrepareSoundWaveForMetaSounds(FOnPreparedSoundWaveForMetaSoundsNative::CreateWeakLambda(this, [Result](bool bSucceeded)
+	PrepareSoundWaveForMetaSounds(FOnPrepareSoundWaveForMetaSoundsResultNative::CreateWeakLambda(this, [Result](bool bSucceeded)
 	{
 		Result.ExecuteIfBound(bSucceeded);
 	}));
@@ -271,7 +271,7 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWav
 #endif
 }
 
-void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSoundsNative& Result)
+void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResultNative& Result)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, Result]()
@@ -302,16 +302,33 @@ void UImportedSoundWave::ReleaseMemory()
 	PCMBufferInfo->PCMNumOfFrames = 0;
 }
 
-void UImportedSoundWave::ReleasePlayedAudioData()
+void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResult& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]() mutable
+	ReleasePlayedAudioData(FOnPlayedAudioDataReleaseResultNative::CreateWeakLambda(this, [Result](bool bSucceeded)
+	{
+		Result.ExecuteIfBound(bSucceeded);
+	}));
+}
+
+void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, Result]() mutable
 	{
 		FGCObjectScopeGuard Guard(this);
 		FScopeLock Lock(&DataGuard);
 
+		auto ExecuteResult = [Result](bool bSucceeded)
+		{
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
+			{
+				Result.ExecuteIfBound(bSucceeded);
+			});
+		};
+
 		if (GetNumOfPlayedFrames_Internal() == 0)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("No audio data will be released because the current playback time is zero"));
+			ExecuteResult(false);
 			return;
 		}
 
@@ -321,6 +338,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 		{
 			ReleaseMemory();
 			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released all PCM data (%lld)"), OldNumOfPCMData);
+			ExecuteResult(true);
 			return;
 		}
 
@@ -330,6 +348,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 		if (!NewPCMDataPtr)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate new memory to free already played audio data"));
+			ExecuteResult(false);
 			return;
 		}
 
@@ -353,6 +372,7 @@ void UImportedSoundWave::ReleasePlayedAudioData()
 		PlayedNumOfFrames = 0;
 
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released %lld number of PCM data"), static_cast<int64>(OldNumOfPCMData - PCMBufferInfo->PCMData.GetView().Num()));
+		ExecuteResult(true);
 	});
 }
 

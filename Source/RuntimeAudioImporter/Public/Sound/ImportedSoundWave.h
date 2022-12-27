@@ -21,10 +21,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGeneratePCMData, const TArray<flo
 
 
 /** Static delegate broadcasting the result of preparing a sound wave for MetaSounds */
-DECLARE_DELEGATE_OneParam(FOnPreparedSoundWaveForMetaSoundsNative, bool);
+DECLARE_DELEGATE_OneParam(FOnPrepareSoundWaveForMetaSoundsResultNative, bool);
 
 /** Dynamic delegate broadcasting the result of preparing a sound wave for MetaSounds */
-DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreparedSoundWaveForMetaSounds, bool, bSucceeded);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPrepareSoundWaveForMetaSoundsResult, bool, bSucceeded);
+
+
+/** Static delegate broadcasting the result of releasing the played audio data */
+DECLARE_DELEGATE_OneParam(FOnPlayedAudioDataReleaseResultNative, bool);
+
+/** Dynamic delegate broadcasting the result of releasing the played audio data */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPlayedAudioDataReleaseResult, bool, bSucceeded);
 
 
 /**
@@ -70,18 +77,20 @@ public:
 
 	/**
 	 * Prepare this sound wave to be able to set wave parameter for MetaSounds
+	 * 
 	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
 	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|MetaSounds")
-	void PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSounds& Result);
+	void PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResult& Result);
 
 	/**
 	 * Prepare this sound wave to be able to set wave parameter for MetaSounds. Suitable for use in C++
+	 * 
 	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
 	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
 	 */
-	void PrepareSoundWaveForMetaSounds(const FOnPreparedSoundWaveForMetaSoundsNative& Result);
+	void PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResultNative& Result);
 
 	/**
 	 * Release sound wave data. Call it manually only if you are sure of it
@@ -92,9 +101,20 @@ public:
 	/**
 	 * Remove previously played audio data. Adds a duration offset from the removed audio data
 	 * This re-allocates all audio data memory, so should not be called too frequently
+	 * 
+	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
-	virtual void ReleasePlayedAudioData();
+	void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResult& Result);
+
+	/**
+	 * Remove previously played audio data. Adds a duration offset from the removed audio data
+	 * This re-allocates all audio data memory, so should not be called too frequently
+	 * Suitable for use in C++
+	 *
+	 * @param Result Delegate broadcasting the result
+	 */
+	virtual void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result);
 
 	/**
 	 * Set whether the sound should loop or not

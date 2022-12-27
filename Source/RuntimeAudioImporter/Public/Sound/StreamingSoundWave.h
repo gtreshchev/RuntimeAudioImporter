@@ -80,7 +80,7 @@ public:
 	//~ Begin UImportedSoundWave Interface
 	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo) override;
 	virtual void ReleaseMemory() override;
-	virtual void ReleasePlayedAudioData() override;
+	virtual void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result) override;
 	//~ End UImportedSoundWave Interface
 
 private:
