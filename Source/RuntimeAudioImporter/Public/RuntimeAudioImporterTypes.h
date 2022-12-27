@@ -144,6 +144,7 @@ private:
 		if (View.GetData() != nullptr)
 		{
 			FMemory::Free(View.GetData());
+			View = ViewType();
 		}
 	}
 
