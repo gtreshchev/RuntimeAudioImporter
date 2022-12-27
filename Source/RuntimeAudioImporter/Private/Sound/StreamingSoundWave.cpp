@@ -98,20 +98,17 @@ void UStreamingSoundWave::ReleaseMemory()
 	NumOfPreAllocatedPCMData = 0;
 }
 
-void UStreamingSoundWave::ReleasePlayedAudioData()
+void UStreamingSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result)
 {
-	{
-		FScopeLock Lock(&DataGuard);
-		const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels * sizeof(float);
+	FScopeLock Lock(&DataGuard);
+	const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels * sizeof(float);
 
-		if (GetNumOfPlayedFrames_Internal() > 0 && NumOfPreAllocatedPCMData > 0 && NewPCMDataSize < PCMBufferInfo->PCMData.GetView().Num())
-		{
-			NumOfPreAllocatedPCMData -= PCMBufferInfo->PCMData.GetView().Num() - NewPCMDataSize;
-			NumOfPreAllocatedPCMData = NumOfPreAllocatedPCMData < 0 ? 0 : NumOfPreAllocatedPCMData;
-		}
+	if (GetNumOfPlayedFrames_Internal() > 0 && NumOfPreAllocatedPCMData > 0 && NewPCMDataSize < PCMBufferInfo->PCMData.GetView().Num())
+	{
+		NumOfPreAllocatedPCMData -= PCMBufferInfo->PCMData.GetView().Num() - NewPCMDataSize;
+		NumOfPreAllocatedPCMData = NumOfPreAllocatedPCMData < 0 ? 0 : NumOfPreAllocatedPCMData;
 	}
-	
-	Super::ReleasePlayedAudioData();
+	Super::ReleasePlayedAudioData(Result);
 }
 
 UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
@@ -127,7 +124,7 @@ UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
 
 void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResult& Result)
 {
-	PreAllocateAudioData(NumOfBytesToPreAllocate, FOnPreAllocateAudioDataResultNative::CreateLambda([Result](bool bSucceeded)
+	PreAllocateAudioData(NumOfBytesToPreAllocate, FOnPreAllocateAudioDataResultNative::CreateWeakLambda(this, [Result](bool bSucceeded)
 	{
 		Result.ExecuteIfBound(bSucceeded);
 	}));
