@@ -1,4 +1,4 @@
-﻿// Georgy Treshchev 2022.
+﻿// Georgy Treshchev 2023.
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "CoreMinimal.h"

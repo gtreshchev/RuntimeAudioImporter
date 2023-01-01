@@ -1,4 +1,4 @@
-// Georgy Treshchev 2022.
+// Georgy Treshchev 2023.
 
 #include "RuntimeAudioImporterEditor.h"
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT

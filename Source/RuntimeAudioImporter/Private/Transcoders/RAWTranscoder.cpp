@@ -1,3 +1,3 @@
-﻿// Georgy Treshchev 2022.
+﻿// Georgy Treshchev 2023.
 
 #include "RAWTranscoder.h"
