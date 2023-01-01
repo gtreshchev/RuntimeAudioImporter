@@ -1,4 +1,4 @@
-﻿// Georgy Treshchev 2022.
+﻿// Georgy Treshchev 2023.
 
 #include "Transcoders/MP3Transcoder.h"
 #include "RuntimeAudioImporterDefines.h"
