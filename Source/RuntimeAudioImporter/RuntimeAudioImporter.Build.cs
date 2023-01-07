@@ -36,8 +36,7 @@ public class RuntimeAudioImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Core",
-				"AudioExtensions"
+				"Core"
 			}
 		);
 

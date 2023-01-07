@@ -4,7 +4,9 @@
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
+#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "Transcoders/VorbisTranscoder.h"
+#endif
 #include "UObject/GCObjectScopeGuard.h"
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
