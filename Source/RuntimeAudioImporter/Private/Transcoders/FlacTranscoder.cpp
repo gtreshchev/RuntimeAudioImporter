@@ -22,7 +22,7 @@ bool FlacTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSiz
 	return true;
 }
 
-bool FlacTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
+bool FlacTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Flac audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 

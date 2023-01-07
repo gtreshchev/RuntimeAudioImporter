@@ -1,6 +1,6 @@
 ﻿// Georgy Treshchev 2023.
 
-#include "VorbisTranscoder.h"
+#include "Transcoders/VorbisTranscoder.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "Transcoders/RAWTranscoder.h"
 #include "GenericPlatform/GenericPlatformProperties.h"
@@ -25,7 +25,7 @@ bool VorbisTranscoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataS
 	return true;
 }
 
-bool VorbisTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
+bool VorbisTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to Vorbis audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality));
 
@@ -193,7 +193,7 @@ bool VorbisTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioSt
 #endif
 }
 
-bool VorbisTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
+bool VorbisTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding Vorbis audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 

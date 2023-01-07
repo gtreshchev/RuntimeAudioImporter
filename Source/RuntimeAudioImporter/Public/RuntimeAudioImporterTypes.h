@@ -2,6 +2,9 @@
 
 #pragma once
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
+#include "AudioCaptureDeviceInterface.h"
+#endif
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
 #include "Launch/Resources/Version.h"
@@ -82,6 +85,9 @@ public:
 	FRuntimeBulkDataBuffer(DataType* InBuffer, int64 InNumberOfElements)
 		: View(InBuffer, InNumberOfElements)
 	{
+#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+		check(InNumberOfElements <= TNumericLimits<int32>::Max())
+#endif
 	}
 
 	~FRuntimeBulkDataBuffer()
@@ -130,6 +136,10 @@ public:
 	{
 		FreeBuffer();
 
+#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+		check(InNumberOfElements <= TNumericLimits<int32>::Max())
+#endif
+
 		View = ViewType(InBuffer, InNumberOfElements);
 	}
 
@@ -154,6 +164,13 @@ private:
 /** Basic sound wave data */
 struct FSoundWaveBasicStruct
 {
+	FSoundWaveBasicStruct()
+		: NumOfChannels(0)
+	  , SampleRate(0)
+	  , Duration(0)
+	{
+	}
+
 	/** Number of channels */
 	uint32 NumOfChannels;
 
@@ -162,13 +179,6 @@ struct FSoundWaveBasicStruct
 
 	/** Sound wave duration, sec */
 	float Duration;
-
-	FSoundWaveBasicStruct()
-		: NumOfChannels(0)
-	  , SampleRate(0)
-	  , Duration(0)
-	{
-	}
 
 	/**
 	 * Whether the sound wave data appear to be valid or not
@@ -192,13 +202,6 @@ struct FSoundWaveBasicStruct
 /** PCM data buffer structure */
 struct FPCMStruct
 {
-public:
-	/** 32-bit float PCM data */
-	FRuntimeBulkDataBuffer<float> PCMData;
-
-	/** Number of PCM frames */
-	uint32 PCMNumOfFrames;
-
 	FPCMStruct()
 		: PCMNumOfFrames(0)
 	{
@@ -222,17 +225,17 @@ public:
 		return FString::Printf(TEXT("Validity of PCM data in memory: %s, number of PCM frames: %d, PCM data size: %lld"),
 		                       PCMData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), PCMNumOfFrames, static_cast<int64>(PCMData.GetView().Num()));
 	}
+
+	/** 32-bit float PCM data */
+	FRuntimeBulkDataBuffer<float> PCMData;
+
+	/** Number of PCM frames */
+	uint32 PCMNumOfFrames;
 };
 
 /** Decoded audio information */
 struct FDecodedAudioStruct
 {
-	/** SoundWave basic info (e.g. duration, number of channels, etc) */
-	FSoundWaveBasicStruct SoundWaveBasicInfo;
-
-	/** PCM data buffer */
-	FPCMStruct PCMInfo;
-
 	/**
 	 * Whether the decoded audio data appear to be valid or not
 	 */
@@ -250,18 +253,17 @@ struct FDecodedAudioStruct
 	{
 		return FString::Printf(TEXT("SoundWave Basic Info:\n%s\n\nPCM Info:\n%s"), *SoundWaveBasicInfo.ToString(), *PCMInfo.ToString());
 	}
+
+	/** SoundWave basic info (e.g. duration, number of channels, etc) */
+	FSoundWaveBasicStruct SoundWaveBasicInfo;
+
+	/** PCM data buffer */
+	FPCMStruct PCMInfo;
 };
 
 /** Encoded audio information */
 struct FEncodedAudioStruct
 {
-	/** Audio data */
-	FRuntimeBulkDataBuffer<uint8> AudioData;
-
-	/** Format of the audio data (e.g. mp3, flac, etc) */
-	EAudioFormat AudioFormat;
-
-	/** Base constructor */
 	FEncodedAudioStruct()
 		: AudioFormat{EAudioFormat::Invalid}
 	{
@@ -285,6 +287,12 @@ struct FEncodedAudioStruct
 		                       AudioData.GetView().IsValidIndex(0) ? TEXT("Valid") : TEXT("Invalid"), static_cast<int64>(AudioData.GetView().Num()),
 		                       *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
+
+	/** Audio data */
+	FRuntimeBulkDataBuffer<uint8> AudioData;
+
+	/** Format of the audio data (e.g. mp3, flac, etc) */
+	EAudioFormat AudioFormat;
 };
 
 /** Compressed sound wave information */
@@ -292,6 +300,14 @@ USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
 struct FCompressedSoundWaveInfo
 {
 	GENERATED_BODY()
+
+	FCompressedSoundWaveInfo()
+		: SoundGroup(ESoundGroup::SOUNDGROUP_Default)
+	  , bLooping(false)
+	  , Volume(1.f)
+	  , Pitch(1.f)
+	{
+	}
 
 	/** Sound group */
 	UPROPERTY(BlueprintReadWrite, Category = "Runtime Audio Importer")
@@ -308,15 +324,6 @@ struct FCompressedSoundWaveInfo
 	/** Playback pitch for sound. */
 	UPROPERTY(BlueprintReadWrite, meta = (ClampMin = "0.125", ClampMax = "4.0"), Category = "Runtime Audio Importer")
 	float Pitch;
-
-	/** Base constructor */
-	FCompressedSoundWaveInfo()
-		: SoundGroup(ESoundGroup::SOUNDGROUP_Default)
-	  , bLooping(false)
-	  , Volume(1.f)
-	  , Pitch(1.f)
-	{
-	}
 };
 
 /** A line of subtitle text and the time at which it should be displayed. This is the same as FSubtitleCue but editable in Blueprints */
@@ -325,6 +332,11 @@ struct FEditableSubtitleCue
 {
 	GENERATED_BODY()
 
+	FEditableSubtitleCue()
+		: Time(0)
+	{
+	}
+
 	/** The text to appear in the subtitle */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
 	FText Text;
@@ -332,10 +344,51 @@ struct FEditableSubtitleCue
 	/** The time at which the subtitle is to be displayed, in seconds relative to the beginning of the line */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
 	float Time;
+};
 
-	/** Base constructor */
-	FEditableSubtitleCue()
-		: Time(0)
+/** Platform audio input device info */
+USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
+struct FRuntimeAudioInputDeviceInfo
+{
+	GENERATED_BODY()
+
+	FRuntimeAudioInputDeviceInfo()
+		: DeviceName("")
+	  , DeviceId("")
+	  , InputChannels(0)
+	  , PreferredSampleRate(0)
+	  , bSupportsHardwareAEC(true)
 	{
 	}
+
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
+	FRuntimeAudioInputDeviceInfo(const Audio::FCaptureDeviceInfo& DeviceInfo)
+		: DeviceName(DeviceInfo.DeviceName)
+	  , DeviceId(DeviceInfo.DeviceId)
+	  , InputChannels(DeviceInfo.InputChannels)
+	  , PreferredSampleRate(DeviceInfo.PreferredSampleRate)
+	  , bSupportsHardwareAEC(DeviceInfo.bSupportsHardwareAEC)
+	{
+	}
+#endif
+
+	/** The name of the audio device */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	FString DeviceName;
+
+	/** ID of the device */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	FString DeviceId;
+
+	/** The number of channels supported by the audio device */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	int32 InputChannels;
+
+	/** The preferred sample rate of the audio device */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	int32 PreferredSampleRate;
+
+	/** Whether or not the device supports Acoustic Echo Canceling */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	bool bSupportsHardwareAEC;
 };
