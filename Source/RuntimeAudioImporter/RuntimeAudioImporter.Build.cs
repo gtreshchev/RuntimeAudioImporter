@@ -12,6 +12,9 @@ public class RuntimeAudioImporter : ModuleRules
 		// MetaSound is only supported in Unreal Engine version >= 5.2
 		bEnableMetaSoundSupport &= (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2) || Target.Version.MajorVersion > 5;
 
+		// Disable if you are not using audio input capture
+		bool bEnableCaptureInputSupport = true;
+
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
@@ -33,7 +36,8 @@ public class RuntimeAudioImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Core"
+				"Core",
+				"AudioExtensions"
 			}
 		);
 
@@ -46,14 +50,37 @@ public class RuntimeAudioImporter : ModuleRules
 					"MetasoundFrontend",
 					"MetasoundGraphCore",
 					"AudioExtensions"
-                }
+				}
 			);
+		}
 
-			PublicDefinitions.Add("WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT=1");
-		}
-		else
+		PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT={0}", (bEnableMetaSoundSupport ? "1" : "0")));
+
+		if (bEnableCaptureInputSupport)
 		{
-			PublicDefinitions.Add("WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT=0");
+			if (Target.Platform.IsInGroup(UnrealPlatformGroup.Windows) ||
+			    Target.Platform == UnrealTargetPlatform.Mac)
+			{
+				PrivateDependencyModuleNames.Add("AudioCaptureRtAudio");
+			}
+			else if (Target.Platform == UnrealTargetPlatform.IOS)
+			{
+				PrivateDependencyModuleNames.Add("AudioCaptureAudioUnit");
+			}
+			else if (Target.Platform == UnrealTargetPlatform.Android)
+			{
+				PrivateDependencyModuleNames.Add("AudioCaptureAndroid");
+			}
+
+			PublicDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"AudioMixer",
+					"AudioCaptureCore"
+				}
+			);
 		}
+
+		PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT={0}", (bEnableCaptureInputSupport ? "1" : "0")));
 	}
 }

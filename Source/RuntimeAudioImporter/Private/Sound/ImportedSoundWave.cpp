@@ -260,15 +260,10 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 
 void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResult& Result)
 {
-#if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 	PrepareSoundWaveForMetaSounds(FOnPrepareSoundWaveForMetaSoundsResultNative::CreateWeakLambda(this, [Result](bool bSucceeded)
 	{
 		Result.ExecuteIfBound(bSucceeded);
 	}));
-#else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2"));
-	Result.ExecuteIfBound(false);
-#endif
 }
 
 void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResultNative& Result)
@@ -286,10 +281,21 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWave
 			});
 		};
 
-		ExecuteResult(InitAudioResource(Audio::NAME_OGG));
+		const bool bSucceeded = InitAudioResource(Audio::NAME_OGG);
+
+		if (bSucceeded)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully prepared the sound wave '%s' for MetaSounds"), *GetName());
+		}
+		else
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize audio resource to prepare the sound wave '%s' for MetaSounds"), *GetName());
+		}
+
+		ExecuteResult(bSucceeded);
 	});
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2 and if explicitly enabled in RuntimeAudioImporter.Build.cs"));
 	Result.ExecuteIfBound(false);
 #endif
 }
@@ -417,7 +423,7 @@ bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
 {
 	if (PlaybackTime > Duration)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to rewind playback time for the imported sound wave '%s' by time '%f' because total length is '%f'"), *GetName(), PlaybackTime, Duration);
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to rewind playback time for the imported sound wave '%s' by time '%f' because total length is '%f'"), *GetName(), PlaybackTime, Duration);
 		return false;
 	}
 

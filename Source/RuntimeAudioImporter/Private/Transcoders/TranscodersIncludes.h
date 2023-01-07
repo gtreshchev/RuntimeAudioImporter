@@ -1,13 +1,16 @@
 ﻿// Georgy Treshchev 2023.
 
 /**
-* Replacing the C dynamic memory allocation functions (malloc, free, realloc, memset, memcpy) with FMemory ones
+* Replacing the C dynamic memory allocation functions (calloc, malloc, free, realloc, memset, memcpy) with FMemory ones
 */
+#undef calloc
 #undef malloc
 #undef free
 #undef realloc
 #undef memset
+#undef memcpy
 
+#define calloc(Count)				FMemory::Calloc(Count)
 #define malloc(Count)				FMemory::Malloc(Count)
 #define free(Original)				FMemory::Free(Original)
 #define realloc(Original, Count)	FMemory::Realloc(Original, Count)
@@ -33,6 +36,7 @@
 #include "ThirdParty/stb_vorbis.c"
 #endif
 
+#undef calloc
 #undef malloc
 #undef free
 #undef realloc

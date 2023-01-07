@@ -22,7 +22,7 @@ bool MP3Transcoder::CheckAudioFormat(const uint8* AudioData, int32 AudioDataSize
 	return true;
 }
 
-bool MP3Transcoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
+bool MP3Transcoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding MP3 audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 

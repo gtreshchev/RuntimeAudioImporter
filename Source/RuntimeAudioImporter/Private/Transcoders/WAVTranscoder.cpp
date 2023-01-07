@@ -1,6 +1,6 @@
 ﻿// Georgy Treshchev 2023.
 
-#include "WAVTranscoder.h"
+#include "Transcoders/WAVTranscoder.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 
@@ -106,7 +106,7 @@ uint32 ConvertFormat(EWAVEncodingFormat Format)
 	}
 }
 
-bool WAVTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
+bool WAVTranscoder::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, FWAVEncodingFormat Format)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s.\nEncoding audio format: %s"),
 	                                                              *DecodedData.ToString(), *Format.ToString()));
@@ -144,7 +144,7 @@ bool WAVTranscoder::Encode(FDecodedAudioStruct&& DecodedData, FEncodedAudioStruc
 	return true;
 }
 
-bool WAVTranscoder::Decode(FEncodedAudioStruct&& EncodedData, FDecodedAudioStruct& DecodedData)
+bool WAVTranscoder::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	RuntimeAudioImporter_TranscoderLogs::PrintLog(FString::Printf(TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString()));
 
