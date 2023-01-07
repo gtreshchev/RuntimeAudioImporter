@@ -364,7 +364,9 @@ struct FRuntimeAudioInputDeviceInfo
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	FRuntimeAudioInputDeviceInfo(const Audio::FCaptureDeviceInfo& DeviceInfo)
 		: DeviceName(DeviceInfo.DeviceName)
+#if ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24
 	  , DeviceId(DeviceInfo.DeviceId)
+#endif
 	  , InputChannels(DeviceInfo.InputChannels)
 	  , PreferredSampleRate(DeviceInfo.PreferredSampleRate)
 	  , bSupportsHardwareAEC(DeviceInfo.bSupportsHardwareAEC)

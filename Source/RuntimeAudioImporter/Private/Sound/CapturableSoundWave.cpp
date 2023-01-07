@@ -3,6 +3,8 @@
 #include "Sound/CapturableSoundWave.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "UObject/GCObjectScopeGuard.h"
+#include "AudioThread.h"
+#include "Async/Async.h"
 
 UCapturableSoundWave::UCapturableSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -86,14 +88,25 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 		return false;
 	}
 
-	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels, int32 InSampleRate, double StreamTime, bool bOverFlow)
+
+	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels,
+#if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
+		int32 InSampleRate,
+#endif
+	                                             double StreamTime, bool bOverFlow)
 	{
 		FGCObjectScopeGuard Guard(this);
 		const int32 PCMDataSize = NumOfChannels * NumFrames;
 
 		if (AudioCapture.IsCapturing())
 		{
-			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), PCMDataSize * sizeof(float)), ERAWAudioFormat::Float32, InSampleRate, NumOfChannels);
+			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), PCMDataSize * sizeof(float)), ERAWAudioFormat::Float32,
+#if ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24
+									InSampleRate
+#else
+			                       AudioCapture.GetSampleRate()
+#endif
+			                     , NumOfChannels);
 		}
 	};
 
