@@ -40,6 +40,16 @@ public class RuntimeAudioImporter : ModuleRules
 			}
 		);
 
+		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"AudioExtensions"
+				}
+			);
+		}
+
 		if (bEnableMetaSoundSupport)
 		{
 			PrivateDependencyModuleNames.AddRange(
@@ -47,8 +57,7 @@ public class RuntimeAudioImporter : ModuleRules
 				{
 					"MetasoundEngine",
 					"MetasoundFrontend",
-					"MetasoundGraphCore",
-					"AudioExtensions"
+					"MetasoundGraphCore"
 				}
 			);
 		}
