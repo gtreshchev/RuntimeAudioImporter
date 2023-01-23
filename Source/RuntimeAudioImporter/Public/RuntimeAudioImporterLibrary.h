@@ -108,7 +108,7 @@ public:
 	void ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat);
 
 	/**
-	 * Import audio from buffer. Prefer to use this function if possible
+	 * Import audio from buffer. Suitable for use with 64-bit data size
 	 *
 	 * @param AudioData Audio data array
 	 * @param AudioFormat Audio format
@@ -138,7 +138,7 @@ public:
 	void ImportAudioFromRAWBuffer(UPARAM(DisplayName = "RAW Buffer") TArray<uint8> RAWBuffer, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
-	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed. Prefer to use this function if possible
+	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed. Suitable for use with 64-bit data size
 	 *
 	 * @param RAWBuffer RAW audio buffer
 	 * @param RAWFormat RAW audio format
@@ -159,7 +159,7 @@ public:
 	static void TranscodeRAWDataFromBuffer(UPARAM(DisplayName = "RAW Data From") TArray<uint8> RAWDataFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result);
 
 	/**
-	 * Transcoding one RAW Data format to another from buffer. Prefer to use this function if possible
+	 * Transcoding one RAW Data format to another from buffer. Suitable for use with 64-bit data size
 	 *
 	 * @param RAWDataFrom RAW data for transcoding
 	 * @param RAWFormatFrom Original format
@@ -169,7 +169,7 @@ public:
 	static void TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result);
 
 	/**
-	 * Transcoding one RAW Data format to another from file. Suitable for use in C++
+	 * Transcoding one RAW Data format to another from file
 	 *
 	 * @param FilePathFrom Path to file with RAW data for transcoding
 	 * @param RAWFormatFrom Original format
@@ -181,7 +181,7 @@ public:
 	static void TranscodeRAWDataFromFile(const FString& FilePathFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, const FString& FilePathTo, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResult& Result);
 
 	/**
-	 * Transcoding one RAW Data format to another from file. Suitable for use in C++
+	 * Transcoding one RAW Data format to another from file. Suitable for use with 64-bit data size
 	 *
 	 * @param FilePathFrom Path to file with RAW data for transcoding
 	 * @param RAWFormatFrom Original format
@@ -204,7 +204,7 @@ public:
 	static void ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result);
 
 	/**
-	 * Export the imported sound wave to file. Suitable for use in C++
+	 * Export the imported sound wave to file. Suitable for use with 64-bit data size
 	 *
 	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
@@ -226,7 +226,7 @@ public:
 	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result);
 
 	/**
-	 * Export the imported sound wave to buffer. Suitable for use in C++
+	 * Export the imported sound wave to buffer. Suitable for use with 64-bit data size
 	 *
 	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
 	 * @param AudioFormat Required format to export Please note that some formats are not supported
@@ -267,7 +267,7 @@ public:
 	 * @return hh:mm:ss or mm:ss string representation
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static FString ConvertSecondsToString(int32 Seconds);
+	static FString ConvertSecondsToString(int64 Seconds);
 
 	/**
 	 * Decode compressed audio data to uncompressed
@@ -289,16 +289,7 @@ public:
 	static bool EncodeAudioData(FDecodedAudioStruct&& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
 
 	/**
-	 * Determine audio format based on audio data
-	 *
-	 * @param AudioData Pointer to in-memory audio data
-	 * @param AudioDataSize Size of in-memory audio data
-	 * @return The found audio format (e.g. mp3. flac, etc)
-	 */
-	static EAudioFormat GetAudioFormat(const uint8* AudioData, int32 AudioDataSize);
-
-	/**
-	 * Determine audio format based on audio data. Prefer to use this function if possible
+	 * Determine audio format based on audio data. Suitable for use with 64-bit data size
 	 *
 	 * @param AudioData Pointer to in-memory audio data
 	 * @param AudioDataSize Size of in-memory audio data

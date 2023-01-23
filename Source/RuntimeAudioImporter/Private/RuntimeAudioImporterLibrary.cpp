@@ -520,11 +520,6 @@ EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormatAdvanced(const TArray64
 	return GetAudioFormat(AudioData.GetData(), AudioData.Num());
 }
 
-EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData, int32 AudioDataSize)
-{
-	return GetAudioFormat(AudioData, static_cast<int64>(AudioDataSize));
-}
-
 EAudioFormat URuntimeAudioImporterLibrary::GetAudioFormat(const uint8* AudioData, int64 AudioDataSize)
 {
 	if (MP3Transcoder::CheckAudioFormat(AudioData, AudioDataSize))
@@ -569,11 +564,11 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFloat32Buffer(FRuntimeBulkData
 	ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 }
 
-FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int32 Seconds)
+FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int64 Seconds)
 {
 	FString FinalString;
 
-	const int32 NewHours = Seconds / 3600;
+	const int64 NewHours = Seconds / 3600;
 	if (NewHours > 0)
 	{
 		FinalString += ((NewHours < 10) ? TEXT("0") + FString::FromInt(NewHours) : FString::FromInt(NewHours)) + TEXT(":");
