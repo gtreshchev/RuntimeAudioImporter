@@ -2,7 +2,6 @@
 
 #include "Sound/CapturableSoundWave.h"
 #include "RuntimeAudioImporterDefines.h"
-#include "UObject/GCObjectScopeGuard.h"
 #include "AudioThread.h"
 #include "Async/Async.h"
 
@@ -95,7 +94,6 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #endif
 	                                             double StreamTime, bool bOverFlow)
 	{
-		FGCObjectScopeGuard Guard(this);
 		const int32 PCMDataSize = NumOfChannels * NumFrames;
 
 		if (AudioCapture.IsCapturing())
