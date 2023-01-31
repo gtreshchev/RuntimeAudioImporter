@@ -57,7 +57,7 @@ public:
 	 * @param AudioFormat Audio format
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Streaming Sound Wave|Append")
-	void AppendAudioDataFromEncoded(TArray<uint8> AudioData, EAudioFormat AudioFormat);
+	void AppendAudioDataFromEncoded(TArray<uint8> AudioData, ERuntimeAudioFormat AudioFormat);
 
 	/**
 	 * Append audio data to the end of existing data from RAW audio data
@@ -68,7 +68,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Append Audio Data From RAW"), Category = "Streaming Sound Wave|Append")
-	void AppendAudioDataFromRAW(UPARAM(DisplayName = "RAW Data") TArray<uint8> RAWData, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, UPARAM(DisplayName = "Sample Rate") int32 InSampleRate = 44100, int32 NumOfChannels = 1);
+	void AppendAudioDataFromRAW(UPARAM(DisplayName = "RAW Data") TArray<uint8> RAWData, UPARAM(DisplayName = "RAW Format") ERuntimeRAWAudioFormat RAWFormat, UPARAM(DisplayName = "Sample Rate") int32 InSampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Set whether the sound should stop after playback is complete or not (play "blank sound"). False by default

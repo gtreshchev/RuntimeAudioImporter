@@ -38,7 +38,7 @@
 
 ## Additional information
 
-The in-memory audio transcoding operation is done on [dr_libs](https://github.com/mackron/dr_libs) and [stb_vorbis](https://github.com/nothings/stb/blob/master/stb_vorbis.c).
+The in-memory audio transcoding operation is done on [dr_libs](https://github.com/mackron/dr_libs).
 
 ## Legal info
 

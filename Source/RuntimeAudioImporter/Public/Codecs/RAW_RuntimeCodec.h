@@ -7,7 +7,7 @@
 #include "HAL/UnrealMemory.h"
 #include "RuntimeAudioImporterDefines.h"
 
-class RUNTIMEAUDIOIMPORTER_API RAWTranscoder
+class RUNTIMEAUDIOIMPORTER_API FRAW_RuntimeCodec
 {
 public:
 	/**

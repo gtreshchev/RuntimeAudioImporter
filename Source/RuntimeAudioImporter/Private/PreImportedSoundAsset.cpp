@@ -4,6 +4,6 @@
 
 
 UPreImportedSoundAsset::UPreImportedSoundAsset()
-	: AudioFormat(EAudioFormat::Mp3)
+	: AudioFormat(ERuntimeAudioFormat::Mp3)
 {
 }

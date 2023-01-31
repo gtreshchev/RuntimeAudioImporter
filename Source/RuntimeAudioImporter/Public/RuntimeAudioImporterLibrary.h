@@ -16,10 +16,10 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgressNative, int32);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAudioImporterProgress, int32, Percentage);
 
 /** Static delegate broadcasting the audio importer result */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, URuntimeAudioImporterLibrary*, UImportedSoundWave*, ETranscodingStatus);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, URuntimeAudioImporterLibrary*, UImportedSoundWave*, ERuntimeImportStatus);
 
 /** Dynamic delegate broadcasting the audio importer result */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ETranscodingStatus, Status);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ERuntimeImportStatus, Status);
 
 
 /** Static delegate broadcasting the result of the audio export to buffer */
@@ -88,7 +88,7 @@ public:
 	 * @param AudioFormat Audio format
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromFile(const FString& FilePath, EAudioFormat AudioFormat);
+	void ImportAudioFromFile(const FString& FilePath, ERuntimeAudioFormat AudioFormat);
 
 	/**
 	 * Import audio file from the pre-imported sound asset
@@ -105,7 +105,7 @@ public:
 	 * @param AudioFormat Audio format
 	 */
 	UFUNCTION(BlueprintCallable, meta = (Keywords = "Importer, Transcoder, Converter, Runtime, MP3, FLAC, WAV, OGG, Vorbis"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromBuffer(TArray<uint8> AudioData, EAudioFormat AudioFormat);
+	void ImportAudioFromBuffer(TArray<uint8> AudioData, ERuntimeAudioFormat AudioFormat);
 
 	/**
 	 * Import audio from buffer. Suitable for use with 64-bit data size
@@ -113,7 +113,7 @@ public:
 	 * @param AudioData Audio data array
 	 * @param AudioFormat Audio format
 	 */
-	void ImportAudioFromBuffer(TArray64<uint8> AudioData, EAudioFormat AudioFormat);
+	void ImportAudioFromBuffer(TArray64<uint8> AudioData, ERuntimeAudioFormat AudioFormat);
 
 	/**
 	 * Import audio from RAW file. Audio data must not have headers and must be uncompressed
@@ -124,7 +124,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW File"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromRAWFile(const FString& FilePath, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromRAWFile(const FString& FilePath, UPARAM(DisplayName = "RAW Format") ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed
@@ -135,7 +135,7 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Import Audio From RAW Buffer"), Category = "Runtime Audio Importer|Import")
-	void ImportAudioFromRAWBuffer(UPARAM(DisplayName = "RAW Buffer") TArray<uint8> RAWBuffer, UPARAM(DisplayName = "RAW Format") ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromRAWBuffer(UPARAM(DisplayName = "RAW Buffer") TArray<uint8> RAWBuffer, UPARAM(DisplayName = "RAW Format") ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Import audio from RAW buffer. Audio data must not have headers and must be uncompressed. Suitable for use with 64-bit data size
@@ -145,7 +145,7 @@ public:
 	 * @param SampleRate The number of samples per second
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
-	void ImportAudioFromRAWBuffer(TArray64<uint8> RAWBuffer, ERAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+	void ImportAudioFromRAWBuffer(TArray64<uint8> RAWBuffer, ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
 
 	/**
 	 * Transcoding one RAW Data format to another from buffer
@@ -156,7 +156,7 @@ public:
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From Buffer"), Category = "Runtime Audio Importer|Transcode")
-	static void TranscodeRAWDataFromBuffer(UPARAM(DisplayName = "RAW Data From") TArray<uint8> RAWDataFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result);
+	static void TranscodeRAWDataFromBuffer(UPARAM(DisplayName = "RAW Data From") TArray<uint8> RAWDataFrom, UPARAM(DisplayName = "RAW Format From") ERuntimeRAWAudioFormat RAWFormatFrom, UPARAM(DisplayName = "RAW Format To") ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result);
 
 	/**
 	 * Transcoding one RAW Data format to another from buffer. Suitable for use with 64-bit data size
@@ -166,7 +166,7 @@ public:
 	 * @param RAWFormatTo Required format
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERAWAudioFormat RAWFormatFrom, ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result);
+	static void TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERuntimeRAWAudioFormat RAWFormatFrom, ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result);
 
 	/**
 	 * Transcoding one RAW Data format to another from file
@@ -178,7 +178,7 @@ public:
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Transcode RAW Data From File"), Category = "Runtime Audio Importer|Transcode")
-	static void TranscodeRAWDataFromFile(const FString& FilePathFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, const FString& FilePathTo, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResult& Result);
+	static void TranscodeRAWDataFromFile(const FString& FilePathFrom, UPARAM(DisplayName = "RAW Format From") ERuntimeRAWAudioFormat RAWFormatFrom, const FString& FilePathTo, UPARAM(DisplayName = "RAW Format To") ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResult& Result);
 
 	/**
 	 * Transcoding one RAW Data format to another from file. Suitable for use with 64-bit data size
@@ -189,51 +189,91 @@ public:
 	 * @param RAWFormatTo Required format
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void TranscodeRAWDataFromFile(const FString& FilePathFrom, UPARAM(DisplayName = "RAW Format From") ERAWAudioFormat RAWFormatFrom, const FString& FilePathTo, UPARAM(DisplayName = "RAW Format To") ERAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResultNative& Result);
+	static void TranscodeRAWDataFromFile(const FString& FilePathFrom, UPARAM(DisplayName = "RAW Format From") ERuntimeRAWAudioFormat RAWFormatFrom, const FString& FilePathTo, UPARAM(DisplayName = "RAW Format To") ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResultNative& Result);
 
 	/**
 	 * Export the imported sound wave to file
 	 *
 	 * @param ImportedSoundWave Reference to the imported sound wave
-	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param AudioFormat Required format for exporting. Please note that some formats are not supported
 	 * @param SavePath Path to save the file
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static void ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result);
+	static void ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResult& Result);
 
 	/**
 	 * Export the imported sound wave to file. Suitable for use with 64-bit data size
 	 *
 	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
-	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param AudioFormat Required format for exporting. Please note that some formats are not supported
 	 * @param SavePath Path to save the file
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result);
+	static void ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result);
 
 	/**
 	 * Export the imported sound wave to buffer
 	 *
 	 * @param ImportedSoundWave Reference to the imported sound wave
-	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param AudioFormat Required format for exporting. Please note that some formats are not supported
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result);
+	static void ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResult& Result);
 
 	/**
 	 * Export the imported sound wave to buffer. Suitable for use with 64-bit data size
 	 *
 	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
-	 * @param AudioFormat Required format to export Please note that some formats are not supported
+	 * @param AudioFormat Required format for exporting. Please note that some formats are not supported
 	 * @param Quality The quality of the encoded audio data. From 0 to 100
 	 * @param Result Delegate broadcasting the result
 	 */
-	static void ExportSoundWaveToBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, EAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result);
+	static void ExportSoundWaveToBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToBufferResultNative& Result);
+
+	/**
+	 * Export the imported sound wave to RAW file
+	 *
+	 * @param ImportedSoundWave Reference to the imported sound wave
+	 * @param RAWFormat Required RAW format for exporting
+	 * @param SavePath Path to save the file
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
+	static void ExportSoundWaveToRAWFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToFileResult& Result);
+
+	/**
+	 * Export the imported sound wave to RAW file. Suitable for use with 64-bit data size
+	 *
+	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
+	 * @param RAWFormat Required RAW format for exporting
+	 * @param SavePath Path to save the file
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ExportSoundWaveToRAWFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToFileResultNative& Result);
+
+	/**
+	 * Export the imported sound wave to RAW buffer
+	 *
+	 * @param ImportedSoundWave Reference to the imported sound wave
+	 * @param RAWFormat Required RAW format for exporting
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
+	static void ExportSoundWaveToRAWBuffer(UImportedSoundWave* ImportedSoundWave, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToBufferResult& Result);
+
+	/**
+	 * Export the imported sound wave to RAW buffer. Suitable for use with 64-bit data size
+	 *
+	 * @param ImportedSoundWavePtr Weak pointer to the imported sound wave
+	 * @param RAWFormat Required RAW format for exporting
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ExportSoundWaveToRAWBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToBufferResultNative& Result);
 
 	/**
 	 * Get audio format by extension
@@ -242,7 +282,7 @@ public:
 	 * @return The found audio format (e.g. mp3. flac, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static EAudioFormat GetAudioFormat(const FString& FilePath);
+	static ERuntimeAudioFormat GetAudioFormat(const FString& FilePath);
 
 	/**
 	 * Determine audio format based on audio data. A more advanced way to get the format
@@ -251,15 +291,23 @@ public:
 	 * @return The found audio format (e.g. mp3. flac, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
-	static EAudioFormat GetAudioFormatAdvanced(const TArray<uint8>& AudioData);
+	static ERuntimeAudioFormat GetAudioFormatAdvanced(const TArray<uint8>& AudioData);
 
 	/**
-	 * Determine audio format based on audio data. A more advanced way to get the format. Prefer to use this function if possible
+	 * Determine audio format based on audio data. A more advanced way to get the format. Suitable for use with 64-bit data size
 	 *
 	 * @param AudioData Audio data array
 	 * @return The found audio format (e.g. mp3. flac, etc)
 	 */
-	static EAudioFormat GetAudioFormatAdvanced(const TArray64<uint8>& AudioData);
+	static ERuntimeAudioFormat GetAudioFormatAdvanced(const TArray64<uint8>& AudioData);
+
+	/**
+	 * Determine audio format based on audio data. A more advanced way to get the format. Suitable for use with 64-bit data size
+	 *
+	 * @param AudioData Audio data array
+	 * @return The found audio format (e.g. mp3. flac, etc)
+	 */
+	static ERuntimeAudioFormat GetAudioFormatAdvanced(const FRuntimeBulkDataBuffer<uint8>& AudioData);
 
 	/**
 	 * Convert seconds to string (hh:mm:ss or mm:ss depending on the number of seconds)
@@ -287,15 +335,6 @@ public:
 	 * @return Whether the encoding was successful or not
 	 */
 	static bool EncodeAudioData(FDecodedAudioStruct&& DecodedAudioInfo, FEncodedAudioStruct& EncodedAudioInfo, uint8 Quality);
-
-	/**
-	 * Determine audio format based on audio data. Suitable for use with 64-bit data size
-	 *
-	 * @param AudioData Pointer to in-memory audio data
-	 * @param AudioDataSize Size of in-memory audio data
-	 * @return The found audio format (e.g. mp3. flac, etc)
-	 */
-	static EAudioFormat GetAudioFormat(const uint8* AudioData, int64 AudioDataSize);
 
 	/**
 	 * Import audio from 32-bit float PCM data
@@ -327,5 +366,5 @@ protected:
 	 * @param ImportedSoundWave Reference to the imported sound wave
 	 * @param Status Importing status
 	 */
-	void OnResult_Internal(UImportedSoundWave* ImportedSoundWave, ETranscodingStatus Status);
+	void OnResult_Internal(UImportedSoundWave* ImportedSoundWave, ERuntimeImportStatus Status);
 };

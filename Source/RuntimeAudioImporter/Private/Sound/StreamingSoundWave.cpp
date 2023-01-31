@@ -2,7 +2,7 @@
 
 #include "Sound/StreamingSoundWave.h"
 #include "RuntimeAudioImporterLibrary.h"
-#include "Transcoders/RAWTranscoder.h"
+#include "Codecs/RAW_RuntimeCodec.h"
 
 #include "Async/Async.h"
 #include "UObject/GCObjectScopeGuard.h"
@@ -172,7 +172,7 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 	});
 }
 
-void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, EAudioFormat AudioFormat)
+void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ERuntimeAudioFormat AudioFormat)
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
@@ -199,7 +199,7 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, EA
 	});
 }
 
-void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
+void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntimeRAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 	{
@@ -215,22 +215,22 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERAWAudi
 		{
 			switch (RAWFormat)
 			{
-			case ERAWAudioFormat::Int16:
+			case ERuntimeRAWAudioFormat::Int16:
 				{
-					RAWTranscoder::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
 					break;
 				}
-			case ERAWAudioFormat::Int32:
+			case ERuntimeRAWAudioFormat::Int32:
 				{
-					RAWTranscoder::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					FRAW_RuntimeCodec::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
 					break;
 				}
-			case ERAWAudioFormat::UInt8:
+			case ERuntimeRAWAudioFormat::UInt8:
 				{
-					RAWTranscoder::TranscodeRAWData<uint8, float>(RAWDataPtr, RAWDataSize, PCMData, PCMDataSize);
+					FRAW_RuntimeCodec::TranscodeRAWData<uint8, float>(RAWDataPtr, RAWDataSize, PCMData, PCMDataSize);
 					break;
 				}
-			case ERAWAudioFormat::Float32:
+			case ERuntimeRAWAudioFormat::Float32:
 				{
 					PCMDataSize = RAWDataSize;
 					PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize), RAWDataPtr, RAWDataSize));
