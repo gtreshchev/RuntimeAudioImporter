@@ -1,7 +1,7 @@
 ﻿// Georgy Treshchev 2023.
 
 /**
-* Replacing the C dynamic memory allocation functions (calloc, malloc, free, realloc, memset, memcpy) with FMemory ones
+* Replacing C dynamic memory allocation functions (calloc, malloc, free, realloc, memset, memcpy) with FMemory ones
 */
 #undef calloc
 #undef malloc
@@ -31,9 +31,15 @@
 
 #ifdef INCLUDE_VORBIS
 #if PLATFORM_SUPPORTS_VORBIS_CODEC
+#pragma pack(push, 8)
 #include "vorbis/vorbisenc.h"
+#pragma pack(pop)
 #endif
-#include "ThirdParty/stb_vorbis.c"
+#include "VorbisAudioInfo.h"
+#include "Interfaces/IAudioFormat.h"
+#ifndef WITH_OGGVORBIS
+#define WITH_OGGVORBIS 0
+#endif
 #endif
 
 #undef calloc

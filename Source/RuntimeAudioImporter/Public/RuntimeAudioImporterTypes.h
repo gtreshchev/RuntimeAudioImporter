@@ -13,7 +13,7 @@
 
 /** Possible audio importing results */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class ETranscodingStatus : uint8
+enum class ERuntimeImportStatus : uint8
 {
 	/** Successful import */
 	SuccessfulImport UMETA(DisplayName = "Success"),
@@ -36,7 +36,7 @@ enum class ETranscodingStatus : uint8
 
 /** Possible audio formats (extensions) */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class EAudioFormat : uint8
+enum class ERuntimeAudioFormat : uint8
 {
 	Auto UMETA(DisplayName = "Determine format automatically"),
 	Mp3 UMETA(DisplayName = "mp3"),
@@ -46,9 +46,9 @@ enum class EAudioFormat : uint8
 	Invalid UMETA(DisplayName = "invalid (not defined format, internal use only)", Hidden)
 };
 
-/** Possible RAW (uncompressed) audio formats */
+/** Possible RAW (uncompressed, PCM) audio formats */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
-enum class ERAWAudioFormat : uint8
+enum class ERuntimeRAWAudioFormat : uint8
 {
 	Int16 UMETA(DisplayName = "Signed 16-bit PCM"),
 	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
@@ -57,7 +57,7 @@ enum class ERAWAudioFormat : uint8
 };
 
 /**
- * Alternative to FBulkDataBuffer with data types consistency
+ * An alternative to FBulkDataBuffer with consistent data types
  */
 template <typename DataType>
 class FRuntimeBulkDataBuffer
@@ -90,12 +90,24 @@ public:
 #endif
 	}
 
+	template <typename Allocator>
+	explicit FRuntimeBulkDataBuffer(const TArray<DataType, Allocator>& Other)
+	{
+		DataType* BulkData = static_cast<DataType*>(FMemory::Malloc(Other.Num() * sizeof(DataType)));
+		if (!BulkData)
+		{
+			return;
+		}
+		FMemory::Memcpy(BulkData, Other.GetData(), Other.Num() * sizeof(DataType));
+		FRuntimeBulkDataBuffer<DataType>(BulkData, Other.Num());
+	}
+
 	~FRuntimeBulkDataBuffer()
 	{
 		FreeBuffer();
 	}
 
-	FRuntimeBulkDataBuffer& operator =(const FRuntimeBulkDataBuffer& Other)
+	FRuntimeBulkDataBuffer& operator=(const FRuntimeBulkDataBuffer& Other)
 	{
 		FreeBuffer();
 
@@ -112,7 +124,7 @@ public:
 		return *this;
 	}
 
-	FRuntimeBulkDataBuffer& operator =(FRuntimeBulkDataBuffer&& Other) noexcept
+	FRuntimeBulkDataBuffer& operator=(FRuntimeBulkDataBuffer&& Other) noexcept
 	{
 		if (this != &Other)
 		{
@@ -265,12 +277,12 @@ struct FDecodedAudioStruct
 struct FEncodedAudioStruct
 {
 	FEncodedAudioStruct()
-		: AudioFormat{EAudioFormat::Invalid}
+		: AudioFormat(ERuntimeAudioFormat::Invalid)
 	{
 	}
 
 	/** Custom constructor */
-	FEncodedAudioStruct(uint8* AudioData, int64 AudioDataSize, EAudioFormat AudioFormat)
+	FEncodedAudioStruct(uint8* AudioData, int64 AudioDataSize, ERuntimeAudioFormat AudioFormat)
 		: AudioData(AudioData, AudioDataSize)
 	  , AudioFormat(AudioFormat)
 	{
@@ -292,7 +304,7 @@ struct FEncodedAudioStruct
 	FRuntimeBulkDataBuffer<uint8> AudioData;
 
 	/** Format of the audio data (e.g. mp3, flac, etc) */
-	EAudioFormat AudioFormat;
+	ERuntimeAudioFormat AudioFormat;
 };
 
 /** Compressed sound wave information */

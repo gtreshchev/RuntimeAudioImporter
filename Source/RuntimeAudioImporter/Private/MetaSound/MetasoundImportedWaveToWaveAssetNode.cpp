@@ -71,11 +71,9 @@ namespace RuntimeAudioImporter
 			using namespace ImportedWaveToWaveAssetNodeParameterNames;
 
 			static const FVertexInterface DefaultInterface(
-				FInputVertexInterface(
-					TInputDataVertex<FImportedWave>(METASOUND_GET_PARAM_NAME_AND_METADATA(ParamImportedWave))
+				FInputVertexInterface(TInputDataVertex<FImportedWave>(METASOUND_GET_PARAM_NAME_AND_METADATA(ParamImportedWave))
 				),
-				FOutputVertexInterface(
-					TOutputDataVertex<FWaveAsset>(METASOUND_GET_PARAM_NAME_AND_METADATA(ParamWaveAsset))
+				FOutputVertexInterface(TOutputDataVertex<FWaveAsset>(METASOUND_GET_PARAM_NAME_AND_METADATA(ParamWaveAsset))
 				)
 			);
 

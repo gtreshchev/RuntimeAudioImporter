@@ -13,7 +13,7 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
 	Formats.Add(TEXT("imp;Runtime Audio Importer any supported format (mp3, wav, flac and ogg)"));
 
-	// Removed for consistency with other modules
+	// Removed for consistency with non-RuntimeAudioImporter modules
 	/*
 	Formats.Add(TEXT("mp3;MPEG-2 Audio"));
 	Formats.Add(TEXT("wav;Wave Audio File"));
@@ -31,7 +31,7 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString FileExtension{FPaths::GetExtension(Filename).ToLower()};
-	return FileExtension == TEXT("imp") || URuntimeAudioImporterLibrary::GetAudioFormat(Filename) != EAudioFormat::Invalid;
+	return FileExtension == TEXT("imp") || URuntimeAudioImporterLibrary::GetAudioFormat(Filename) != ERuntimeAudioFormat::Invalid;
 }
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
@@ -57,7 +57,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 		return nullptr;
 	}
 	
-	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioData.Num(), EAudioFormat::Auto);
+	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioData.Num(), ERuntimeAudioFormat::Auto);
 
 	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 	{

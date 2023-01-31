@@ -5,7 +5,7 @@
 #include "AudioDevice.h"
 #include "Async/Async.h"
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
-#include "Transcoders/VorbisTranscoder.h"
+#include "Codecs/VORBIS_RuntimeCodec.h"
 #endif
 #include "UObject/GCObjectScopeGuard.h"
 
@@ -86,8 +86,9 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 		}
 	}
 
+	FVORBIS_RuntimeCodec VorbisCodec;
 	FEncodedAudioStruct EncodedAudioInfo;
-	if (!VorbisTranscoder::Encode(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, 100))
+	if (!VorbisCodec.Encode(MoveTemp(DecodedAudioInfo), EncodedAudioInfo, 100))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while encoding Vorbis audio data"));
 		return false;
