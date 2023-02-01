@@ -243,8 +243,8 @@ public:
 	 * @param SavePath Path to save the file
 	 * @param Result Delegate broadcasting the result
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static void ExportSoundWaveToRAWFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToFileResult& Result);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Export Sound Wave To RAW File"), Category = "Runtime Audio Importer|Export")
+	static void ExportSoundWaveToRAWFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, UPARAM(DisplayName = "RAW Format") ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToFileResult& Result);
 
 	/**
 	 * Export the imported sound wave to RAW file. Suitable for use with 64-bit data size
@@ -263,8 +263,8 @@ public:
 	 * @param RAWFormat Required RAW format for exporting
 	 * @param Result Delegate broadcasting the result
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Export")
-	static void ExportSoundWaveToRAWBuffer(UImportedSoundWave* ImportedSoundWave, ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToBufferResult& Result);
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Export Sound Wave To RAW Buffer"), Category = "Runtime Audio Importer|Export")
+	static void ExportSoundWaveToRAWBuffer(UImportedSoundWave* ImportedSoundWave, UPARAM(DisplayName = "RAW Format") ERuntimeRAWAudioFormat RAWFormat, const FOnAudioExportToBufferResult& Result);
 
 	/**
 	 * Export the imported sound wave to RAW buffer. Suitable for use with 64-bit data size
