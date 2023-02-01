@@ -1,4 +1,6 @@
-﻿#include "Codecs/RuntimeCodecFactory.h"
+﻿// Georgy Treshchev 2023.
+
+#include "Codecs/RuntimeCodecFactory.h"
 #include "Codecs/BaseRuntimeCodec.h"
 
 #include "Codecs/FLAC_RuntimeCodec.h"
@@ -6,11 +8,13 @@
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #include "Codecs/WAV_RuntimeCodec.h"
 
+#include "Misc/Paths.h"
+
 #include "RuntimeAudioImporterDefines.h"
 
 TUniquePtr<FBaseRuntimeCodec> FRuntimeCodecFactory::GetCodec(const FString& FilePath)
 {
-	const FString& Extension{FPaths::GetExtension(FilePath, false).ToLower()};
+	const FString Extension = FPaths::GetExtension(FilePath, false).ToLower();
 
 	if (Extension == TEXT("mp3"))
 	{
