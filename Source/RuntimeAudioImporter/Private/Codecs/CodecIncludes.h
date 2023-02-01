@@ -10,7 +10,7 @@
 #undef memset
 #undef memcpy
 
-#define calloc(Count)				FMemory::Calloc(Count)
+#define calloc(Count, Size)			[](){ void* MemPtr = FMemory::Malloc(Count * Size); FMemory::Memset(MemPtr, 0, Count * Size); return MemPtr; }()
 #define malloc(Count)				FMemory::Malloc(Count)
 #define free(Original)				FMemory::Free(Original)
 #define realloc(Original, Count)	FMemory::Realloc(Original, Count)
