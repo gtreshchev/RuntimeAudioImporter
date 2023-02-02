@@ -3,6 +3,7 @@
 #include "Codecs/FLAC_RuntimeCodec.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
+#include "HAL/UnrealMemory.h"
 
 #define INCLUDE_FLAC
 #include "CodecIncludes.h"

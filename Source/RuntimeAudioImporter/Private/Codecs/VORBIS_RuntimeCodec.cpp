@@ -4,6 +4,7 @@
 #include "RuntimeAudioImporterTypes.h"
 #include "Codecs/RAW_RuntimeCodec.h"
 #include "GenericPlatform/GenericPlatformProperties.h"
+#include "HAL/UnrealMemory.h"
 
 #define INCLUDE_VORBIS
 #include "CodecIncludes.h"
