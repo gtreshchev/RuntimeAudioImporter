@@ -35,11 +35,6 @@
 #include "vorbis/vorbisenc.h"
 #pragma pack(pop)
 #endif
-#include "VorbisAudioInfo.h"
-#include "Interfaces/IAudioFormat.h"
-#ifndef WITH_OGGVORBIS
-#define WITH_OGGVORBIS 0
-#endif
 #endif
 
 #undef calloc
@@ -48,3 +43,11 @@
 #undef realloc
 #undef memset
 #undef memcpy
+
+#ifdef INCLUDE_VORBIS
+#include "VorbisAudioInfo.h"
+#include "Interfaces/IAudioFormat.h"
+#ifndef WITH_OGGVORBIS
+#define WITH_OGGVORBIS 0
+#endif
+#endif
