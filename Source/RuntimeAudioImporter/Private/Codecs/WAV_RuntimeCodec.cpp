@@ -3,6 +3,7 @@
 #include "Codecs/WAV_RuntimeCodec.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
+#include "HAL/UnrealMemory.h"
 
 #define INCLUDE_WAV
 #include "CodecIncludes.h"

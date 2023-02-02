@@ -3,6 +3,7 @@
 #include "Codecs/MP3_RuntimeCodec.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
+#include "HAL/UnrealMemory.h"
 
 #define INCLUDE_MP3
 #include "CodecIncludes.h"
