@@ -93,13 +93,16 @@ public:
 	template <typename Allocator>
 	explicit FRuntimeBulkDataBuffer(const TArray<DataType, Allocator>& Other)
 	{
-		DataType* BulkData = static_cast<DataType*>(FMemory::Malloc(Other.Num() * sizeof(DataType)));
+		const int64 BulkDataSize = Other.Num() * sizeof(DataType);
+
+		DataType* BulkData = static_cast<DataType*>(FMemory::Malloc(BulkDataSize));
 		if (!BulkData)
 		{
 			return;
 		}
-		FMemory::Memcpy(BulkData, Other.GetData(), Other.Num() * sizeof(DataType));
-		FRuntimeBulkDataBuffer<DataType>(BulkData, Other.Num());
+
+		FMemory::Memcpy(BulkData, Other.GetData(), BulkDataSize);
+		View = ViewType(BulkData, BulkDataSize);
 	}
 
 	~FRuntimeBulkDataBuffer()
