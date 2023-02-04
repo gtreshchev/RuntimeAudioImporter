@@ -593,6 +593,88 @@ ERuntimeAudioFormat URuntimeAudioImporterLibrary::GetAudioFormatAdvanced(const T
 	return GetAudioFormatAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));
 }
 
+void URuntimeAudioImporterLibrary::GetAudioHeaderInfoFromFile(const FString& FilePath, const FOnGetAudioHeaderInfoResult& Result)
+{
+	GetAudioHeaderInfoFromFile(FilePath, FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, const FRuntimeAudioHeaderInfo& HeaderInfo)
+	{
+		Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+	}));
+}
+
+void URuntimeAudioImporterLibrary::GetAudioHeaderInfoFromFile(const FString& FilePath, const FOnGetAudioHeaderInfoResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [FilePath, Result]
+	{
+		auto ExecuteResult = [Result](bool bSucceeded, FRuntimeAudioHeaderInfo&& HeaderInfo)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]()
+			{
+				Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+			});
+		};
+
+		TArray64<uint8> AudioBuffer;
+		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
+		{
+			ExecuteResult(false, FRuntimeAudioHeaderInfo());
+			return;
+		}
+
+		GetAudioHeaderInfoFromBuffer(MoveTemp(AudioBuffer), FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, const FRuntimeAudioHeaderInfo& HeaderInfo)
+		{
+			Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+		}));
+	});
+}
+
+void URuntimeAudioImporterLibrary::GetAudioHeaderInfoFromBuffer(TArray<uint8> AudioData, const FOnGetAudioHeaderInfoResult& Result)
+{
+	GetAudioHeaderInfoFromBuffer(TArray64<uint8>(MoveTemp(AudioData)), FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, const FRuntimeAudioHeaderInfo& HeaderInfo)
+	{
+		Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+	}));
+}
+
+void URuntimeAudioImporterLibrary::GetAudioHeaderInfoFromBuffer(TArray64<uint8> AudioData, const FOnGetAudioHeaderInfoResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [AudioData = MoveTemp(AudioData), Result]
+	{
+		auto ExecuteResult = [Result](bool bSucceeded, FRuntimeAudioHeaderInfo&& HeaderInfo)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]()
+			{
+				Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+			});
+		};
+
+		FRuntimeBulkDataBuffer<uint8> BulkAudioData = FRuntimeBulkDataBuffer<uint8>(AudioData);
+
+		FRuntimeCodecFactory CodecFactory;
+		TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(BulkAudioData);
+
+		if (!RuntimeCodec.IsValid())
+		{
+			ExecuteResult(false, FRuntimeAudioHeaderInfo());
+			return;
+		}
+
+		FEncodedAudioStruct EncodedData;
+		{
+			EncodedData.AudioData = MoveTemp(BulkAudioData);
+			EncodedData.AudioFormat = RuntimeCodec->GetAudioFormat();
+		}
+
+		FRuntimeAudioHeaderInfo HeaderInfo;
+		if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedData), HeaderInfo))
+		{
+			ExecuteResult(false, FRuntimeAudioHeaderInfo());
+			return;
+		}
+
+		ExecuteResult(true, MoveTemp(HeaderInfo));
+	});
+}
+
 ERuntimeAudioFormat URuntimeAudioImporterLibrary::GetAudioFormatAdvanced(const TArray64<uint8>& AudioData)
 {
 	return GetAudioFormatAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));

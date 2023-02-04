@@ -63,7 +63,7 @@ public:
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
 
 		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
-		
+
 		FMemory::Free(DataTo);
 	}
 
@@ -99,7 +99,7 @@ public:
 		/** Returning the transcoded data as bytes */
 		RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
 
-		/*UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %f, max: %f) to size '%llu' (min: %f, max: %f)"),
-		       static_cast<uint64>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<uint64>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);*/
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %f, max: %f) to size '%llu' (min: %f, max: %f)"),
+		       static_cast<uint64>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<uint64>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
 	}
 };

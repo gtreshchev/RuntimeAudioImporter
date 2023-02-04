@@ -269,6 +269,15 @@ public:
 	 */
 	bool IsPlaybackFinished_Internal() const;
 
+	/**
+	 * Retrieve audio header (metadata) information. Needed primarily for consistency with the RuntimeAudioImporterLibrary
+	 *
+	 * @param HeaderInfo Header info, valid only if the return is true
+	 * @return Whether the retrieval was successful or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
+	bool GetAudioHeaderInfo(FRuntimeAudioHeaderInfo& HeaderInfo) const;
+
 protected:
 	/**
 	 * Makes it possible to broadcast OnAudioPlaybackFinished again

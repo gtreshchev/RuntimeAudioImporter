@@ -545,6 +545,27 @@ bool UImportedSoundWave::IsPlaybackFinished_Internal() const
 	return bOutOfFrames && bValidPCMData;
 }
 
+bool UImportedSoundWave::GetAudioHeaderInfo(FRuntimeAudioHeaderInfo& HeaderInfo) const
+{
+	FScopeLock Lock(&DataGuard);
+
+	if (!PCMBufferInfo.IsValid())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to retrieve audio header information due to an invalid PCM buffer"));
+		return false;
+	}
+
+	{
+		HeaderInfo.Duration = GetDurationConst();
+		HeaderInfo.AudioFormat = ERuntimeAudioFormat::Auto;
+		HeaderInfo.SampleRate = GetSampleRate();
+		HeaderInfo.NumOfChannels = NumChannels;
+		HeaderInfo.PCMDataSize = PCMBufferInfo->PCMData.GetView().Num();
+	}
+	
+	return true;
+}
+
 void UImportedSoundWave::ResetPlaybackFinish()
 {
 	PlaybackFinishedBroadcast = false;

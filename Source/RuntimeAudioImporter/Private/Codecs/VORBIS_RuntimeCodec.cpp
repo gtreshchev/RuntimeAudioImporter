@@ -24,6 +24,35 @@ bool FVORBIS_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>&
 	return true;
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
+	return false;
+#endif
+}
+
+bool FVORBIS_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
+{
+#if WITH_OGGVORBIS
+
+	FVorbisAudioInfo AudioInfo;
+	FSoundQualityInfo SoundQualityInfo;
+
+	if (!AudioInfo.ReadCompressedInfo(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), &SoundQualityInfo) || SoundQualityInfo.SampleDataSize == 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to read VORBIS compressed info"));
+		return false;
+	}
+
+	{
+		HeaderInfo.Duration = SoundQualityInfo.Duration;
+		HeaderInfo.SampleRate = SoundQualityInfo.SampleRate;
+		HeaderInfo.NumOfChannels = SoundQualityInfo.NumChannels;
+		HeaderInfo.PCMDataSize = (SoundQualityInfo.SampleDataSize / sizeof(int16)) * sizeof(float);
+		HeaderInfo.AudioFormat = GetAudioFormat();
+	}
+
+	return true;
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
+	return false;
 #endif
 }
 
@@ -239,7 +268,7 @@ bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudio
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded Vorbis audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-	
+
 	return true;
 
 #else

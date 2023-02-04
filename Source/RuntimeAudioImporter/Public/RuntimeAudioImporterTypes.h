@@ -409,3 +409,39 @@ struct FRuntimeAudioInputDeviceInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
 	bool bSupportsHardwareAEC;
 };
+
+/** Audio header information */
+USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
+struct FRuntimeAudioHeaderInfo
+{
+	GENERATED_BODY()
+
+	FRuntimeAudioHeaderInfo()
+		: Duration(0.f)
+	  , NumOfChannels(0)
+	  , SampleRate(0)
+	  , PCMDataSize(0)
+	  , AudioFormat(ERuntimeAudioFormat::Invalid)
+	{
+	}
+
+	/** Audio duration, sec */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
+	float Duration;
+
+	/** Number of channels */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
+	int32 NumOfChannels;
+
+	/** Sample rate (samples per second, sampling frequency) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
+	int32 SampleRate;
+
+	/** PCM data size in floating-point format */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName = "PCM Data Size", Category = "Runtime Audio Importer")
+	int64 PCMDataSize;
+
+	/** Format of the source audio data (e.g. mp3, flac, etc) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
+	ERuntimeAudioFormat AudioFormat;
+};
