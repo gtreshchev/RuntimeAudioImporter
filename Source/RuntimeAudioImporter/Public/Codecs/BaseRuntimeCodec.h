@@ -26,7 +26,16 @@ public:
 	}
 
 	/**
-	 * Encode uncompressed PCM data to compressed format
+	 * Retrieve audio header information from an encoded source
+	 */
+	virtual bool GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
+	{
+		ensureMsgf(false, TEXT("GetHeaderInfo cannot be called from base runtime codec"));
+		return false;
+	}
+
+	/**
+	 * Encode uncompressed PCM data into a compressed format
 	 */
 	virtual bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 	{
@@ -35,7 +44,7 @@ public:
 	}
 
 	/**
-	 * Decode compressed audio data to PCM format
+	 * Decode compressed audio data into PCM format
 	 */
 	virtual bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 	{
@@ -44,7 +53,7 @@ public:
 	}
 
 	/**
-	 * Get the format applicable to this codec
+	 * Retrieve the format applicable to this codec
 	 */
 	virtual ERuntimeAudioFormat GetAudioFormat() const
 	{

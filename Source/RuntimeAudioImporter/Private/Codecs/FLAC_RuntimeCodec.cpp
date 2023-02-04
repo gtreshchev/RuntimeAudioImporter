@@ -23,6 +23,29 @@ bool FFLAC_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& A
 	return true;
 }
 
+bool FFLAC_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
+{
+	drflac* FLAC = drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr);
+
+	if (!FLAC)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize FLAC Decoder"));
+		return false;
+	}
+
+	{
+		HeaderInfo.Duration = static_cast<float>(FLAC->totalPCMFrameCount) / FLAC->sampleRate;
+		HeaderInfo.NumOfChannels = FLAC->channels;
+		HeaderInfo.SampleRate = FLAC->sampleRate;
+		HeaderInfo.PCMDataSize = FLAC->totalPCMFrameCount * FLAC->channels * sizeof(float);
+		HeaderInfo.AudioFormat = GetAudioFormat();
+	}
+
+	drflac_close(FLAC);
+
+	return true;
+}
+
 bool FFLAC_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality)
 {
 	ensureMsgf(false, TEXT("FLAC codec does not support encoding at the moment"));
