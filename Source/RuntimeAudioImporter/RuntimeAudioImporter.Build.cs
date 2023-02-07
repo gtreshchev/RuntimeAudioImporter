@@ -9,8 +9,8 @@ public class RuntimeAudioImporter : ModuleRules
 		// Change to toggle MetaSounds support
 		bool bEnableMetaSoundSupport = false;
 
-		// MetaSound is only supported in Unreal Engine version >= 5.2
-		bEnableMetaSoundSupport &= (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2) || Target.Version.MajorVersion > 5;
+		// MetaSound is only supported in Unreal Engine version >= 5.3
+		bEnableMetaSoundSupport &= (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 3) || Target.Version.MajorVersion > 5;
 
 		// Disable if you are not using audio input capture
 		bool bEnableCaptureInputSupport = true;
