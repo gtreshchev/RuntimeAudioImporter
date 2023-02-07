@@ -11,6 +11,10 @@
 
 namespace
 {
+	/**
+	 * Check and fix the WAV audio data with the correct byte size in the RIFF container
+	 * Made by https://github.com/kass-kass
+	 */
 	bool CheckAndFixWavDurationErrors(const FRuntimeBulkDataBuffer<uint8>& WavData)
 	{
 		drwav WAV;
