@@ -19,14 +19,14 @@ bool FFLAC_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& A
 	}
 
 	drflac_close(FLAC);
-
 	return true;
 }
 
 bool FFLAC_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
 {
-	drflac* FLAC = drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr);
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for FLAC audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	drflac* FLAC = drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr);
 	if (!FLAC)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize FLAC Decoder"));
@@ -42,7 +42,7 @@ bool FFLAC_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 	}
 
 	drflac_close(FLAC);
-
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for FLAC audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 }
 
@@ -90,8 +90,6 @@ bool FFLAC_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	}
 
 	
-
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded FLAC audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-
 	return true;
 }

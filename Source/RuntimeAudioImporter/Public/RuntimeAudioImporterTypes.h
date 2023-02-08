@@ -43,6 +43,7 @@ enum class ERuntimeAudioFormat : uint8
 	Wav UMETA(DisplayName = "wav"),
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
+	Bink UMETA(DisplayName = "bink"),
 	Invalid UMETA(DisplayName = "invalid (not defined format, internal use only)", Hidden)
 };
 
@@ -423,6 +424,17 @@ struct FRuntimeAudioHeaderInfo
 	  , PCMDataSize(0)
 	  , AudioFormat(ERuntimeAudioFormat::Invalid)
 	{
+	}
+
+	/**
+	 * Converts Audio Header Info to a readable format
+	 *
+	 * @return String representation of the Encoded Audio Struct
+	 */
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("Duration: %f, number of channels: %d, sample rate: %d, PCM data size: %lld, audio format: %s"),
+							   Duration, NumOfChannels, SampleRate, PCMDataSize, *UEnum::GetValueAsName(AudioFormat).ToString());
 	}
 
 	/** Audio duration, sec */

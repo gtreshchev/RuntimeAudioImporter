@@ -1,6 +1,7 @@
 // Georgy Treshchev 2023.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class RuntimeAudioImporter : ModuleRules
 {
@@ -14,6 +15,9 @@ public class RuntimeAudioImporter : ModuleRules
 
 		// Disable if you are not using audio input capture
 		bool bEnableCaptureInputSupport = true;
+
+		// Bink format is only supported in Unreal Engine version >= 5
+		bool bEnableBinkSupport = Target.Version.MajorVersion >= 5;
 
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -89,6 +93,30 @@ public class RuntimeAudioImporter : ModuleRules
 			);
 		}
 
-		PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT={0}", (bEnableCaptureInputSupport ? "1" : "0")));
-	}
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT={0}", (bEnableCaptureInputSupport ? "1" : "0")));
+
+		if (bEnableBinkSupport)
+		{
+			PrivateDependencyModuleNames.Add("BinkAudioDecoder");
+			
+			PublicSystemIncludePaths.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Include"));
+
+			if (Target.Platform == UnrealTargetPlatform.Win64)
+			{
+				PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "binka_ue_encode_win64_static.lib"));
+			}
+
+			if (Target.Platform == UnrealTargetPlatform.Linux)
+			{
+				PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_lnx64_static.a"));
+			}
+
+			if (Target.Platform == UnrealTargetPlatform.Mac)
+			{
+				PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_osx_static.a"));
+			}
+		}
+
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT={0}", (bEnableBinkSupport ? "1" : "0")));
+    }
 }

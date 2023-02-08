@@ -37,12 +37,23 @@
 #endif
 #endif
 
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#ifdef INCLUDE_BINK
+#include "binka_ue_file_header.h"
+#include "binka_ue_encode.h"
+#endif
+#endif
+
 #undef calloc
 #undef malloc
 #undef free
 #undef realloc
 #undef memset
 #undef memcpy
+
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#include "BinkAudioInfo.h"
+#endif
 
 #ifdef INCLUDE_VORBIS
 #include "VorbisAudioInfo.h"

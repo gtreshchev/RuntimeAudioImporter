@@ -80,6 +80,8 @@ bool FWAV_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& Au
 {
 	drwav WAV;
 
+	CheckAndFixWavDurationErrors(AudioData);
+
 	if (!drwav_init_memory(&WAV, AudioData.GetView().GetData(), AudioData.GetView().Num(), nullptr))
 	{
 		return false;
@@ -91,8 +93,9 @@ bool FWAV_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& Au
 
 bool FWAV_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
 {
-	drwav WAV;
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	drwav WAV;
 	if (!drwav_init_memory(&WAV, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize WAV Decoder"));
@@ -108,6 +111,7 @@ bool FWAV_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 	}
 
 	drwav_uninit(&WAV);
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for WAV audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 }
 
@@ -144,7 +148,6 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-
 	return true;
 }
 
@@ -192,8 +195,6 @@ bool FWAV_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 	}
 
 	
-
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded WAV audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-
 	return true;
 }
