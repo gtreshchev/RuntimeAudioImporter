@@ -19,14 +19,14 @@ bool FMP3_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& Au
 	}
 
 	drmp3_uninit(&MP3);
-
 	return true;
 }
 
 bool FMP3_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
 {
-	drmp3 MP3;
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for MP3 audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	drmp3 MP3;
 	if (!drmp3_init_memory(&MP3, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize MP3 Decoder"));
@@ -44,7 +44,7 @@ bool FMP3_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 	}
 
 	drmp3_uninit(&MP3);
-
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for MP3 audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 }
 
@@ -94,8 +94,6 @@ bool FMP3_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 	}
 
 	drmp3_uninit(&MP3_Decoder);
-
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded MP3 audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-
 	return true;
 }

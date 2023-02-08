@@ -79,7 +79,7 @@ public:
 	 * Prepare this sound wave to be able to set wave parameter for MetaSounds
 	 * 
 	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
-	 * @warning This works if the bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs when the MetaSound plugin is enabled and only in Unreal Engine version >= 5.3
+	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|MetaSounds")
 	void PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResult& Result);
@@ -88,7 +88,7 @@ public:
 	 * Prepare this sound wave to be able to set wave parameter for MetaSounds. Suitable for use in C++
 	 * 
 	 * @param Result Delegate broadcasting the result. Set the wave parameter only after it has been broadcast
-	 * @warning This works if the bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs when the MetaSound plugin is enabled and only in Unreal Engine version >= 5.3
+	 * @warning This works if bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs and only on Unreal Engine version >= 5.2
 	 */
 	void PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResultNative& Result);
 

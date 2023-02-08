@@ -7,6 +7,7 @@
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #endif
+#include "Codecs/RAW_RuntimeCodec.h"
 #include "UObject/GCObjectScopeGuard.h"
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
@@ -298,7 +299,7 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWave
 		ExecuteResult(bSucceeded);
 	});
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only if the bEnableMetaSoundSupport is enabled in RuntimeAudioImporter.Build.cs/RuntimeAudioImporterEditor.Build.cs when the MetaSound plugin is enabled and only in Unreal Engine version >= 5.3"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2 and if explicitly enabled in RuntimeAudioImporter.Build.cs"));
 	Result.ExecuteIfBound(false);
 #endif
 }

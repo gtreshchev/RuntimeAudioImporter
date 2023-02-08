@@ -30,8 +30,9 @@ bool FVORBIS_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>&
 
 bool FVORBIS_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeAudioHeaderInfo& HeaderInfo)
 {
-#if WITH_OGGVORBIS
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for VORBIS audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+#if WITH_OGGVORBIS
 	FVorbisAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
@@ -49,6 +50,7 @@ bool FVORBIS_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRunti
 		HeaderInfo.AudioFormat = GetAudioFormat();
 	}
 
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for VORBIS audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
@@ -230,6 +232,8 @@ bool FVORBIS_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudio
 
 bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding VORBIS audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
 #if WITH_OGGVORBIS
 	FVorbisAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
@@ -267,10 +271,8 @@ bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudio
 		DecodedData.SoundWaveBasicInfo.SampleRate = SoundQualityInfo.SampleRate;
 	}
 
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded Vorbis audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
-
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded VORBIS audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
 	return true;
-
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
 #endif
