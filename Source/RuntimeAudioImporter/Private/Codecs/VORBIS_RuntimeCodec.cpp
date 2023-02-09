@@ -3,8 +3,14 @@
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "Codecs/RAW_RuntimeCodec.h"
-#include "GenericPlatform/GenericPlatformProperties.h"
+#include "HAL/PlatformProperties.h"
 #include "HAL/UnrealMemory.h"
+
+#include "VorbisAudioInfo.h"
+#include "Interfaces/IAudioFormat.h"
+#ifndef WITH_OGGVORBIS
+#define WITH_OGGVORBIS 0
+#endif
 
 #define INCLUDE_VORBIS
 #include "CodecIncludes.h"
@@ -23,7 +29,7 @@ bool FVORBIS_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>&
 
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -53,7 +59,7 @@ bool FVORBIS_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRunti
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for VORBIS audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -225,7 +231,7 @@ bool FVORBIS_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudio
 
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS encoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS encoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -274,6 +280,6 @@ bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudio
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded VORBIS audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS decoding"), FPlatformProperties::IniPlatformName());
 #endif
 }

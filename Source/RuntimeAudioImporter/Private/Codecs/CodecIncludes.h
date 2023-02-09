@@ -50,15 +50,3 @@
 #undef realloc
 #undef memset
 #undef memcpy
-
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
-#include "BinkAudioInfo.h"
-#endif
-
-#ifdef INCLUDE_VORBIS
-#include "VorbisAudioInfo.h"
-#include "Interfaces/IAudioFormat.h"
-#ifndef WITH_OGGVORBIS
-#define WITH_OGGVORBIS 0
-#endif
-#endif

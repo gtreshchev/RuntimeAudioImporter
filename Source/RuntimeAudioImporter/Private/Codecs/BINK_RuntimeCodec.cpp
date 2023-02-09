@@ -1,15 +1,20 @@
 ﻿// Georgy Treshchev 2023.
 
 #include "Codecs/BINK_RuntimeCodec.h"
-#include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "Codecs/RAW_RuntimeCodec.h"
-#include "Interfaces/IAudioFormat.h"
+#include "HAL/PlatformProperties.h"
 #include "HAL/UnrealMemory.h"
+
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#include "BinkAudioInfo.h"
+#include "Interfaces/IAudioFormat.h"
+#endif
 
 #define INCLUDE_BINK
 #include "CodecIncludes.h"
 #undef INCLUDE_BINK
+
 
 /**
  * Taken from AudioFormatBink.cpp
@@ -53,7 +58,7 @@ bool FBINK_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& A
 
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -62,7 +67,7 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for the BINK audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
-#if WITH_OGGVORBIS
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
@@ -83,7 +88,7 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for FLAC audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -115,7 +120,7 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to BINK audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK encoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK encoding"), FPlatformProperties::IniPlatformName());
 	return false;
 #endif
 }
@@ -164,6 +169,7 @@ bool FBINK_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded BINK audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());
 	return true;
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FGenericPlatformProperties::IniPlatformName());
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support BINK decoding"), FPlatformProperties::IniPlatformName());
+	return false;
 #endif
 }
