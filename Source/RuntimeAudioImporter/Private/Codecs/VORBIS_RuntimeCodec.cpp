@@ -38,6 +38,9 @@ bool FVORBIS_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRunti
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for VORBIS audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
+
 #if WITH_OGGVORBIS
 	FVorbisAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
@@ -220,15 +223,13 @@ bool FVORBIS_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudio
 		CleanUpVORBIS();
 	}
 
-	// Filling in the encoded audio data
+	// Populating the encoded audio data
 	{
-		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(FMemory::Malloc(EncodedAudioData.Num())), EncodedAudioData.Num());
+		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(EncodedAudioData);
 		EncodedData.AudioFormat = ERuntimeAudioFormat::OggVorbis;
-		FMemory::Memcpy(EncodedData.AudioData.GetView().GetData(), EncodedAudioData.GetData(), EncodedAudioData.Num());
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to VORBIS audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
-
 	return true;
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Your platform (%hs) does not support VORBIS encoding"), FPlatformProperties::IniPlatformName());
@@ -239,6 +240,9 @@ bool FVORBIS_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudio
 bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding VORBIS audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 #if WITH_OGGVORBIS
 	FVorbisAudioInfo AudioInfo;

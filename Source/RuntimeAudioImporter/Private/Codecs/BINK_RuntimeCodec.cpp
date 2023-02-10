@@ -67,6 +67,9 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for the BINK audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
+
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
@@ -109,12 +112,16 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 	uint32_t CompressedDataLen = 0;
 	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), TempInt16Size, DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1, BinkAlloc, BinkFree, &CompressedData, &CompressedDataLen);
 
-	EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(CompressedData), CompressedDataLen);
-
-	if (EncodedData.AudioData.GetView().Num() <= 0)
+	if (CompressedDataLen <= 0)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to decode BINK audio data: the uncompressed data is empty"));
 		return false;
+	}
+
+	// Populating the encoded audio data
+	{
+		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(CompressedData), CompressedDataLen);
+		EncodedData.AudioFormat = ERuntimeAudioFormat::Bink;
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully encoded uncompressed audio data to BINK audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
@@ -128,6 +135,9 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 bool FBINK_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding BINK audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
 	FBinkAudioInfo AudioInfo;
