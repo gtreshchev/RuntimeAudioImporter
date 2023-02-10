@@ -734,7 +734,6 @@ FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int64 Seconds)
 bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct&& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)
 {
 	FRuntimeCodecFactory CodecFactory;
-
 	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = [&EncodedAudioInfo, &CodecFactory]()
 	{
 		if (EncodedAudioInfo.AudioFormat == ERuntimeAudioFormat::Auto)
@@ -750,6 +749,7 @@ bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct&& Encoded
 		return false;
 	}
 
+	EncodedAudioInfo.AudioFormat = RuntimeCodec->GetAudioFormat();
 	if (!RuntimeCodec->Decode(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong while decoding '%s' audio data"), *UEnum::GetValueAsString(EncodedAudioInfo.AudioFormat));
@@ -768,9 +768,7 @@ bool URuntimeAudioImporterLibrary::EncodeAudioData(FDecodedAudioStruct&& Decoded
 	}
 
 	FRuntimeCodecFactory CodecFactory;
-
 	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(EncodedAudioInfo.AudioFormat);
-
 	if (!RuntimeCodec.IsValid())
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for encoding"));

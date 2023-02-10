@@ -26,6 +26,9 @@ bool FFLAC_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for FLAC audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
+
 	drflac* FLAC = drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr);
 	if (!FLAC)
 	{
@@ -55,6 +58,9 @@ bool FFLAC_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 bool FFLAC_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding FLAC audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 	// Initializing FLAC codec
 	drflac* FLAC_Decoder = drflac_open_memory(EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr);

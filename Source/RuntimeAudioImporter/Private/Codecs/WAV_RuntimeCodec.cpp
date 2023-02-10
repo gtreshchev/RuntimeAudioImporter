@@ -95,6 +95,9 @@ bool FWAV_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for WAV audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
+
 	drwav WAV;
 	if (!drwav_init_memory(&WAV, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
@@ -130,10 +133,10 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 		WAV_Format.bitsPerSample = 32;
 	}
 
-	void* AudioData = nullptr;
-	size_t AudioDataSize;
+	void* CompressedData = nullptr;
+	size_t CompressedDataLen;
 
-	if (!drwav_init_memory_write(&WAV_Encoder, &AudioData, &AudioDataSize, &WAV_Format, nullptr))
+	if (!drwav_init_memory_write(&WAV_Encoder, &CompressedData, &CompressedDataLen, &WAV_Format, nullptr))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
 		return false;
@@ -142,8 +145,9 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 	drwav_write_pcm_frames(&WAV_Encoder, DecodedData.PCMInfo.PCMNumOfFrames, DecodedData.PCMInfo.PCMData.GetView().GetData());
 	drwav_uninit(&WAV_Encoder);
 
+	// Populating the encoded audio data
 	{
-		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(AudioData), static_cast<int64>(AudioDataSize));
+		EncodedData.AudioData = FRuntimeBulkDataBuffer<uint8>(static_cast<uint8*>(CompressedData), CompressedDataLen);
 		EncodedData.AudioFormat = ERuntimeAudioFormat::Wav;
 	}
 
@@ -154,6 +158,9 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 bool FWAV_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding WAV audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 	if (!CheckAndFixWavDurationErrors(EncodedData.AudioData))
 	{

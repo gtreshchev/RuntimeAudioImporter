@@ -26,6 +26,9 @@ bool FMP3_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Retrieving header information for MP3 audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
 
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
+
 	drmp3 MP3;
 	if (!drmp3_init_memory(&MP3, EncodedData.AudioData.GetView().GetData(), EncodedData.AudioData.GetView().Num(), nullptr))
 	{
@@ -57,6 +60,9 @@ bool FMP3_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 bool FMP3_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData)
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Decoding MP3 audio data to uncompressed audio format.\nEncoded audio info: %s"), *EncodedData.ToString());
+
+	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
+	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 	drmp3 MP3_Decoder;
 
