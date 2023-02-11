@@ -6,7 +6,7 @@
 #include "HAL/PlatformProperties.h"
 #include "HAL/UnrealMemory.h"
 
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
 #include "BinkAudioInfo.h"
 #include "Interfaces/IAudioFormat.h"
 #endif
@@ -47,7 +47,7 @@ namespace
 
 bool FBINK_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& AudioData)
 {
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
@@ -70,7 +70,7 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to retrieve audio header information in the '%s' codec, but the data format is encoded in '%s'"),
 	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
@@ -100,7 +100,7 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to BINK audio format.\nDecoded audio info: %s.\nQuality: %d"), *DecodedData.ToString(), Quality);
 
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
 	const uint8 CompressionLevel = GetCompressionLevelFromQualityIndex(Quality);
 
 	int16* TempInt16Buffer;
@@ -139,7 +139,7 @@ bool FBINK_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	ensureAlwaysMsgf(EncodedData.AudioFormat == GetAudioFormat(), TEXT("Attempting to decode audio data using the '%s' codec, but the data format is encoded in '%s'"),
 	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
