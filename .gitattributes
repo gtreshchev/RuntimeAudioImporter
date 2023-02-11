@@ -1,8 +1,2 @@
-# Compiled source files for the engine to use
-/Intermediate/
-
-# Binary Files
-/Binaries/
-
 # Auto detect text files and perform LF normalization
 * text=auto
