@@ -37,7 +37,7 @@
 #endif
 #endif
 
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
 #ifdef INCLUDE_BINK
 #include "binka_ue_file_header.h"
 #include "binka_ue_encode.h"

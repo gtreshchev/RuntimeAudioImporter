@@ -117,6 +117,7 @@ public class RuntimeAudioImporter : ModuleRules
 			}
 		}
 
-        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_BINK_SUPPORT={0}", (bEnableBinkSupport ? "1" : "0")));
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT={0}", (bEnableBinkSupport ? "1" : "0")));
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT={0}", (bEnableBinkSupport && (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.Mac) ? "1" : "0")));
     }
 }
