@@ -9,6 +9,7 @@
 #include "Codecs/RAW_RuntimeCodec.h"
 
 #include "Misc/FileHelper.h"
+#include "HAL/PlatformFileManager.h"
 #include "Async/Async.h"
 #include "Codecs/RuntimeCodecFactory.h"
 #include "UObject/GCObjectScopeGuard.h"
@@ -729,6 +730,63 @@ FString URuntimeAudioImporterLibrary::ConvertSecondsToString(int64 Seconds)
 	FinalString += (NewSeconds < 10) ? TEXT("0") + FString::FromInt(NewSeconds) : FString::FromInt(NewSeconds);
 
 	return FinalString;
+}
+
+void URuntimeAudioImporterLibrary::ScanDirectoryForAudioFiles(const FString& Directory, bool bRecursive, const FOnScanDirectoryForAudioFilesResult& Result)
+{
+	ScanDirectoryForAudioFiles(Directory, bRecursive, FOnScanDirectoryForAudioFilesResultNative::CreateLambda([Result](bool bSucceeded, const TArray<FString>& AudioFilePaths)
+	{
+		Result.ExecuteIfBound(bSucceeded, AudioFilePaths);
+	}));
+}
+
+void URuntimeAudioImporterLibrary::ScanDirectoryForAudioFiles(const FString& Directory, bool bRecursive, const FOnScanDirectoryForAudioFilesResultNative& Result)
+{
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Directory, bRecursive, Result]
+	{
+		auto ExecuteResult = [Result](bool bSucceeded, TArray<FString>&& AudioFilePaths)
+		{
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, AudioFilePaths = MoveTemp(AudioFilePaths)]()
+			{
+				Result.ExecuteIfBound(bSucceeded, AudioFilePaths);
+			});
+		};
+
+		class FDirectoryVisitor_AudioScanner : public IPlatformFile::FDirectoryVisitor
+		{
+		public:
+			FRuntimeCodecFactory CodecFactory;
+			TArray<FString> AudioFilePaths;
+
+			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
+			{
+				if (bIsDirectory)
+				{
+					return true;
+				}
+
+				FString AudioFilePath = FilenameOrDirectory;
+				if (CodecFactory.GetCodec(AudioFilePath).IsValid())
+				{
+					AudioFilePaths.Add(MoveTemp(AudioFilePath));
+				}
+
+				return true;
+			}
+		};
+
+		FDirectoryVisitor_AudioScanner DirectoryVisitor_AudioScanner;
+		const bool bSucceeded = [bRecursive, &Directory, &DirectoryVisitor_AudioScanner]()
+		{
+			if (bRecursive)
+			{
+				return FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*Directory, DirectoryVisitor_AudioScanner);
+			}
+			return FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*Directory, DirectoryVisitor_AudioScanner);
+		}();
+
+		ExecuteResult(bSucceeded, MoveTemp(DirectoryVisitor_AudioScanner.AudioFilePaths));
+	});
 }
 
 bool URuntimeAudioImporterLibrary::DecodeAudioData(FEncodedAudioStruct&& EncodedAudioInfo, FDecodedAudioStruct& DecodedAudioInfo)

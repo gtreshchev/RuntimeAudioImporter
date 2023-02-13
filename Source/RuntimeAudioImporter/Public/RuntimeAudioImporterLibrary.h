@@ -56,6 +56,13 @@ DECLARE_DELEGATE_TwoParams(FOnGetAudioHeaderInfoResultNative, bool, const FRunti
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnGetAudioHeaderInfoResult, bool, bSucceeded, const FRuntimeAudioHeaderInfo&, HeaderInfo);
 
 
+/** Dynamic delegate broadcasting the result of scanning directory for audio files */
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnScanDirectoryForAudioFilesResult, bool, bSucceeded, const TArray<FString>&, AudioFilePaths);
+
+/** Static delegate broadcasting the result of scanning directory for audio files */
+DECLARE_DELEGATE_TwoParams(FOnScanDirectoryForAudioFilesResultNative, bool, const TArray<FString>&);
+
+
 /**
  * Runtime Audio Importer library
  * Various functions related to working with audio data, including importing audio files, manually encoding and decoding audio data, and more
@@ -357,6 +364,25 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Utilities")
 	static FString ConvertSecondsToString(int64 Seconds);
+
+	/**
+	 * Scan the specified directory for audio files
+	 *
+	 * @param Directory The directory path to scan for audio files
+	 * @param bRecursive Whether to search for files recursively in subdirectories
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, meta = (Keywords = "Folder"), Category = "Runtime Audio Importer|Utilities")
+	static void ScanDirectoryForAudioFiles(const FString& Directory, bool bRecursive, const FOnScanDirectoryForAudioFilesResult& Result);
+
+	/**
+	 * Scan the specified directory for audio files. Suitable for use in C++
+	 *
+	 * @param Directory The directory path to scan for audio files
+	 * @param bRecursive Whether to search for files recursively in subdirectories
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ScanDirectoryForAudioFiles(const FString& Directory, bool bRecursive, const FOnScanDirectoryForAudioFilesResultNative& Result);
 
 	/**
 	 * Decode compressed audio data to uncompressed
