@@ -33,7 +33,7 @@ TUniquePtr<FBaseRuntimeCodec> FRuntimeCodecFactory::GetCodec(const FString& File
 	{
 		return MakeUnique<FVORBIS_RuntimeCodec>();
 	}
-	if (Extension == TEXT("binka"))
+	if (Extension == TEXT("bink") || Extension == TEXT("binka") || Extension == TEXT("bnk"))
 	{
 		return MakeUnique<FBINK_RuntimeCodec>();
 	}
