@@ -113,7 +113,14 @@ public class RuntimeAudioImporter : ModuleRules
 
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_osx_static.a"));
+				if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 1)
+				{
+					PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_osx_static.a"));
+				}
+				else
+				{
+					PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_osx64_static.a"));
+				}
 			}
 		}
 
