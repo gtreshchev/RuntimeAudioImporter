@@ -26,7 +26,7 @@
 
 - Fast transcoding speed
 - Supported for major audio formats: MP3, WAV, FLAC, OGG Vorbis and BINK
-- Supported for RAW formats: int8, uint8, int16, uint16, int32, uint32, float32.
+- Supported for RAW formats: int8, uint8, int16, uint16, int32, uint32, float32
 - Same behavior as regular sound wave, including SoundCue, MetaSounds (starting from 5.2), etc
 - Automatic detection of audio format
 - Audio streaming functionality
