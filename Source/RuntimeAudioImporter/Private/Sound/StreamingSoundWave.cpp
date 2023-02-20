@@ -6,6 +6,8 @@
 
 #include "Async/Async.h"
 #include "UObject/GCObjectScopeGuard.h"
+#include "SampleBuffer.h"
+#include "AudioResampler.h"
 
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -47,13 +49,50 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
 		bFilledInitialAudioData = true;
 	}
-
-	// TODO: Convert the sample rate and number of channels for the new PCM data to match the previous PCM data if the data is different
+	
+	// Check if the number of channels and the sampling rate of the sound wave and the input audio data match
 	if (SampleRate != DecodedAudioInfo.SoundWaveBasicInfo.SampleRate || NumChannels != DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("The sample rate and/or number of channels is different from what was appended to the audio data last time. Mapping such data to previously added audio data is not yet supported.\nPrevious audio channels: %d, new audio channels: %d; previous sample rate: %d, new sample rate: %d"),
-		       NumChannels, DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels, SampleRate, DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
-		return;
+		Audio::FAlignedFloatBuffer WaveData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() / sizeof(float));
+
+		// Resampling if needed
+		if (SampleRate != DecodedAudioInfo.SoundWaveBasicInfo.SampleRate)
+		{
+			Audio::FAlignedFloatBuffer ResamplerOutputData;
+
+			Audio::FResamplingParameters ResampleParameters = {
+				Audio::EResamplingMethod::BestSinc,
+				NumChannels,
+				static_cast<float>(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate),
+				static_cast<float>(SampleRate),
+				WaveData
+			};
+
+			ResamplerOutputData.AddUninitialized(Audio::GetOutputBufferSize(ResampleParameters));
+			Audio::FResamplerResults ResampleResults;
+			ResampleResults.OutBuffer = &ResamplerOutputData;
+
+			if (!Audio::Resample(ResampleParameters, ResampleResults))
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data to the sound wave's sample rate. Resampling failed"));
+				return;
+			}
+
+			WaveData = MoveTemp(ResamplerOutputData);
+		}
+
+		// Mixing the channels if needed
+		if (NumChannels != DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels)
+		{
+			Audio::TSampleBuffer<float> PCMSampleBuffer(WaveData, DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels, SampleRate);
+			{
+				PCMSampleBuffer.MixBufferToChannels(NumChannels);
+			}
+			Audio::FAlignedFloatBuffer WaveDataTemp = Audio::FAlignedFloatBuffer(PCMSampleBuffer.GetData(), PCMSampleBuffer.GetNumSamples());
+			WaveData = MoveTemp(WaveDataTemp);
+		}
+
+		DecodedAudioInfo.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(WaveData);
 	}
 
 	// Do not reallocate the entire PCM buffer if it has free space to fill in
@@ -162,12 +201,12 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 			return;
 		}
 
-		NumOfPreAllocatedPCMData = NewPCMDataSize;
-
-		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+		{
+			NumOfPreAllocatedPCMData = NewPCMDataSize;
+			PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+		}
 
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully pre-allocated '%lld' number of bytes"), NumOfBytesToPreAllocate);
-
 		ExecuteResult(true);
 	});
 }
@@ -179,7 +218,6 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 		FGCObjectScopeGuard Guard(this);
 
 		uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
-
 		if (!EncodedAudioDataPtr)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to populate streaming sound wave audio data"));
@@ -187,7 +225,6 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 		}
 
 		FEncodedAudioStruct EncodedAudioInfo(EncodedAudioDataPtr, AudioData.Num(), AudioFormat);
-
 		FDecodedAudioStruct DecodedAudioInfo;
 		if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 		{
@@ -215,14 +252,9 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		{
 			switch (RAWFormat)
 			{
-			case ERuntimeRAWAudioFormat::Int16:
+			case ERuntimeRAWAudioFormat::Int8:
 				{
-					FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
-					break;
-				}
-			case ERuntimeRAWAudioFormat::Int32:
-				{
-					FRAW_RuntimeCodec::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					FRAW_RuntimeCodec::TranscodeRAWData<int8, float>(reinterpret_cast<int8*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
 					break;
 				}
 			case ERuntimeRAWAudioFormat::UInt8:
@@ -230,10 +262,30 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 					FRAW_RuntimeCodec::TranscodeRAWData<uint8, float>(RAWDataPtr, RAWDataSize, PCMData, PCMDataSize);
 					break;
 				}
+			case ERuntimeRAWAudioFormat::Int16:
+				{
+					FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					break;
+				}
+			case ERuntimeRAWAudioFormat::UInt16:
+				{
+					FRAW_RuntimeCodec::TranscodeRAWData<uint16, float>(reinterpret_cast<uint16*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					break;
+				}
+			case ERuntimeRAWAudioFormat::UInt32:
+				{
+					FRAW_RuntimeCodec::TranscodeRAWData<uint32, float>(reinterpret_cast<uint32*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					break;
+				}
+			case ERuntimeRAWAudioFormat::Int32:
+				{
+					FRAW_RuntimeCodec::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWDataPtr), RAWDataSize, PCMData, PCMDataSize);
+					break;
+				}
 			case ERuntimeRAWAudioFormat::Float32:
 				{
 					PCMDataSize = RAWDataSize;
-					PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize), RAWDataPtr, RAWDataSize));
+					PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize * sizeof(float)), RAWDataPtr, PCMDataSize));
 					break;
 				}
 			}

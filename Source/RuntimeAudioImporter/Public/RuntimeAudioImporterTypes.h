@@ -9,7 +9,18 @@
 #include "Sound/SoundGroups.h"
 #include "Launch/Resources/Version.h"
 
+#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25
+#include "DSP/BufferVectorOperations.h"
+#endif
+
 #include "RuntimeAudioImporterTypes.generated.h"
+
+#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25
+namespace Audio
+{
+	using FAlignedFloatBuffer = Audio::AlignedFloatBuffer;
+}
+#endif
 
 /** Possible audio importing results */
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
@@ -51,10 +62,13 @@ enum class ERuntimeAudioFormat : uint8
 UENUM(BlueprintType, Category = "Runtime Audio Importer")
 enum class ERuntimeRAWAudioFormat : uint8
 {
-	Int16 UMETA(DisplayName = "Signed 16-bit PCM"),
-	Int32 UMETA(DisplayName = "Signed 32-bit PCM"),
-	UInt8 UMETA(DisplayName = "Unsigned 8-bit PCM"),
-	Float32 UMETA(DisplayName = "32-bit float")
+	Int8 UMETA(DisplayName = "Signed 8-bit integer"),
+	UInt8 UMETA(DisplayName = "Unsigned 8-bit integer"),
+	Int16 UMETA(DisplayName = "Signed 16-bit integer"),
+	UInt16 UMETA(DisplayName = "Unsigned 16-bit integer"),
+	Int32 UMETA(DisplayName = "Signed 32-bit integer"),
+	UInt32 UMETA(DisplayName = "Unsigned 32-bit integer"),
+	Float32 UMETA(DisplayName = "Floating point 32-bit")
 };
 
 /**

@@ -343,7 +343,6 @@ void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseR
 		}
 
 		const int64 OldNumOfPCMData = PCMBufferInfo->PCMData.GetView().Num();
-
 		if (GetNumOfPlayedFrames_Internal() >= PCMBufferInfo->PCMNumOfFrames)
 		{
 			ReleaseMemory();
@@ -354,7 +353,6 @@ void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseR
 
 		const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels * sizeof(float);
 		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
-
 		if (!NewPCMDataPtr)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate new memory to free already played audio data"));
@@ -366,7 +364,6 @@ void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseR
 		const int64 PCMDataOffset = GetNumOfPlayedFrames_Internal() * NumChannels;
 
 		FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData() + PCMDataOffset, NewPCMDataSize);
-
 		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
 
 		// Decreasing the amount of PCM frames

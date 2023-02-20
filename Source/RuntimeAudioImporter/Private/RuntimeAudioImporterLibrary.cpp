@@ -163,14 +163,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray64<uint8> RAWB
 	{
 		switch (RAWFormat)
 		{
-		case ERuntimeRAWAudioFormat::Int16:
+		case ERuntimeRAWAudioFormat::Int8:
 			{
-				FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
-				break;
-			}
-		case ERuntimeRAWAudioFormat::Int32:
-			{
-				FRAW_RuntimeCodec::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				FRAW_RuntimeCodec::TranscodeRAWData<int8, float>(reinterpret_cast<int8*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
 		case ERuntimeRAWAudioFormat::UInt8:
@@ -178,17 +173,36 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray64<uint8> RAWB
 				FRAW_RuntimeCodec::TranscodeRAWData<uint8, float>(RAWData, RAWDataSize, PCMData, PCMDataSize);
 				break;
 			}
+		case ERuntimeRAWAudioFormat::UInt16:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<uint16, float>(reinterpret_cast<uint16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::Int16:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::UInt32:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<uint32, float>(reinterpret_cast<uint32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::Int32:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<int32, float>(reinterpret_cast<int32*>(RAWData), RAWDataSize, PCMData, PCMDataSize);
+				break;
+			}
 		case ERuntimeRAWAudioFormat::Float32:
 			{
 				PCMDataSize = RAWDataSize;
-				PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize), RAWData, RAWDataSize));
+				PCMData = static_cast<float*>(FMemory::Memcpy(FMemory::Malloc(PCMDataSize * sizeof(float)), RAWData, RAWDataSize));
 				break;
 			}
 		}
 	}
 
 	OnProgress_Internal(35);
-
 	if (!PCMData || PCMDataSize <= 0)
 	{
 		OnResult_Internal(nullptr, ERuntimeImportStatus::FailedToReadAudioDataArray);
@@ -208,7 +222,7 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWD
 
 void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RAWDataFrom, ERuntimeRAWAudioFormat RAWFormatFrom, ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResultNative& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RAWDataFrom = MoveTemp(RAWDataFrom), RAWFormatFrom, RAWFormatTo, Result]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [RAWDataFrom = MoveTemp(RAWDataFrom), RAWFormatFrom, RAWFormatTo, Result]() mutable
 	{
 		auto ExecuteResult = [Result](bool bSucceeded, TArray64<uint8>&& AudioData)
 		{
@@ -223,9 +237,24 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RA
 		// Transcoding of all formats to unsigned 8-bit PCM format (intermediate)
 		switch (RAWFormatFrom)
 		{
+		case ERuntimeRAWAudioFormat::Int8:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<int8, float>(RAWDataFrom, IntermediateRAWBuffer);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::UInt8:
+			{
+				IntermediateRAWBuffer = MoveTemp(RAWDataFrom);
+				break;
+			}
 		case ERuntimeRAWAudioFormat::Int16:
 			{
 				FRAW_RuntimeCodec::TranscodeRAWData<int16, uint8>(RAWDataFrom, IntermediateRAWBuffer);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::UInt16:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<uint16, uint8>(RAWDataFrom, IntermediateRAWBuffer);
 				break;
 			}
 		case ERuntimeRAWAudioFormat::Int32:
@@ -233,9 +262,9 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RA
 				FRAW_RuntimeCodec::TranscodeRAWData<int32, uint8>(RAWDataFrom, IntermediateRAWBuffer);
 				break;
 			}
-		case ERuntimeRAWAudioFormat::UInt8:
+		case ERuntimeRAWAudioFormat::UInt32:
 			{
-				IntermediateRAWBuffer = RAWDataFrom;
+				FRAW_RuntimeCodec::TranscodeRAWData<uint32, uint8>(RAWDataFrom, IntermediateRAWBuffer);
 				break;
 			}
 		case ERuntimeRAWAudioFormat::Float32:
@@ -250,9 +279,24 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RA
 		// Transcoding unsigned 8-bit PCM to the specified format
 		switch (RAWFormatTo)
 		{
+		case ERuntimeRAWAudioFormat::Int8:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<uint8, int8>(IntermediateRAWBuffer, RAWData_To);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::UInt8:
+			{
+				RAWData_To = MoveTemp(IntermediateRAWBuffer);
+				break;
+			}
 		case ERuntimeRAWAudioFormat::Int16:
 			{
 				FRAW_RuntimeCodec::TranscodeRAWData<uint8, int16>(IntermediateRAWBuffer, RAWData_To);
+				break;
+			}
+		case ERuntimeRAWAudioFormat::UInt16:
+			{
+				FRAW_RuntimeCodec::TranscodeRAWData<uint8, uint16>(IntermediateRAWBuffer, RAWData_To);
 				break;
 			}
 		case ERuntimeRAWAudioFormat::Int32:
@@ -260,9 +304,9 @@ void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray64<uint8> RA
 				FRAW_RuntimeCodec::TranscodeRAWData<uint8, int32>(IntermediateRAWBuffer, RAWData_To);
 				break;
 			}
-		case ERuntimeRAWAudioFormat::UInt8:
+		case ERuntimeRAWAudioFormat::UInt32:
 			{
-				RAWData_To = IntermediateRAWBuffer;
+				FRAW_RuntimeCodec::TranscodeRAWData<uint8, uint32>(IntermediateRAWBuffer, RAWData_To);
 				break;
 			}
 		case ERuntimeRAWAudioFormat::Float32:
@@ -343,7 +387,6 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(UImportedSoundWave* Imp
 void URuntimeAudioImporterLibrary::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FOnAudioExportToFileResultNative& Result)
 {
 	AudioFormat = AudioFormat == ERuntimeAudioFormat::Auto ? GetAudioFormat(SavePath) : AudioFormat;
-
 	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceeded, const TArray64<uint8>& AudioData)
 	{
 		if (!bSucceeded)

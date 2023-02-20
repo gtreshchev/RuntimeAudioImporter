@@ -40,7 +40,8 @@ public class RuntimeAudioImporter : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Core"
+				"Core",
+				"AudioPlatformConfiguration"
 			}
 		);
 

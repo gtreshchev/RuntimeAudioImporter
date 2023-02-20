@@ -6,6 +6,8 @@
 #include "Math/UnrealMathUtility.h"
 #include "HAL/UnrealMemory.h"
 #include "RuntimeAudioImporterDefines.h"
+#include <type_traits>
+#include <limits>
 
 class RUNTIMEAUDIOIMPORTER_API FRAW_RuntimeCodec
 {
@@ -16,33 +18,52 @@ public:
 	 * @note Key - Minimum, Value - Maximum
 	 */
 	template <typename IntegralType>
-	static TTuple<double, double> GetRawMinAndMaxValues()
+	static TTuple<long long, long long> GetRawMinAndMaxValues()
 	{
-		/** Signed 16-bit PCM */
-		if (TIsSame<IntegralType, int16>::Value)
+		// Signed 8-bit integer
+		if constexpr (std::is_same_v<IntegralType, int8>)
 		{
-			return TTuple<double, double>(-32767.f, 32768.f);
+			return TTuple<long long, long long>(std::numeric_limits<int8>::min(), std::numeric_limits<int8>::max());
 		}
 
-		/** Signed 32-bit PCM */
-		if (TIsSame<IntegralType, int32>::Value)
+		// Unsigned 8-bit integer
+		if constexpr (std::is_same_v<IntegralType, uint8>)
 		{
-			return TTuple<double, double>(-2147483648.f, 2147483647.f);
+			return TTuple<long long, long long>(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
 		}
 
-		/** Unsigned 8-bit PCM */
-		if (TIsSame<IntegralType, uint8>::Value)
+		// Signed 16-bit integer
+		if constexpr (std::is_same_v<IntegralType, int16>)
 		{
-			return TTuple<double, double>(0.f, 255.f);
+			return TTuple<long long, long long>(std::numeric_limits<int16>::min(), std::numeric_limits<int16>::max());
 		}
 
-		/** 32-bit float */
-		if (TIsSame<IntegralType, float>::Value)
+		// Unsigned 16-bit integer
+		if constexpr (std::is_same_v<IntegralType, uint16>)
 		{
-			return TTuple<double, double>(-1.f, 1.f);
+			return TTuple<long long, long long>(std::numeric_limits<uint16>::min(), std::numeric_limits<uint16>::max());
 		}
 
-		return TTuple<double, double>(-1.f, 1.f);
+		// Signed 32-bit integer
+		if constexpr (std::is_same_v<IntegralType, int32>)
+		{
+			return TTuple<long long, long long>(std::numeric_limits<int32>::min(), std::numeric_limits<int32>::max());
+		}
+
+		// Unsigned 32-bit integer
+		if constexpr (std::is_same_v<IntegralType, uint32>)
+		{
+			return TTuple<long long, long long>(std::numeric_limits<uint32>::min(), std::numeric_limits<uint32>::max());
+		}
+
+		// Floating point 32-bit
+		if constexpr (std::is_same_v<IntegralType, float>)
+		{
+			return TTuple<long long, long long>(-1, 1);
+		}
+
+		ensureMsgf(false, TEXT("Unsupported RAW format"));
+		return TTuple<long long, long long>(0, 0);
 	}
 
 	/**
@@ -62,8 +83,7 @@ public:
 
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
 
-		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size);
-
+		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size * sizeof(uint8));
 		FMemory::Free(DataTo);
 	}
 
@@ -85,21 +105,18 @@ public:
 		RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);
 
 		/** Creating an empty PCM buffer */
-		IntegralTypeTo* TempPCMData = static_cast<IntegralTypeTo*>(FMemory::Malloc(RAWDataSize_To));
+		RAWData_To = static_cast<IntegralTypeTo*>(FMemory::Malloc(RAWDataSize_To));
 
-		const TTuple<double, double> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
-		const TTuple<double, double> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
+		const TTuple<long long, long long> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
+		const TTuple<long long, long long> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
 
 		/** Iterating through the RAW Data to transcode values using a divisor */
 		for (uint64 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
 		{
-			TempPCMData[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWData_From[SampleIndex]));
+			RAWData_To[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWData_From[SampleIndex]));
 		}
 
-		/** Returning the transcoded data as bytes */
-		RAWData_To = reinterpret_cast<IntegralTypeTo*>(TempPCMData);
-
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %f, max: %f) to size '%llu' (min: %f, max: %f)"),
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %lld, max: %lld) to size '%llu' (min: %lld, max: %lld)"),
 		       static_cast<uint64>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<uint64>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
 	}
 };
