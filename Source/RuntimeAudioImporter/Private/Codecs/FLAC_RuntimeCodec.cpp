@@ -40,7 +40,7 @@ bool FFLAC_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 		HeaderInfo.Duration = static_cast<float>(FLAC->totalPCMFrameCount) / FLAC->sampleRate;
 		HeaderInfo.NumOfChannels = FLAC->channels;
 		HeaderInfo.SampleRate = FLAC->sampleRate;
-		HeaderInfo.PCMDataSize = FLAC->totalPCMFrameCount * FLAC->channels * sizeof(float);
+		HeaderInfo.PCMDataSize = FLAC->totalPCMFrameCount * FLAC->channels;
 		HeaderInfo.AudioFormat = GetAudioFormat();
 	}
 
@@ -84,7 +84,7 @@ bool FFLAC_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	DecodedData.PCMInfo.PCMNumOfFrames = drflac_read_pcm_frames_f32(FLAC_Decoder, FLAC_Decoder->totalPCMFrameCount, TempPCMData);
 
 	// Getting PCM data size
-	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * FLAC_Decoder->channels * sizeof(float));
+	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * FLAC_Decoder->channels);
 
 	DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 

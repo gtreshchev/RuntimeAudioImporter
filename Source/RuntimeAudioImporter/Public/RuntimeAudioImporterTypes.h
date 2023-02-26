@@ -108,15 +108,15 @@ public:
 	template <typename Allocator>
 	explicit FRuntimeBulkDataBuffer(const TArray<DataType, Allocator>& Other)
 	{
-		const int64 BulkDataSize = Other.Num() * sizeof(DataType);
+		const int64 BulkDataSize = Other.Num();
 
-		DataType* BulkData = static_cast<DataType*>(FMemory::Malloc(BulkDataSize));
+		DataType* BulkData = static_cast<DataType*>(FMemory::Malloc(BulkDataSize * sizeof(DataType)));
 		if (!BulkData)
 		{
 			return;
 		}
 
-		FMemory::Memcpy(BulkData, Other.GetData(), BulkDataSize);
+		FMemory::Memcpy(BulkData, Other.GetData(), BulkDataSize * sizeof(DataType));
 		View = ViewType(BulkData, BulkDataSize);
 	}
 
@@ -133,8 +133,8 @@ public:
 		{
 			const int64 BufferSize = Other.View.Num();
 
-			DataType* BufferCopy = static_cast<DataType*>(FMemory::Malloc(BufferSize));
-			FMemory::Memcpy(BufferCopy, Other.View.GetData(), BufferSize);
+			DataType* BufferCopy = static_cast<DataType*>(FMemory::Malloc(BufferSize * sizeof(DataType)));
+			FMemory::Memcpy(BufferCopy, Other.View.GetData(), BufferSize * sizeof(DataType));
 
 			View = ViewType(BufferCopy, BufferSize);
 		}
@@ -158,7 +158,6 @@ public:
 	void Empty()
 	{
 		FreeBuffer();
-
 		View = ViewType();
 	}
 
@@ -299,9 +298,9 @@ struct FEncodedAudioStruct
 	{
 	}
 
-	/** Custom constructor */
-	FEncodedAudioStruct(uint8* AudioData, int64 AudioDataSize, ERuntimeAudioFormat AudioFormat)
-		: AudioData(AudioData, AudioDataSize)
+	template <typename Allocator>
+	FEncodedAudioStruct(const TArray<uint8, Allocator>& AudioDataArray, ERuntimeAudioFormat AudioFormat)
+		: AudioData(AudioDataArray)
 	  , AudioFormat(AudioFormat)
 	{
 	}
@@ -463,7 +462,7 @@ struct FRuntimeAudioHeaderInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
 	int32 SampleRate;
 
-	/** PCM data size in floating-point format */
+	/** PCM data size in 32-bit float format */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, DisplayName = "PCM Data Size", Category = "Runtime Audio Importer")
 	int64 PCMDataSize;
 

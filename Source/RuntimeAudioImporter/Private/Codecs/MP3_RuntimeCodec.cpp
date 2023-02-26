@@ -42,7 +42,7 @@ bool FMP3_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 		HeaderInfo.Duration = static_cast<float>(PCMFrameCount) / MP3.sampleRate;
 		HeaderInfo.NumOfChannels = MP3.channels;
 		HeaderInfo.SampleRate = MP3.sampleRate;
-		HeaderInfo.PCMDataSize = PCMFrameCount * MP3.channels * sizeof(float);
+		HeaderInfo.PCMDataSize = PCMFrameCount * MP3.channels;
 		HeaderInfo.AudioFormat = GetAudioFormat();
 	}
 
@@ -88,7 +88,7 @@ bool FMP3_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 	DecodedData.PCMInfo.PCMNumOfFrames = drmp3_read_pcm_frames_f32(&MP3_Decoder, PCMFrameCount, TempPCMData);
 
 	// Getting PCM data size
-	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * MP3_Decoder.channels * sizeof(float));
+	const int64 TempPCMDataSize = static_cast<int64>(DecodedData.PCMInfo.PCMNumOfFrames * MP3_Decoder.channels);
 
 	DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempPCMData, TempPCMDataSize);
 
