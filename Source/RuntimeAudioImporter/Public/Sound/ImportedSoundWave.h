@@ -239,6 +239,12 @@ public:
 	int32 GetSampleRate() const;
 
 	/**
+	 * Get number of channels
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
+	int32 GetNumOfChannels() const;
+
+	/**
 	 * Get the current sound playback percentage, 0-100%
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
@@ -300,9 +306,17 @@ public:
 	FOnGeneratePCMData OnGeneratePCMData;
 
 	/**
+	 * Retrieve the PCM buffer, completely thread-safe. Suitable for use in Blueprints
+	 *
+	 * @return PCM buffer in 32-bit float format
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get PCM Buffer"))
+	TArray<float> GetPCMBuffer_BP() const;
+
+	/**
 	 * Get immutable PCM buffer. Use PopulateAudioDataFromDecodedInfo to populate it
 	 *
-	 * @return PCM buffer
+	 * @return PCM buffer in 32-bit float format
 	 */
 	const FPCMStruct& GetPCMBuffer() const;
 

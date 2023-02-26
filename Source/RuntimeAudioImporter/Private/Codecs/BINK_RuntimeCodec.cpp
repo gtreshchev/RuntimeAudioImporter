@@ -84,7 +84,7 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 		HeaderInfo.Duration = SoundQualityInfo.Duration;
 		HeaderInfo.SampleRate = SoundQualityInfo.SampleRate;
 		HeaderInfo.NumOfChannels = SoundQualityInfo.NumChannels;
-		HeaderInfo.PCMDataSize = (SoundQualityInfo.SampleDataSize / sizeof(int16)) * sizeof(float);
+		HeaderInfo.PCMDataSize = SoundQualityInfo.SampleDataSize / sizeof(int16);
 		HeaderInfo.AudioFormat = GetAudioFormat();
 	}
 
@@ -104,13 +104,11 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 	const uint8 CompressionLevel = GetCompressionLevelFromQualityIndex(Quality);
 
 	int16* TempInt16Buffer;
-	int64 TempInt16Size;
-
-	FRAW_RuntimeCodec::TranscodeRAWData<float, int16>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num(), TempInt16Buffer, TempInt16Size);
+	FRAW_RuntimeCodec::TranscodeRAWData<float, int16>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num(), TempInt16Buffer);
 
 	void* CompressedData = nullptr;
 	uint32_t CompressedDataLen = 0;
-	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), TempInt16Size, DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1, BinkAlloc, BinkFree, &CompressedData, &CompressedDataLen);
+	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), DecodedData.PCMInfo.PCMData.GetView().Num() * sizeof(int16), DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1, BinkAlloc, BinkFree, &CompressedData, &CompressedDataLen);
 
 	if (CompressedDataLen <= 0)
 	{
@@ -160,13 +158,13 @@ bool FBINK_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	// Getting the number of frames
 	DecodedData.PCMInfo.PCMNumOfFrames = PCMData.Num() / SoundQualityInfo.NumChannels / sizeof(int16);
 
+	const int64 NumOfSamples = PCMData.Num() / sizeof(int16);
+
 	// Transcoding int16 to float format
 	{
 		float* TempFloatBuffer;
-		int64 TempFloatSize;
-
-		FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(PCMData.GetData()), PCMData.Num(), TempFloatBuffer, TempFloatSize);
-		DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempFloatBuffer, TempFloatSize);
+		FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(PCMData.GetData()), NumOfSamples, TempFloatBuffer);
+		DecodedData.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempFloatBuffer, NumOfSamples);
 	}
 
 	// Getting basic audio information

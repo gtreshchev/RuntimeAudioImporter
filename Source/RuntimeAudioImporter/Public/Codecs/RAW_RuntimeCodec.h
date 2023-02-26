@@ -76,44 +76,35 @@ public:
 	static void TranscodeRAWData(const TArray64<uint8>& RAWData_From, TArray64<uint8>& RAWData_To)
 	{
 		const IntegralTypeFrom* DataFrom = reinterpret_cast<const IntegralTypeFrom*>(RAWData_From.GetData());
-		const int64 DataFrom_Size = RAWData_From.Num();
+		const int64 RawDataSize = RAWData_From.Num();
 
 		IntegralTypeTo* DataTo = nullptr;
-		int64 DataTo_Size = 0;
+		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, RawDataSize, DataTo);
 
-		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, DataFrom_Size, DataTo, DataTo_Size);
-
-		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), DataTo_Size * sizeof(uint8));
+		RAWData_To = TArray64<uint8>(reinterpret_cast<uint8*>(DataTo), RawDataSize * sizeof(IntegralTypeTo));
 		FMemory::Free(DataTo);
 	}
 
 	/**
 	 * Transcoding one RAW Data format to another
 	 *
-	 * @param RAWData_From Pointer to memory location of the RAW data for transcoding
-	 * @param RAWDataSize_From Memory size allocated for the RAW data
-	 * @param RAWData_To Pointer to memory location of the transcoded RAW data with the specified format
-	 * @param RAWDataSize_To Memory size allocated for the RAW data
+	 * @param RAWDataFrom Pointer to memory location of the RAW data for transcoding
+	 * @param NumOfSamples Number of samples in the RAW data
+	 * @param RAWDataTo Pointer to memory location of the transcoded RAW data with the specified format. The number of samples is RAWDataSize
 	 */
 	template <typename IntegralTypeFrom, typename IntegralTypeTo>
-	static void TranscodeRAWData(const IntegralTypeFrom* RAWData_From, int64 RAWDataSize_From, IntegralTypeTo*& RAWData_To, int64& RAWDataSize_To)
+	static void TranscodeRAWData(const IntegralTypeFrom* RAWDataFrom, int64 NumOfSamples, IntegralTypeTo*& RAWDataTo)
 	{
-		/** Getting the required number of samples to transcode */
-		const uint64 NumSamples = RAWDataSize_From / sizeof(IntegralTypeFrom);
-
-		/** Getting the required PCM size */
-		RAWDataSize_To = NumSamples * sizeof(IntegralTypeTo);
-
 		/** Creating an empty PCM buffer */
-		RAWData_To = static_cast<IntegralTypeTo*>(FMemory::Malloc(RAWDataSize_To));
+		RAWDataTo = static_cast<IntegralTypeTo*>(FMemory::Malloc(NumOfSamples * sizeof(IntegralTypeTo)));
 
 		const TTuple<long long, long long> MinAndMaxValuesFrom{GetRawMinAndMaxValues<IntegralTypeFrom>()};
 		const TTuple<long long, long long> MinAndMaxValuesTo{GetRawMinAndMaxValues<IntegralTypeTo>()};
 
 		/** Iterating through the RAW Data to transcode values using a divisor */
-		for (uint64 SampleIndex = 0; SampleIndex < NumSamples; ++SampleIndex)
+		for (int64 SampleIndex = 0; SampleIndex < NumOfSamples; ++SampleIndex)
 		{
-			RAWData_To[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWData_From[SampleIndex]));
+			RAWDataTo[SampleIndex] = static_cast<IntegralTypeTo>(FMath::GetMappedRangeValueClamped(FVector2D(MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value), FVector2D(MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value), RAWDataFrom[SampleIndex]));
 		}
 
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %lld, max: %lld) to size '%llu' (min: %lld, max: %lld)"),

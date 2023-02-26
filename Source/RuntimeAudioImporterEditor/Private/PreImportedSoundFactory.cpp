@@ -48,16 +48,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	AudioData.RemoveAt(AudioData.Num() - 2, 2);
 
 	FDecodedAudioStruct DecodedAudioInfo;
-
-	uint8* EncodedAudioDataPtr = static_cast<uint8*>(FMemory::Memcpy(FMemory::Malloc(AudioData.Num()), AudioData.GetData(), AudioData.Num()));
-
-	if (!EncodedAudioDataPtr)
-	{
-		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_AllocateError", "Unable to decode the audio file '{0}'. Failed to allocate memory'"), FText::FromString(Filename)));
-		return nullptr;
-	}
-	
-	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(EncodedAudioDataPtr, AudioData.Num(), ERuntimeAudioFormat::Auto);
+	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(AudioData, ERuntimeAudioFormat::Auto);
 
 	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 	{
