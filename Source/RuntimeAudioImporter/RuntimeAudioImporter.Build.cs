@@ -25,6 +25,19 @@ public class RuntimeAudioImporter : ModuleRules
 			"UEOgg",
 			"Vorbis"
 		);
+		
+		// This is necessary because the Vorbis module does not include the Unix-specific libvorbis encoder library
+		if (Target.Platform != UnrealTargetPlatform.IOS && !Target.IsInPlatformGroup(UnrealPlatformGroup.Android) && Target.Platform != UnrealTargetPlatform.Mac && Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
+		{
+			string VorbisLibPath = Path.Combine(Target.UEThirdPartySourceDirectory, "Vorbis", "libvorbis-1.3.2", "lib");
+			PublicAdditionalLibraries.Add(Path.Combine(VorbisLibPath, "Unix",
+#if UE_5_2_OR_LATER
+				Target.Architecture.LinuxName,
+#else
+				Target.Architecture,
+#endif
+				"libvorbisenc.a"));
+		}
 
 		PublicDefinitions.AddRange(
 			new string[]
@@ -45,7 +58,7 @@ public class RuntimeAudioImporter : ModuleRules
 			}
 		);
 
-		if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 2)
+		if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 2)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
@@ -114,7 +127,7 @@ public class RuntimeAudioImporter : ModuleRules
 
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-				if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 1)
+				if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 1)
 				{
 					PublicAdditionalLibraries.Add(Path.Combine(EngineDirectory, "Source", "Runtime", "BinkAudioDecoder", "SDK", "BinkAudio", "Lib", "libbinka_ue_encode_osx_static.a"));
 				}
