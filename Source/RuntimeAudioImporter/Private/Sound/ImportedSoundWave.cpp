@@ -572,7 +572,7 @@ void UImportedSoundWave::ResetPlaybackFinish()
 	PlaybackFinishedBroadcast = false;
 }
 
-TArray<float> UImportedSoundWave::GetPCMBuffer_BP() const
+TArray<float> UImportedSoundWave::GetPCMBufferCopy()
 {
 	FScopeLock Lock(&DataGuard);
 	return TArray<float>(PCMBufferInfo.Get()->PCMData.GetView().GetData(), PCMBufferInfo.Get()->PCMData.GetView().Num());
