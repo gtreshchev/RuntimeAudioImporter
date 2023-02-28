@@ -311,10 +311,11 @@ public:
 	 * @return PCM buffer in 32-bit float format
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get PCM Buffer"))
-	TArray<float> GetPCMBuffer_BP() const;
+	TArray<float> GetPCMBufferCopy();
 
 	/**
-	 * Get immutable PCM buffer. Use PopulateAudioDataFromDecodedInfo to populate it
+	 * Get immutable PCM buffer. Use DataGuard to make it thread safe
+	 * Use PopulateAudioDataFromDecodedInfo to populate it
 	 *
 	 * @return PCM buffer in 32-bit float format
 	 */
