@@ -76,7 +76,7 @@ public:
 	static void TranscodeRAWData(const TArray64<uint8>& RAWData_From, TArray64<uint8>& RAWData_To)
 	{
 		const IntegralTypeFrom* DataFrom = reinterpret_cast<const IntegralTypeFrom*>(RAWData_From.GetData());
-		const int64 RawDataSize = RAWData_From.Num();
+		const int64 RawDataSize = RAWData_From.Num() / sizeof(IntegralTypeFrom);
 
 		IntegralTypeTo* DataTo = nullptr;
 		TranscodeRAWData<IntegralTypeFrom, IntegralTypeTo>(DataFrom, RawDataSize, DataTo);
