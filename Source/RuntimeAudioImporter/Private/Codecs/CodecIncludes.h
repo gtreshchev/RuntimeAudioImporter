@@ -1,8 +1,9 @@
 ﻿// Georgy Treshchev 2023.
 
 /**
-* Replacing C dynamic memory allocation functions (calloc, malloc, free, realloc, memset, memcpy) with FMemory ones
-*/
+ * Replacing C dynamic memory management functions
+ * (calloc, malloc, free, realloc, memset, memcpy) with FMemory ones
+ */
 #undef calloc
 #undef malloc
 #undef free
@@ -10,12 +11,12 @@
 #undef memset
 #undef memcpy
 
-#define calloc(Count, Size)			[](){ void* MemPtr = FMemory::Malloc(Count * Size); FMemory::Memset(MemPtr, 0, Count * Size); return MemPtr; }()
-#define malloc(Count)				FMemory::Malloc(Count)
-#define free(Original)				FMemory::Free(Original)
-#define realloc(Original, Count)	FMemory::Realloc(Original, Count)
-#define memset(Dest, Char, Count)	FMemory::Memset(Dest, Char, Count)
-#define memcpy(Dest, Src, Count)	FMemory::Memcpy(Dest, Src, Count)
+#define calloc(Count, Size) [&]() { void* MemPtr = FMemory::Malloc(Count * Size); if (MemPtr) { FMemory::Memset(MemPtr, 0, Count * Size); } return MemPtr; }()
+#define malloc(Count) FMemory::Malloc(Count)
+#define free(Original) FMemory::Free(Original)
+#define realloc(Original, Count) FMemory::Realloc(Original, Count)
+#define memset(Dest, Char, Count) FMemory::Memset(Dest, Char, Count)
+#define memcpy(Dest, Src, Count) FMemory::Memcpy(Dest, Src, Count)
 
 #ifdef INCLUDE_MP3
 #include "ThirdParty/dr_mp3.h"
