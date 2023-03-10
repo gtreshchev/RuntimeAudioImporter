@@ -124,10 +124,25 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	}
 
 	PCMBufferInfo->PCMNumOfFrames += DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
-
 	Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
-
 	ResetPlaybackFinish();
+
+	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
+	{
+		TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, PCMData = MoveTemp(PCMData)]() mutable
+		{
+			if (OnPopulateAudioDataNative.IsBound())
+			{
+				OnPopulateAudioDataNative.Broadcast(PCMData);
+			}
+
+			if (OnPopulateAudioData.IsBound())
+			{
+				OnPopulateAudioData.Broadcast(PCMData);
+			}
+		});
+	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
