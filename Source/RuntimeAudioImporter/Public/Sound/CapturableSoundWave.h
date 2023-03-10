@@ -69,12 +69,12 @@ public:
 	void StopCapture();
 
 	/**
-	 * Get whether the capture is started or not
+	 * Get whether the capture is processing or not
 	 *
-	 * @return Whether the capture is started or not
+	 * @return Whether the capture is processing or not
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Info")
-	bool IsCapturing();
+	bool IsCapturing() const;
 
 private:
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
