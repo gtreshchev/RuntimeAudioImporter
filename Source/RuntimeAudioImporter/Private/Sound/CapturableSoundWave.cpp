@@ -134,7 +134,7 @@ void UCapturableSoundWave::StopCapture()
 #endif
 }
 
-bool UCapturableSoundWave::IsCapturing()
+bool UCapturableSoundWave::IsCapturing() const
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	return AudioCapture.IsCapturing();
