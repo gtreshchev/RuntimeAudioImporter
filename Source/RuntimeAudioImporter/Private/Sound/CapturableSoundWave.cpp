@@ -133,3 +133,13 @@ void UCapturableSoundWave::StopCapture()
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop capturing as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
 #endif
 }
+
+bool UCapturableSoundWave::IsCapturing()
+{
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
+	return AudioCapture.IsStreamOpen();
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get capturing state as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
+	return false;
+#endif
+}
