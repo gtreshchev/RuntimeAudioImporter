@@ -87,7 +87,6 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 		return false;
 	}
 
-
 	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels,
 #if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
 		int32 InSampleRate,

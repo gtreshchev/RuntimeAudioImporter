@@ -258,6 +258,23 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	PCMBufferInfo->PCMData = MoveTemp(DecodedAudioInfo.PCMInfo.PCMData);
 	PCMBufferInfo->PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
 
+	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
+	{
+		TArray<float> PCMData(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
+		AsyncTask(ENamedThreads::GameThread, [this, PCMData = MoveTemp(PCMData)]() mutable
+		{
+			if (OnPopulateAudioDataNative.IsBound())
+			{
+				OnPopulateAudioDataNative.Broadcast(PCMData);
+			}
+
+			if (OnPopulateAudioData.IsBound())
+			{
+				OnPopulateAudioData.Broadcast(PCMData);
+			}
+		});
+	}
+
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data has been populated successfully. Information about audio data:\n%s"), *DecodedAudioInfoString);
 }
 

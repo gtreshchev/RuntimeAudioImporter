@@ -6,10 +6,10 @@
 #include "ImportedSoundWave.h"
 #include "StreamingSoundWave.generated.h"
 
-/** Static delegate broadcasting the result of audio data pre-allocation */
+/** Static delegate broadcast the result of audio data pre-allocation */
 DECLARE_DELEGATE_OneParam(FOnPreAllocateAudioDataResultNative, bool);
 
-/** Dynamic delegate broadcasting the result of audio data pre-allocation */
+/** Dynamic delegate broadcast the result of audio data pre-allocation */
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocateAudioDataResult, bool, bSucceeded);
 
 /**
