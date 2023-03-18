@@ -19,14 +19,20 @@
 #define memcpy(Dest, Src, Count) FMemory::Memcpy(Dest, Src, Count)
 
 #ifdef INCLUDE_MP3
+#define DRMP3_API static
+#define DRMP3_PRIVATE static
 #include "ThirdParty/dr_mp3.h"
 #endif
 
 #ifdef INCLUDE_WAV
+#define DRWAV_API static
+#define DRWAV_PRIVATE static
 #include "ThirdParty/dr_wav.h"
 #endif
 
 #ifdef INCLUDE_FLAC
+#define DRFLAC_API static
+#define DRFLAC_PRIVATE static
 #include "ThirdParty/dr_flac.h"
 #endif
 
