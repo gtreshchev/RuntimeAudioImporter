@@ -6,6 +6,8 @@
 #include "Math/UnrealMathUtility.h"
 #include "HAL/UnrealMemory.h"
 #include "RuntimeAudioImporterDefines.h"
+#include "SampleBuffer.h"
+#include "AudioResampler.h"
 #include <type_traits>
 #include <limits>
 
@@ -109,5 +111,58 @@ public:
 
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Transcoding RAW data of size '%llu' (min: %lld, max: %lld) to size '%llu' (min: %lld, max: %lld)"),
 		       static_cast<uint64>(sizeof(IntegralTypeFrom)), MinAndMaxValuesFrom.Key, MinAndMaxValuesFrom.Value, static_cast<uint64>(sizeof(IntegralTypeTo)), MinAndMaxValuesTo.Key, MinAndMaxValuesTo.Value);
+	}
+
+	/**
+	 * Resampling RAW Data to a different sample rate
+	 *
+	 * @param RAWData RAW data for resampling
+	 * @param NumOfChannels Number of channels in the RAW data
+	 * @param SourceSampleRate Source sample rate of the RAW data
+	 * @param DestinationSampleRate Destination sample rate of the RAW data
+	 * @param ResampledRAWData Resampled RAW data
+	 * @return True if the RAW data was successfully resampled
+	 */
+	static bool ResampleRAWData(Audio::FAlignedFloatBuffer& RAWData, int32 NumOfChannels, int32 SourceSampleRate, int32 DestinationSampleRate, Audio::FAlignedFloatBuffer& ResampledRAWData)
+	{
+		const Audio::FResamplingParameters ResampleParameters = {
+			Audio::EResamplingMethod::BestSinc,
+			NumOfChannels,
+			static_cast<float>(SourceSampleRate),
+			static_cast<float>(DestinationSampleRate),
+			RAWData
+		};
+
+		ResampledRAWData.AddUninitialized(Audio::GetOutputBufferSize(ResampleParameters));
+		Audio::FResamplerResults ResampleResults;
+		ResampleResults.OutBuffer = &ResampledRAWData;
+
+		if (!Audio::Resample(ResampleParameters, ResampleResults))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data from %d to %d"), SourceSampleRate, DestinationSampleRate);
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Mixing RAW Data to a different number of channels
+	 *
+	 * @param RAWData RAW data for mixing
+	 * @param SampleRate Sample rate of the RAW data
+	 * @param SourceNumOfChannels Source number of channels in the RAW data
+	 * @param DestinationNumOfChannels Destination number of channels in the RAW data
+	 * @param RemixedRAWData Remixed RAW data
+	 * @return True if the RAW data was successfully mixed
+	 */
+	static bool MixChannelsRAWData(const Audio::FAlignedFloatBuffer& RAWData, int32 SampleRate, int32 SourceNumOfChannels, int32 DestinationNumOfChannels, Audio::FAlignedFloatBuffer& RemixedRAWData)
+	{
+		Audio::TSampleBuffer<float> PCMSampleBuffer(RAWData, SourceNumOfChannels, SampleRate);
+		{
+			PCMSampleBuffer.MixBufferToChannels(DestinationNumOfChannels);
+		}
+		RemixedRAWData = Audio::FAlignedFloatBuffer(PCMSampleBuffer.GetData(), PCMSampleBuffer.GetNumSamples());
+		return true;
 	}
 };

@@ -7,7 +7,6 @@
 #include "Async/Async.h"
 #include "UObject/GCObjectScopeGuard.h"
 #include "SampleBuffer.h"
-#include "AudioResampler.h"
 
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -59,36 +58,23 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		if (SampleRate != DecodedAudioInfo.SoundWaveBasicInfo.SampleRate)
 		{
 			Audio::FAlignedFloatBuffer ResamplerOutputData;
-
-			Audio::FResamplingParameters ResampleParameters = {
-				Audio::EResamplingMethod::BestSinc,
-				NumChannels,
-				static_cast<float>(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate),
-				static_cast<float>(SampleRate),
-				WaveData
-			};
-
-			ResamplerOutputData.AddUninitialized(Audio::GetOutputBufferSize(ResampleParameters));
-			Audio::FResamplerResults ResampleResults;
-			ResampleResults.OutBuffer = &ResamplerOutputData;
-
-			if (!Audio::Resample(ResampleParameters, ResampleResults))
+			if (!FRAW_RuntimeCodec::ResampleRAWData(WaveData, GetNumOfChannels(), GetSampleRate(), DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, ResamplerOutputData))
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data to the sound wave's sample rate. Resampling failed"));
 				return;
 			}
-
 			WaveData = MoveTemp(ResamplerOutputData);
 		}
 
 		// Mixing the channels if needed
 		if (NumChannels != DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels)
 		{
-			Audio::TSampleBuffer<float> PCMSampleBuffer(WaveData, DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels, SampleRate);
+			Audio::FAlignedFloatBuffer WaveDataTemp;
+			if (!FRAW_RuntimeCodec::MixChannelsRAWData(WaveData, DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, GetNumOfChannels(), DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels, WaveDataTemp))
 			{
-				PCMSampleBuffer.MixBufferToChannels(NumChannels);
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio data to the sound wave's number of channels. Mixing failed"));
+				return;
 			}
-			Audio::FAlignedFloatBuffer WaveDataTemp = Audio::FAlignedFloatBuffer(PCMSampleBuffer.GetData(), PCMSampleBuffer.GetNumSamples());
 			WaveData = MoveTemp(WaveDataTemp);
 		}
 
