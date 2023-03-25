@@ -470,3 +470,39 @@ struct FRuntimeAudioHeaderInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Runtime Audio Importer")
 	ERuntimeAudioFormat AudioFormat;
 };
+
+/** Audio export override options */
+USTRUCT(BlueprintType, Category = "Runtime Audio Importer")
+struct FRuntimeAudioExportOverrideOptions
+{
+	GENERATED_BODY()
+
+	FRuntimeAudioExportOverrideOptions()
+		: NumOfChannels(-1)
+	  , SampleRate(-1)
+	{
+	}
+
+	bool IsOverriden() const
+	{
+		return IsNumOfChannelsOverriden() || IsSampleRateOverriden();
+	}
+
+	bool IsSampleRateOverriden() const
+	{
+		return SampleRate != -1;
+	}
+
+	bool IsNumOfChannelsOverriden() const
+	{
+		return NumOfChannels != -1;
+	}
+
+	/** Number of channels. Set to -1 to retrieve from source. Mixing if count differs from source */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	int32 NumOfChannels;
+    
+	/** Audio sampling rate (samples per second, sampling frequency). Set to -1 to retrieve from source. Resampling if count differs from source */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime Audio Importer")
+	int32 SampleRate;
+};
