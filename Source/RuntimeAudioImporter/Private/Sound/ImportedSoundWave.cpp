@@ -446,6 +446,62 @@ bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
 	return SetNumOfPlayedFrames_Internal(PlaybackTime * SampleRate);
 }
 
+bool UImportedSoundWave::ResampleSoundWave(int32 NewSampleRate)
+{
+	if (NewSampleRate == GetSampleRate())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Skipping resampling the imported sound wave '%s' because the new sample rate '%d' is the same as the current sample rate '%d'"), *GetName(), NewSampleRate, GetSampleRate());
+		return true;
+	}
+
+	FScopeLock Lock(&DataGuard);
+
+	Audio::FAlignedFloatBuffer NewPCMData;
+	Audio::FAlignedFloatBuffer SourcePCMData = Audio::FAlignedFloatBuffer(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
+
+	if (!FRAW_RuntimeCodec::ResampleRAWData(SourcePCMData, GetNumOfChannels(), GetSampleRate(), NewSampleRate, NewPCMData))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to resample the imported sound wave '%s' from sample rate '%d' to sample rate '%d'"), *GetName(), GetSampleRate(), NewSampleRate);
+		return false;
+	}
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully resampled the imported sound wave '%s' from sample rate '%d' to sample rate '%d'"), *GetName(), GetSampleRate(), NewSampleRate);
+	SampleRate = NewSampleRate;
+	{
+		PCMBufferInfo->PCMNumOfFrames = NewPCMData.Num() / GetNumOfChannels();
+		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMData);
+	}
+	return true;
+}
+
+bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
+{
+	if (NewNumOfChannels == GetNumOfChannels())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Skipping mixing the imported sound wave '%s' because the new number of channels '%d' is the same as the current number of channels '%d'"), *GetName(), NewNumOfChannels, GetNumOfChannels());
+		return true;
+	}
+
+	FScopeLock Lock(&DataGuard);
+
+	Audio::FAlignedFloatBuffer NewPCMData;
+	Audio::FAlignedFloatBuffer SourcePCMData = Audio::FAlignedFloatBuffer(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
+
+	if (!FRAW_RuntimeCodec::MixChannelsRAWData(SourcePCMData, GetSampleRate(), GetNumOfChannels(), NewNumOfChannels, NewPCMData))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to mix the imported sound wave '%s' from number of channels '%d' to number of channels '%d'"), *GetName(), GetNumOfChannels(), NewNumOfChannels);
+		return false;
+	}
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully mixed the imported sound wave '%s' from number of channels '%d' to number of channels '%d'"), *GetName(), GetNumOfChannels(), NewNumOfChannels);
+	NumChannels = NewNumOfChannels;
+	{
+		PCMBufferInfo->PCMNumOfFrames = NewPCMData.Num() / GetNumOfChannels();
+		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMData);
+	}
+	return true;
+}
+
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
 	FScopeLock Lock(&DataGuard);
