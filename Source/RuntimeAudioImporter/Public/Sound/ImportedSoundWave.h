@@ -172,6 +172,28 @@ public:
 	 */
 	bool RewindPlaybackTime_Internal(float PlaybackTime);
 
+	// TODO: Make this thread-safe
+	/**
+	 * Resample the sound wave to the specified sample rate
+	 *
+	 * @note This is not thread-safe at the moment
+	 * @param NewSampleRate The new sample rate
+	 * @return Whether the sound wave was resampled or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	bool ResampleSoundWave(int32 NewSampleRate);
+
+	// TODO: Make this thread-safe
+	/**
+	 * Change the number of channels of the sound wave
+	 *
+	 * @note This is not thread-safe at the moment
+	 * @param NewNumOfChannels The new number of channels
+	 * @return Whether the sound wave was mixed or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	bool MixSoundWaveChannels(int32 NewNumOfChannels);
+
 	/**
 	 * Change the number of frames played back. Used to rewind the sound
 	 *
