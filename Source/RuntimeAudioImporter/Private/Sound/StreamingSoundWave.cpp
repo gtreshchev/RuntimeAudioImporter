@@ -215,8 +215,6 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
-		FGCObjectScopeGuard Guard(this);
-
 		FEncodedAudioStruct EncodedAudioInfo(AudioData, AudioFormat);
 		FDecodedAudioStruct DecodedAudioInfo;
 		if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
@@ -233,8 +231,6 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 {
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 	{
-		FGCObjectScopeGuard Guard(this);
-
 		uint8* ByteDataPtr = RAWData.GetData();
 		const int64 ByteDataSize = RAWData.Num();
 
