@@ -69,6 +69,12 @@ public:
 	void StopCapture();
 
 	/**
+	 * Toggles the mute state of audio capture, pausing the accumulation of audio data without closing the stream
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Capture")
+	bool ToggleMute(bool bMute);
+
+	/**
 	 * Get whether the capture is processing or not
 	 *
 	 * @return Whether the capture is processing or not
