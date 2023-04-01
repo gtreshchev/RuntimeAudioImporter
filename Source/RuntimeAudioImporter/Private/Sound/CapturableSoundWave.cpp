@@ -84,20 +84,28 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	if (AudioCapture.IsStreamOpen())
 	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the stream is already open"));
 		return false;
 	}
 
 	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels,
 #if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
-		int32 InSampleRate,
+	                                             int32 InSampleRate,
 #endif
 	                                             double StreamTime, bool bOverFlow)
 	{
-		const int32 PCMDataSize = NumOfChannels * NumFrames;
-
 		if (AudioCapture.IsCapturing())
 		{
-			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), PCMDataSize * sizeof(float)), ERuntimeRAWAudioFormat::Float32,
+			const int64 PCMDataSize = NumOfChannels * NumFrames;
+			const int64 PCMDataSizeInBytes = PCMDataSize * sizeof(float);
+
+			if (PCMDataSizeInBytes > TNumericLimits<int32>::Max())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to append audio data as the size of the data exceeds the maximum size of int32 (PCMDataSizeInBytes: %lld, Max: %d)"), PCMDataSizeInBytes, TNumericLimits<int32>::Max());
+				return;
+			}
+
+			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), static_cast<int32>(PCMDataSizeInBytes)), ERuntimeRAWAudioFormat::Float32,
 #if ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24
 									InSampleRate
 #else
@@ -112,10 +120,18 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 
 	if (!AudioCapture.OpenCaptureStream(Params, MoveTemp(OnCapture), 1024))
 	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capturing stream for sound wave %s"), *GetName());
 		return false;
 	}
 
-	return AudioCapture.StartStream();
+	if (!AudioCapture.StartStream())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capturing for sound wave %s"), *GetName());
+		return false;
+	}
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully started capturing for sound wave %s"), *GetName());
+	return true;
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capturing as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
 	return false;
@@ -131,6 +147,50 @@ void UCapturableSoundWave::StopCapture()
 	}
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop capturing as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
+#endif
+}
+
+bool UCapturableSoundWave::ToggleMute(bool bMute)
+{
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
+	if (!AudioCapture.IsStreamOpen())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to toggle mute for %s as the stream is not open"), *GetName());
+		return false;
+	}
+	if (bMute)
+	{
+		if (!AudioCapture.IsCapturing())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mute as the stream for %s is already closed"), *GetName());
+			return false;
+		}
+		if (!AudioCapture.StopStream())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mute the stream for sound wave %s"), *GetName());
+			return false;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully muted the stream for sound wave %s"), *GetName());
+		return true;
+	}
+	else
+	{
+		if (AudioCapture.IsCapturing())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to unmute as the stream for %s is already open"), *GetName());
+			return false;
+		}
+		if (!AudioCapture.StartStream())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to unmute the stream for sound wave %s"), *GetName());
+			return false;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully unmuted the stream for sound wave %s"), *GetName());
+		return true;
+	}
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to toggle mute as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
+	return false;
 #endif
 }
 
