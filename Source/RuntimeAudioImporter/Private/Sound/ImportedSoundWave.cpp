@@ -196,6 +196,16 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 	}
 #endif
 
+	// Stopping all other active sounds that are using the same sound wave, so that only one sound wave can be played at a time
+	const TArray<FActiveSound*>& ActiveSounds = AudioDevice->GetActiveSounds();
+	for (FActiveSound* ActiveSoundPtr : ActiveSounds)
+	{
+		if (ActiveSoundPtr->GetSound() == this && &ActiveSound != ActiveSoundPtr)
+		{
+			AudioDevice->StopActiveSound(ActiveSoundPtr);
+		}
+	}
+
 	ActiveSound.PlaybackTime = GetPlaybackTime_Internal();
 
 	if (IsPlaybackFinished_Internal())
