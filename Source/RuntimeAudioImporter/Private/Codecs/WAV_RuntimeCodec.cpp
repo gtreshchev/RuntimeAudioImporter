@@ -123,9 +123,6 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 {
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Encoding uncompressed audio data to WAV audio format.\nDecoded audio info: %s."), *DecodedData.ToString());
 
-	int16* TempInt16BBuffer;
-	FRAW_RuntimeCodec::TranscodeRAWData<float, int16>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num(), TempInt16BBuffer);
-
 	drwav WAV_Encoder;
 
 	drwav_data_format WAV_Format;
@@ -145,6 +142,9 @@ bool FWAV_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStr
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to initialize WAV Encoder"));
 		return false;
 	}
+
+	int16* TempInt16BBuffer;
+	FRAW_RuntimeCodec::TranscodeRAWData<float, int16>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num(), TempInt16BBuffer);
 
 	drwav_write_pcm_frames(&WAV_Encoder, DecodedData.PCMInfo.PCMNumOfFrames, TempInt16BBuffer);
 	drwav_uninit(&WAV_Encoder);
