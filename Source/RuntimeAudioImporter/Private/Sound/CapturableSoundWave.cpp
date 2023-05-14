@@ -106,7 +106,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 			}
 
 			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), static_cast<int32>(PCMDataSizeInBytes)), ERuntimeRAWAudioFormat::Float32,
-#if ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24
+#if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
 									InSampleRate
 #else
 			                       AudioCapture.GetSampleRate()
