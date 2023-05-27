@@ -63,7 +63,7 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 	// Only OGG format is supported for audio resource initialization
 	if (Format != Audio::NAME_OGG)
 	{
-		ensureMsgf(false, TEXT("RuntimeAudioImporter does not support audio format '%s' for initialization. Please explicitly set the audio format to '%s' in your project settings"), *Format.ToString(), *Audio::NAME_OGG.ToString());
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("RuntimeAudioImporter does not support audio format '%s' for initialization. Supported format: %s"), *Format.ToString(), *Audio::NAME_OGG.ToString());
 		return false;
 	}
 
