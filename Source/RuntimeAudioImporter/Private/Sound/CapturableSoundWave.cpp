@@ -89,7 +89,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 	}
 
 	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels,
-#if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(4, 25, 0)
 	                                             int32 InSampleRate,
 #endif
 	                                             double StreamTime, bool bOverFlow)
@@ -106,7 +106,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 			}
 
 			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), static_cast<int32>(PCMDataSizeInBytes)), ERuntimeRAWAudioFormat::Float32,
-#if (ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24) || ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(4, 25, 0)
 									InSampleRate
 #else
 			                       AudioCapture.GetSampleRate()

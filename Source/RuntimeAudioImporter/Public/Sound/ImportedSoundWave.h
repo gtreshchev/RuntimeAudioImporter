@@ -172,7 +172,7 @@ public:
 	 */
 	bool RewindPlaybackTime_Internal(float PlaybackTime);
 
-	// TODO: Make this thread-safe
+	// TODO: Make this async
 	/**
 	 * Resample the sound wave to the specified sample rate
 	 *
@@ -183,7 +183,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
 	bool ResampleSoundWave(int32 NewSampleRate);
 
-	// TODO: Make this thread-safe
+	// TODO: Make this async
 	/**
 	 * Change the number of channels of the sound wave
 	 *

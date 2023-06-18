@@ -7,15 +7,15 @@
 #endif
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
-#include "Launch/Resources/Version.h"
+#include "Misc/EngineVersionComparison.h"
 
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25
+#if UE_VERSION_OLDER_THAN(4, 26, 0)
 #include "DSP/BufferVectorOperations.h"
 #endif
 
 #include "RuntimeAudioImporterTypes.generated.h"
 
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25
+#if UE_VERSION_OLDER_THAN(4, 26, 0)
 namespace Audio
 {
 	using FAlignedFloatBuffer = Audio::AlignedFloatBuffer;
@@ -78,7 +78,7 @@ template <typename DataType>
 class FRuntimeBulkDataBuffer
 {
 public:
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+#if UE_VERSION_OLDER_THAN(4, 27, 0)
 	using ViewType = TArrayView<DataType>;
 #else
 	using ViewType = TArrayView64<DataType>;
@@ -100,7 +100,7 @@ public:
 	FRuntimeBulkDataBuffer(DataType* InBuffer, int64 InNumberOfElements)
 		: View(InBuffer, InNumberOfElements)
 	{
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+#if UE_VERSION_OLDER_THAN(4, 27, 0)
 		check(InNumberOfElements <= TNumericLimits<int32>::Max())
 #endif
 	}
@@ -165,7 +165,7 @@ public:
 	{
 		FreeBuffer();
 
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 26
+#if UE_VERSION_OLDER_THAN(4, 27, 0)
 		check(InNumberOfElements <= TNumericLimits<int32>::Max())
 #endif
 
@@ -393,7 +393,7 @@ struct FRuntimeAudioInputDeviceInfo
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	FRuntimeAudioInputDeviceInfo(const Audio::FCaptureDeviceInfo& DeviceInfo)
 		: DeviceName(DeviceInfo.DeviceName)
-#if ENGINE_MAJOR_VERSION >= 4 && ENGINE_MINOR_VERSION > 24
+#if UE_VERSION_NEWER_THAN(4, 25, 0)
 	  , DeviceId(DeviceInfo.DeviceId)
 #endif
 	  , InputChannels(DeviceInfo.InputChannels)
