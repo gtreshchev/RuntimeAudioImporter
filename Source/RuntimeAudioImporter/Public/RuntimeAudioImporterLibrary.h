@@ -21,6 +21,12 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResultNative, URuntimeAud
 /** Dynamic delegate broadcasting the audio importer result */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAudioImporterResult, URuntimeAudioImporterLibrary*, Importer, UImportedSoundWave*, ImportedSoundWave, ERuntimeImportStatus, Status);
 
+/** Static delegate broadcasting the result of the conversion from SoundWave to ImportedSoundWave */
+DECLARE_DELEGATE_TwoParams(FOnRegularToAudioImporterSoundWaveConvertResultNative, bool, UImportedSoundWave*);
+
+/** Dynamic delegate broadcasting the result of the conversion from SoundWave to ImportedSoundWave */
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnRegularToAudioImporterSoundWaveConvertResult, bool, bSucceeded, UImportedSoundWave*, ImportedSoundWave);
+
 
 /** Static delegate broadcasting the result of the audio export to buffer */
 DECLARE_DELEGATE_TwoParams(FOnAudioExportToBufferResultNative, bool, const TArray64<uint8>&);
@@ -160,6 +166,25 @@ public:
 	 * @param NumOfChannels The number of channels (1 for mono, 2 for stereo, etc)
 	 */
 	void ImportAudioFromRAWBuffer(TArray64<uint8> RAWBuffer, ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate = 44100, int32 NumOfChannels = 1);
+
+	/**
+	 * Converts a regular SoundWave to an inherited sound wave of type ImportedSoundWave used in RuntimeAudioImporter
+	 *
+	 * @param SoundWave The regular USoundWave to convert.
+	 * @param ImportedSoundWaveClass The subclass of UImportedSoundWave to create and convert to
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Importer|Convert")
+	static void ConvertRegularToImportedSoundWave(USoundWave* SoundWave, TSubclassOf<UImportedSoundWave> ImportedSoundWaveClass, const FOnRegularToAudioImporterSoundWaveConvertResult& Result);
+
+	/**
+	 * Converts a regular SoundWave to an inherited sound wave of type ImportedSoundWave used in RuntimeAudioImporter. Suitable for use in C++
+	 *
+	 * @param SoundWave The regular USoundWave to convert
+	 * @param ImportedSoundWaveClass The subclass of UImportedSoundWave to create and convert to
+	 * @param Result Delegate broadcasting the result
+	 */
+	static void ConvertRegularToImportedSoundWave(USoundWave* SoundWave, TSubclassOf<UImportedSoundWave> ImportedSoundWaveClass, const FOnRegularToAudioImporterSoundWaveConvertResultNative& Result);
 
 	/**
 	 * Transcode one RAW Data format into another from buffer

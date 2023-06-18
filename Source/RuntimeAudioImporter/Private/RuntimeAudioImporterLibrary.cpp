@@ -2,6 +2,8 @@
 
 #include "RuntimeAudioImporterLibrary.h"
 
+#include "AudioDecompress.h"
+#include "AudioDevice.h"
 #include "RuntimeAudioImporterDefines.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "PreImportedSoundAsset.h"
@@ -12,11 +14,10 @@
 #include "HAL/PlatformFileManager.h"
 #include "Async/Async.h"
 #include "Codecs/RuntimeCodecFactory.h"
+#include "Engine/Engine.h"
 #include "UObject/GCObjectScopeGuard.h"
 
-#include "SampleBuffer.h"
-
-#include "Launch/Resources/Version.h"
+#include "Interfaces/IAudioFormat.h"
 
 URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioImporter()
 {
@@ -25,7 +26,7 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 
 bool LoadAudioFileToArray(TArray64<uint8>& AudioData, const FString& FilePath)
 {
-#if ENGINE_MAJOR_VERSION == 4 && ENGINE_MINOR_VERSION <= 25
+#if UE_VERSION_OLDER_THAN(4, 26, 0)
 	TArray<uint8> AudioData32;
 	if (!FFileHelper::LoadFileToArray(AudioData32, *FilePath))
 	{
@@ -209,6 +210,136 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray64<uint8> RAWB
 	}
 
 	ImportAudioFromFloat32Buffer(FRuntimeBulkDataBuffer<float>(Float32DataPtr, NumOfSamples), SampleRate, NumOfChannels);
+}
+
+void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave* SoundWave, TSubclassOf<UImportedSoundWave> ImportedSoundWaveClass, const FOnRegularToAudioImporterSoundWaveConvertResult& Result)
+{
+	ConvertRegularToImportedSoundWave(SoundWave, ImportedSoundWaveClass, FOnRegularToAudioImporterSoundWaveConvertResultNative::CreateLambda([Result](bool bSucceeded, UImportedSoundWave* ImportedSoundWave)
+	{
+		Result.ExecuteIfBound(bSucceeded, ImportedSoundWave);
+	}));
+}
+
+void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave* SoundWave, TSubclassOf<UImportedSoundWave> ImportedSoundWaveClass, const FOnRegularToAudioImporterSoundWaveConvertResultNative& Result)
+{
+	FAudioThread::RunCommandOnAudioThread([SoundWave, ImportedSoundWaveClass, Result]()
+	{
+		auto ExecuteResult = [Result, ImportedSoundWaveClass](bool bSucceeded, UImportedSoundWave* ImportedSoundWave)
+		{
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, bSucceeded, ImportedSoundWave]() mutable
+			{
+				Result.ExecuteIfBound(bSucceeded, ImportedSoundWave);
+			});
+		};
+
+		if (!IsValid(SoundWave))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to convert SoundWave to ImportedSoundWave because SoundWave is nullptr"));
+			ExecuteResult(false, nullptr);
+			return;
+		}
+
+		if (!ImportedSoundWaveClass)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to convert SoundWave to ImportedSoundWave because ImportedSoundWaveClass is nullptr"));
+			ExecuteResult(false, nullptr);
+			return;
+		}
+		
+		auto AudioDevice = GEngine->GetMainAudioDevice();
+		if (!AudioDevice)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to get AudioDevice for converting SoundWave to ImportedSoundWave"));
+			ExecuteResult(false, nullptr);
+			return;
+		}
+
+		const FName RuntimeFormat =
+#if UE_VERSION_NEWER_THAN(5, 1, 0)
+		SoundWave->GetRuntimeFormat();
+#else
+		AudioDevice->GetRuntimeFormat(SoundWave);
+#endif
+
+		FByteBulkData* Bulk = SoundWave->GetCompressedData(RuntimeFormat, SoundWave->GetPlatformCompressionOverridesForCurrentPlatform());
+		if (!Bulk)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to get the compressed data of SoundWave for converting to ImportedSoundWave"));
+			ExecuteResult(false, nullptr);
+			return;
+		}
+
+		const FRuntimeBulkDataBuffer<uint8> ResourceBuffer = [&Bulk]()
+		{
+			uint8* BufferPtr = nullptr;
+			Bulk->GetCopy(reinterpret_cast<void**>(&BufferPtr), true);
+			return MoveTempIfPossible(FRuntimeBulkDataBuffer<uint8>(BufferPtr, Bulk->GetElementCount()));
+		}();
+
+		ICompressedAudioInfo* CompressedAudioInfo =
+#if UE_VERSION_NEWER_THAN(5, 1, 0)
+		IAudioInfoFactoryRegistry::Get().Create(RuntimeFormat);
+#else
+		AudioDevice->CreateCompressedAudioInfo(SoundWave);
+#endif
+
+		if (!CompressedAudioInfo)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to create CompressedAudioInfo for converting SoundWave to ImportedSoundWave"));
+			ExecuteResult(false, nullptr);
+			return;
+		}
+		
+		FSoundQualityInfo SoundQualityInfo = {0};
+		if (!CompressedAudioInfo->ReadCompressedInfo(ResourceBuffer.GetView().GetData(), ResourceBuffer.GetView().Num(), &SoundQualityInfo))
+		{
+			ExecuteResult(false, nullptr);
+			delete CompressedAudioInfo;
+			return;
+		}
+
+		TArray64<uint8> Int16PCMData;
+		Int16PCMData.SetNumZeroed(SoundQualityInfo.SampleDataSize);
+		CompressedAudioInfo->ExpandFile(Int16PCMData.GetData(), &SoundQualityInfo);
+
+		delete CompressedAudioInfo;
+
+		FDecodedAudioStruct DecodedAudioInfo;
+
+		// Transcoding int16 to float format
+		{
+			const int64 NumOfSamples = Int16PCMData.Num() / sizeof(int16);
+
+			float* TempFloatBuffer;
+			FRAW_RuntimeCodec::TranscodeRAWData<int16, float>(reinterpret_cast<int16*>(Int16PCMData.GetData()), NumOfSamples, TempFloatBuffer);
+			DecodedAudioInfo.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(TempFloatBuffer, NumOfSamples);
+			DecodedAudioInfo.PCMInfo.PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() / SoundWave->NumChannels;
+			DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels = SoundWave->NumChannels;
+			DecodedAudioInfo.SoundWaveBasicInfo.SampleRate = SoundWave->GetSampleRateForCurrentPlatform();
+			DecodedAudioInfo.SoundWaveBasicInfo.Duration = static_cast<float>(DecodedAudioInfo.PCMInfo.PCMNumOfFrames) / SoundWave->GetSampleRateForCurrentPlatform();
+		}
+
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [Result, ExecuteResult, ImportedSoundWaveClass, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+		{
+			UImportedSoundWave* ImportedSoundWave = NewObject<UImportedSoundWave>(GetTransientPackage(), ImportedSoundWaveClass);
+			if (!ImportedSoundWave)
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to create an imported sound wave from %s class for converting SoundWave to ImportedSoundWave"), *ImportedSoundWaveClass->GetName());
+				ExecuteResult(false, nullptr);
+				return;
+			}
+
+			ImportedSoundWave->AddToRoot();
+			FDelegateHandle Handle = ImportedSoundWave->OnPopulateAudioDataNative.AddLambda([&Handle, ExecuteResult, ImportedSoundWave](const TArray<float>&)
+			{
+				ImportedSoundWave->RemoveFromRoot();
+				ExecuteResult(true, ImportedSoundWave);
+				ImportedSoundWave->OnPopulateAudioDataNative.Remove(Handle);
+			});
+
+			ImportedSoundWave->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		});
+	});
 }
 
 void URuntimeAudioImporterLibrary::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERuntimeRAWAudioFormat RAWFormatFrom, ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
