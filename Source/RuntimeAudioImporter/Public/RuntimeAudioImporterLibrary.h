@@ -94,6 +94,15 @@ public:
 	FOnAudioImporterResult OnResult;
 
 	/**
+	 * Tries to retrieve audio data from a given regular sound wave
+	 * 
+	 * @param SoundWave The sound wave from which to obtain audio data
+	 * @param OutDecodedAudioInfo The decoded audio information. Populated only if the function returns true
+	 * @return True if the audio data was successfully retrieved
+	 */
+	static bool TryToRetrieveSoundWaveData(USoundWave* SoundWave, FDecodedAudioStruct& OutDecodedAudioInfo);
+
+	/**
 	 * Instantiate a RuntimeAudioImporter object
 	 *
 	 * @return The RuntimeAudioImporter object. Bind to it's OnProgress and OnResult delegates
@@ -170,7 +179,7 @@ public:
 	/**
 	 * Converts a regular SoundWave to an inherited sound wave of type ImportedSoundWave used in RuntimeAudioImporter
 	 *
-	 * @param SoundWave The regular USoundWave to convert.
+	 * @param SoundWave The regular USoundWave to convert
 	 * @param ImportedSoundWaveClass The subclass of UImportedSoundWave to create and convert to
 	 * @param Result Delegate broadcasting the result
 	 */
