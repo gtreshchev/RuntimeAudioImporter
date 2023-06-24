@@ -304,6 +304,12 @@ struct FEncodedAudioStruct
 	  , AudioFormat(AudioFormat)
 	{
 	}
+	
+	FEncodedAudioStruct(FRuntimeBulkDataBuffer<uint8> AudioDataBulk, ERuntimeAudioFormat AudioFormat)
+		: AudioData(MoveTemp(AudioDataBulk))
+	  , AudioFormat(AudioFormat)
+	{
+	}
 
 	/**
 	 * Converts Encoded Audio Struct to a readable format
