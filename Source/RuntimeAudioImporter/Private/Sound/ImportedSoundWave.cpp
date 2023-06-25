@@ -20,7 +20,7 @@ UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializ
 {
 	ensure(PCMBufferInfo);
 
-#if ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
 	SetImportedSampleRate(0);
 #endif
 	SetSampleRate(0);
@@ -189,7 +189,7 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 {
 	FScopeLock Lock(&DataGuard);
 
-#if ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
 	if (ActiveSound.PlaybackTime == 0.f)
 	{
 		RewindPlaybackTime_Internal(ParseParams.StartTime);
@@ -259,7 +259,7 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
 
 	Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
-#if ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
 	SetImportedSampleRate(0);
 #endif
 	SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
@@ -572,7 +572,7 @@ float UImportedSoundWave::GetDurationConst_Internal() const
 }
 
 float UImportedSoundWave::GetDuration()
-#if ENGINE_MAJOR_VERSION >= 5
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
 const
 #endif
 {
