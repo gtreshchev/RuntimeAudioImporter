@@ -43,6 +43,37 @@ namespace
 	{
 		FMemory::Free(Ptr);
 	}
+
+#if UE_VERSION_NEWER_THAN(5, 3, 0)
+	static uint32 GetMaxFrameSizeSamples(const uint32 SampleRate)
+	{
+		if (SampleRate >= 44100)
+		{
+			return 1920;
+		}
+		else if (SampleRate >= 22050)
+		{
+			return 960;
+		}
+		else
+		{
+			return 480;
+		}
+	}
+
+	static uint16 GetMaxSeekTableEntries(uint32 NumOfSamplesInBytes, const FSoundWaveBasicStruct& SoundWaveBasicInfo)
+	{
+		const uint64 DurationFrames = NumOfSamplesInBytes / (SoundWaveBasicInfo.NumOfChannels * sizeof(int16));
+		const uint64 MaxEntries = DurationFrames / GetMaxFrameSizeSamples(SoundWaveBasicInfo.SampleRate);
+
+		static constexpr uint16 BinkDefault = 4096;
+		static constexpr uint16 BinkMax = TNumericLimits<uint16>::Max();
+
+		const uint64 Clamped = FMath::Clamp<uint64>(MaxEntries, BinkDefault, BinkMax);
+
+		return IntCastChecked<uint16>(Clamped);
+	}
+#endif
 }
 
 bool FBINK_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& AudioData)
@@ -105,10 +136,20 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 
 	int16* TempInt16Buffer;
 	FRAW_RuntimeCodec::TranscodeRAWData<float, int16>(DecodedData.PCMInfo.PCMData.GetView().GetData(), DecodedData.PCMInfo.PCMData.GetView().Num(), TempInt16Buffer);
+	const int64 NumOfSamplesInBytes = DecodedData.PCMInfo.PCMData.GetView().Num() * sizeof(int16);
+
+#if UE_VERSION_NEWER_THAN(5, 3, 0)
+	// If we're going to embed the seek-table in the stream, use -1 to give the largest table we can produce
+	const uint16 MaxSeektableSize = GetMaxSeekTableEntries(NumOfSamplesInBytes, DecodedData.SoundWaveBasicInfo);
+#endif
 
 	void* CompressedData = nullptr;
 	uint32_t CompressedDataLen = 0;
-	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), DecodedData.PCMInfo.PCMData.GetView().Num() * sizeof(int16), DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1, BinkAlloc, BinkFree, &CompressedData, &CompressedDataLen);
+	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), NumOfSamplesInBytes, DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1,
+#if UE_VERSION_NEWER_THAN(5, 3, 0)
+		MaxSeektableSize,
+#endif
+		BinkAlloc, BinkFree, &CompressedData, &CompressedDataLen);
 
 	if (CompressedDataLen <= 0)
 	{

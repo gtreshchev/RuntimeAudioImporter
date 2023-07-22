@@ -53,6 +53,7 @@ TSharedPtr<Audio::IProxyData> UImportedSoundWave::CreateProxyData(const Audio::F
 {
 	if (SoundWaveDataPtr)
 	{
+		SoundWaveDataPtr->InitializeDataFromSoundWave(*this);
 		SoundWaveDataPtr->OverrideRuntimeFormat(Audio::NAME_OGG);
 	}
 	return USoundWave::CreateProxyData(InitParams);
