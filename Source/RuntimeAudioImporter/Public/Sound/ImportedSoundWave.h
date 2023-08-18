@@ -253,7 +253,6 @@ public:
 	 * Get the length of the sound wave, in seconds
 	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	virtual float GetDuration()
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
 	override;
