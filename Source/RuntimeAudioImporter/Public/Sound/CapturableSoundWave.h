@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #include "AudioCaptureCore.h"
+#if PLATFORM_IOS
+#include "IOS/AudioCaptureIOS.h"
+#endif
 #endif
 #include "StreamingSoundWave.h"
 #include "CapturableSoundWave.generated.h"
@@ -86,5 +89,9 @@ private:
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	/** Audio capture instance */
 	Audio::FAudioCapture AudioCapture;
+#if PLATFORM_IOS && !PLATFORM_TVOS
+	/** Audio capture instance specific to iOS. Implemented manually due to the engine not properly supporting iOS audio capture at the moment */
+	Audio::FAudioCaptureIOS AudioCaptureIOS;
+#endif
 #endif
 };

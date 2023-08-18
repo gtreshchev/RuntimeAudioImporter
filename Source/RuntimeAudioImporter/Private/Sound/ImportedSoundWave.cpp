@@ -573,7 +573,8 @@ float UImportedSoundWave::GetDurationConst_Internal() const
 }
 
 float UImportedSoundWave::GetDuration()
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
+#if UE_VERSION_OLDER_THAN(5, 0, 0)
+#else
 const
 #endif
 {

@@ -92,10 +92,19 @@ public class RuntimeAudioImporter : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.IOS)
 			{
 				PrivateDependencyModuleNames.Add("AudioCaptureAudioUnit");
+				PrivateDependencyModuleNames.Add("Core");
+				PrivateDependencyModuleNames.Add("AudioCaptureCore");
+				PublicFrameworks.AddRange(new string[] { "CoreAudio", "AVFoundation", "AudioToolbox" });
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)
 			{
-				PrivateDependencyModuleNames.Add("AudioCaptureAndroid");
+				PrivateDependencyModuleNames.AddRange(
+					new string[]
+					{
+						"AudioCaptureAndroid",
+						//"AndroidPermission"
+					}
+				);
 			}
 
 			PublicDependencyModuleNames.AddRange(

@@ -15,7 +15,7 @@
 #include "CodecIncludes.h"
 #undef INCLUDE_BINK
 
-
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
 /**
  * Taken from AudioFormatBink.cpp
  */
@@ -27,11 +27,15 @@ namespace
 		static constexpr float BinkLowest = 4;
 		static constexpr float BinkHighest = 0;
 
-		// Map Quality 1 (lowest) to 40 (highest)
+		// Map Quality 1 (lowest) to 100 (highest).
 		static constexpr float QualityLowest = 1;
-		static constexpr float QualityHighest = 40;
+		static constexpr float QualityHighest = 100;
 
-		return FMath::GetMappedRangeValueClamped(FVector2D(QualityLowest, QualityHighest), FVector2D(BinkLowest, BinkHighest), InQualityIndex);
+		// Map Quality into Bink Range. Note: +1 gives the Bink range 5 steps inclusive.
+		const float BinkValue = FMath::GetMappedRangeValueClamped(FVector2D(QualityLowest, QualityHighest), FVector2D(BinkLowest + 1.f, BinkHighest), InQualityIndex);
+
+		// Floor each value and clamp into range (as top lerp will be +1 over)
+		return FMath::Clamp(FMath::FloorToInt(BinkValue), BinkHighest, BinkLowest);
 	}
 
 	void* BinkAlloc(size_t Bytes)
@@ -75,6 +79,7 @@ namespace
 	}
 #endif
 }
+#endif
 
 bool FBINK_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& AudioData)
 {
@@ -145,6 +150,7 @@ bool FBINK_RuntimeCodec::Encode(FDecodedAudioStruct DecodedData, FEncodedAudioSt
 
 	void* CompressedData = nullptr;
 	uint32_t CompressedDataLen = 0;
+
 	UECompressBinkAudio(static_cast<void*>(TempInt16Buffer), NumOfSamplesInBytes, DecodedData.SoundWaveBasicInfo.SampleRate, DecodedData.SoundWaveBasicInfo.NumOfChannels, CompressionLevel, 1,
 #if UE_VERSION_NEWER_THAN(5, 3, 0)
 		MaxSeektableSize,
