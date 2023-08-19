@@ -243,13 +243,6 @@ public:
 	float GetDurationConst() const;
 
 	/**
-	 * Thread-unsafe equivalent of GetDurationConst
-	 * Should only be used if DataGuard is locked
-	 * @note This does not add a duration offset
-	 */
-	float GetDurationConst_Internal() const;
-
-	/**
 	 * Get the length of the sound wave, in seconds
 	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
@@ -259,6 +252,13 @@ public:
 #else
 	const override;
 #endif
+
+	/**
+	 * Thread-unsafe equivalent of GetDurationConst
+	 * Should only be used if DataGuard is locked
+	 * @note This does not add a duration offset
+	 */
+	float GetDurationConst_Internal() const;
 
 	/**
 	 * Get sample rate
