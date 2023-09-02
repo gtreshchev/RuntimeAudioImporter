@@ -325,7 +325,7 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWave
 		ExecuteResult(bSucceeded);
 	});
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.2 and if explicitly enabled in RuntimeAudioImporter.Build.cs"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.3 and if explicitly enabled in RuntimeAudioImporter.Build.cs"));
 	Result.ExecuteIfBound(false);
 #endif
 }
