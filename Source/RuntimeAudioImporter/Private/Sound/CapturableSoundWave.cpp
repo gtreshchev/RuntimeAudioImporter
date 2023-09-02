@@ -63,7 +63,6 @@ void UCapturableSoundWave::GetAvailableAudioInputDevices(const FOnGetAvailableAu
 		{
 			GetAvailableAudioInputDevices(Result);
 		});
-
 		return;
 	}
 
