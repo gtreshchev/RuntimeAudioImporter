@@ -132,6 +132,22 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		});
 	}
 
+	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
+	{
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
+		{
+			if (OnPopulateAudioStateNative.IsBound())
+			{
+				OnPopulateAudioStateNative.Broadcast();
+			}
+
+			if (OnPopulateAudioState.IsBound())
+			{
+				OnPopulateAudioState.Broadcast();
+			}
+		});
+	}
+
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
 

@@ -124,11 +124,16 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 	Audio::FAudioCaptureDeviceParams Params = Audio::FAudioCaptureDeviceParams();
 	Params.DeviceIndex = DeviceId;
 
-	Audio::FOnCaptureFunction OnCapture = [this](const float* PCMData, int32 NumFrames, int32 NumOfChannels,
-#if UE_VERSION_NEWER_THAN(4, 25, 0)
-	                                             int32 InSampleRate,
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+	Audio::FOnAudioCaptureFunction
+#else
+	Audio::FOnCaptureFunction
 #endif
-	                                             double StreamTime, bool bOverFlow)
+	OnCapture = [this](const void* PCMData, int32 NumFrames, int32 NumOfChannels,
+#if UE_VERSION_NEWER_THAN(4, 25, 0)
+	                   int32 InSampleRate,
+#endif
+	                   double StreamTime, bool bOverFlow)
 	{
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (AudioCaptureIOS.IsCapturing())
@@ -172,7 +177,13 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 		return false;
 	}
 
-	if (!AudioCapture.OpenCaptureStream(Params, MoveTemp(OnCapture), 1024))
+	if (!AudioCapture.
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+		OpenAudioCaptureStream
+#else
+		OpenCaptureStream
+#endif
+		(Params, MoveTemp(OnCapture), 1024))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capturing stream for sound wave %s"), *GetName());
 		return false;

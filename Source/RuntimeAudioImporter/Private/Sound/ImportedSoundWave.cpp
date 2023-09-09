@@ -286,6 +286,22 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 		});
 	}
 
+	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
+	{
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
+		{
+			if (OnPopulateAudioStateNative.IsBound())
+			{
+				OnPopulateAudioStateNative.Broadcast();
+			}
+
+			if (OnPopulateAudioState.IsBound())
+			{
+				OnPopulateAudioState.Broadcast();
+			}
+		});
+	}
+
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The audio data has been populated successfully. Information about audio data:\n%s"), *DecodedAudioInfoString);
 }
 
