@@ -20,7 +20,21 @@ namespace Audio
 	{
 	public:
 		virtual bool GetCaptureDeviceInfo(Audio::FCaptureDeviceInfo& OutInfo, int32 DeviceIndex) override;
-		virtual bool OpenCaptureStream(const Audio::FAudioCaptureDeviceParams& InParams, Audio::FOnCaptureFunction InOnCapture, uint32 NumFramesDesired) override;
+
+		virtual bool 
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+		OpenAudioCaptureStream
+#else
+		OpenCaptureStream
+#endif
+		(const Audio::FAudioCaptureDeviceParams& InParams,
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+		FOnAudioCaptureFunction InOnCapture
+#else
+		FOnCaptureFunction InOnCapture
+#endif
+		, uint32 NumFramesDesired) override;
+
 		virtual bool CloseStream() override;
 		virtual bool StartStream() override;
 		virtual bool StopStream() override;
@@ -50,7 +64,12 @@ namespace Audio
 		TArray<uint8> CaptureBuffer;
 		int32 BufferSize = 0;
 
-		FOnCaptureFunction OnCapture;
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+		FOnAudioCaptureFunction
+#else
+		FOnCaptureFunction
+#endif
+		OnCapture;
 	};
 }
 #endif

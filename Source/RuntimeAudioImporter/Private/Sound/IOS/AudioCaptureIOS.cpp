@@ -29,7 +29,19 @@ bool Audio::FAudioCaptureIOS::GetCaptureDeviceInfo(Audio::FCaptureDeviceInfo& Ou
 }
 
 
-bool Audio::FAudioCaptureIOS::OpenCaptureStream(const Audio::FAudioCaptureDeviceParams& InParams, Audio::FOnCaptureFunction InOnCapture, uint32 NumFramesDesired)
+bool Audio::FAudioCaptureIOS::
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+	OpenAudioCaptureStream
+#else
+	OpenCaptureStream
+#endif
+	(const Audio::FAudioCaptureDeviceParams& InParams,
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+	FOnAudioCaptureFunction InOnCapture
+#else
+	FOnCaptureFunction InOnCapture
+#endif
+	, uint32 NumFramesDesired)
 {
 	if (bIsStreamOpen)
 	{

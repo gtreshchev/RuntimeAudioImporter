@@ -40,6 +40,12 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPopulateAudioDataNative, const TArray<flo
 /** Dynamic delegate broadcast newly populated PCM data */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPopulateAudioData, const TArray<float>&, PopulatedAudioData);
 
+/** Static delegate broadcast when the PCM data is populated. Same as FOnPopulateAudioDataNative except it doesn't broadcast the audio data */
+DECLARE_MULTICAST_DELEGATE(FOnPopulateAudioStateNative);
+
+/** Dynamic delegate broadcast when the PCM data is populated. Same as FOnPopulateAudioData except it doesn't broadcast the audio data */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPopulateAudioState);
+
 
 /**
  * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
@@ -339,6 +345,13 @@ public:
 	/** Bind to this delegate to obtain audio data every time it is populated */
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnPopulateAudioData OnPopulateAudioData;
+
+	/** Bind to this delegate to know when the audio data is populated. Same as OnPopulateAudioDataNative except it doesn't broadcast the audio data. Suitable for use in C++ */
+	FOnPopulateAudioStateNative OnPopulateAudioStateNative;
+
+	/** Bind to this delegate to know when the audio data is populated. Same as OnPopulateAudioData except it doesn't broadcast the audio data */
+	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
+	FOnPopulateAudioState OnPopulateAudioState;
 
 	/**
 	 * Retrieve the PCM buffer, completely thread-safe. Suitable for use in Blueprints
