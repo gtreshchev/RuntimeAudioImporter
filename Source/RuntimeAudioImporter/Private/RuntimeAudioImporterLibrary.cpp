@@ -16,6 +16,7 @@
 #include "Codecs/RuntimeCodecFactory.h"
 #include "Engine/Engine.h"
 #include "UObject/GCObjectScopeGuard.h"
+#include "UObject/WeakObjectPtrTemplates.h"
 
 #include "Interfaces/IAudioFormat.h"
 
@@ -48,13 +49,19 @@ bool LoadAudioFileToArray(TArray64<uint8>& AudioData, const FString& FilePath)
 
 void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, ERuntimeAudioFormat AudioFormat)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, FilePath, AudioFormat]() mutable
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), FilePath, AudioFormat]() mutable
 	{
-		FGCObjectScopeGuard Guard(this);
+		if (!WeakThis.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to import audio from file '%s' because the RuntimeAudioImporterLibrary object has been destroyed"), *FilePath);
+			return;
+		}
+
+		FGCObjectScopeGuard Guard(WeakThis.Get());
 
 		if (!FPaths::FileExists(FilePath))
 		{
-			OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
 			return;
 		}
 
@@ -64,11 +71,11 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 		TArray64<uint8> AudioBuffer;
 		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
 		{
-			OnResult_Internal(nullptr, ERuntimeImportStatus::LoadFileToArrayError);
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::LoadFileToArrayError);
 			return;
 		}
 
-		ImportAudioFromBuffer(MoveTemp(AudioBuffer), AudioFormat);
+		WeakThis->ImportAudioFromBuffer(MoveTemp(AudioBuffer), AudioFormat);
 	});
 }
 
@@ -84,57 +91,71 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray<uint8> AudioData
 
 void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray64<uint8> AudioData, ERuntimeAudioFormat AudioFormat)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, AudioData = MoveTemp(AudioData), AudioFormat]()
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), AudioData = MoveTemp(AudioData), AudioFormat]()
 	{
-		FGCObjectScopeGuard Guard(this);
+		if (!WeakThis.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to import audio from buffer because the RuntimeAudioImporterLibrary object has been destroyed"));
+			return;
+		}
 
-		OnProgress_Internal(15);
+		FGCObjectScopeGuard Guard(WeakThis.Get());
+
+		WeakThis->OnProgress_Internal(15);
 
 		if (AudioFormat == ERuntimeAudioFormat::Invalid)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Undefined audio data format for import"));
-			OnResult_Internal(nullptr, ERuntimeImportStatus::InvalidAudioFormat);
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::InvalidAudioFormat);
 			return;
 		}
 
 		FEncodedAudioStruct EncodedAudioInfo(AudioData, AudioFormat);
 
-		OnProgress_Internal(25);
+		WeakThis->OnProgress_Internal(25);
 
 		FDecodedAudioStruct DecodedAudioInfo;
 		if (!DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
 		{
-			OnResult_Internal(nullptr, ERuntimeImportStatus::FailedToReadAudioDataArray);
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::FailedToReadAudioDataArray);
 			return;
 		}
 
-		OnProgress_Internal(65);
+		WeakThis->OnProgress_Internal(65);
 
-		ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		WeakThis->ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 	});
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, FilePath, RAWFormat, SampleRate, NumOfChannels]() mutable
+	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), FilePath, RAWFormat, SampleRate, NumOfChannels]() mutable
 	{
-		if (!FPaths::FileExists(FilePath))
+		if (!WeakThis.IsValid())
 		{
-			OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to import audio from buffer because the RuntimeAudioImporterLibrary object has been destroyed"));
 			return;
 		}
 
-		OnProgress_Internal(5);
+		FGCObjectScopeGuard Guard(WeakThis.Get());
+
+		if (!FPaths::FileExists(FilePath))
+		{
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
+			return;
+		}
+
+		WeakThis->OnProgress_Internal(5);
 
 		TArray64<uint8> AudioBuffer;
 		if (!LoadAudioFileToArray(AudioBuffer, *FilePath))
 		{
-			OnResult_Internal(nullptr, ERuntimeImportStatus::LoadFileToArrayError);
+			WeakThis->OnResult_Internal(nullptr, ERuntimeImportStatus::LoadFileToArrayError);
 			return;
 		}
 
-		OnProgress_Internal(35);
-		ImportAudioFromRAWBuffer(MoveTemp(AudioBuffer), RAWFormat, SampleRate, NumOfChannels);
+		WeakThis->OnProgress_Internal(35);
+		WeakThis->ImportAudioFromRAWBuffer(MoveTemp(AudioBuffer), RAWFormat, SampleRate, NumOfChannels);
 	});
 }
 
@@ -847,9 +868,16 @@ void URuntimeAudioImporterLibrary::ImportAudioFromDecodedInfo(FDecodedAudioStruc
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::GameThread, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
 		{
-			ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+			if (WeakThis.IsValid())
+			{
+				WeakThis->ImportAudioFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from decoded info '%s' because the RuntimeAudioImporterLibrary object has been destroyed"), *DecodedAudioInfo.ToString());
+			}
 		});
 		return;
 	}
@@ -1146,9 +1174,12 @@ void URuntimeAudioImporterLibrary::OnProgress_Internal(int32 Percentage)
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::GameThread, [this, Percentage]()
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), Percentage]()
 		{
-			OnProgress_Internal(Percentage);
+			if (WeakThis.IsValid())
+			{
+				WeakThis->OnProgress_Internal(Percentage);
+			}
 		});
 		return;
 	}
@@ -1169,9 +1200,16 @@ void URuntimeAudioImporterLibrary::OnResult_Internal(UImportedSoundWave* Importe
 	// Making sure we are in the game thread
 	if (!IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::GameThread, [this, ImportedSoundWave, Status]()
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = TWeakObjectPtr<URuntimeAudioImporterLibrary>(this), ImportedSoundWave, Status]()
 		{
-			OnResult_Internal(ImportedSoundWave, Status);
+			if (WeakThis.IsValid())
+			{
+				WeakThis->OnResult_Internal(ImportedSoundWave, Status);
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to broadcast the result of the import because the RuntimeAudioImporterLibrary object has been destroyed"));
+			}
 		});
 		return;
 	}
