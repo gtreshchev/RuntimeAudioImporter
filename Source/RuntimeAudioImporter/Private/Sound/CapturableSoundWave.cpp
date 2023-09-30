@@ -14,6 +14,7 @@
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioThread.h"
 #include "Async/Async.h"
+#include "UObject/WeakObjectPtrTemplates.h"
 
 UCapturableSoundWave::UCapturableSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -129,16 +130,22 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #else
 	Audio::FOnCaptureFunction
 #endif
-	OnCapture = [this](const void* PCMData, int32 NumFrames, int32 NumOfChannels,
+	OnCapture = [WeakThis = TWeakObjectPtr<UCapturableSoundWave>(this)](const void* PCMData, int32 NumFrames, int32 NumOfChannels,
 #if UE_VERSION_NEWER_THAN(4, 25, 0)
 	                   int32 InSampleRate,
 #endif
 	                   double StreamTime, bool bOverFlow)
 	{
+		if (!WeakThis.IsValid())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to capture audio using a capturable sound wave as it has been destroyed"));
+			return;
+		}
+
 #if PLATFORM_IOS && !PLATFORM_TVOS
-		if (AudioCaptureIOS.IsCapturing())
+		if (WeakThis->AudioCaptureIOS.IsCapturing())
 #else
-		if (AudioCapture.IsCapturing())
+		if (WeakThis->AudioCapture.IsCapturing())
 #endif
 		{
 			const int64 PCMDataSize = NumOfChannels * NumFrames;
@@ -150,7 +157,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 				PCMDataSizeInBytes = TNumericLimits<int32>::Max();
 			}
 
-			AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), static_cast<int32>(PCMDataSizeInBytes)), ERuntimeRAWAudioFormat::Float32,
+			WeakThis->AppendAudioDataFromRAW(TArray<uint8>(reinterpret_cast<const uint8*>(PCMData), static_cast<int32>(PCMDataSizeInBytes)), ERuntimeRAWAudioFormat::Float32,
 #if UE_VERSION_NEWER_THAN(4, 25, 0)
 									InSampleRate
 #else

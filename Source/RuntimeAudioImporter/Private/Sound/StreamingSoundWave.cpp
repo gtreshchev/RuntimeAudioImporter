@@ -9,6 +9,7 @@
 #include "Async/Async.h"
 #include "UObject/GCObjectScopeGuard.h"
 #include "SampleBuffer.h"
+#include "UObject/WeakObjectPtrTemplates.h"
 
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -118,32 +119,42 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
 	{
 		TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, PCMData = MoveTemp(PCMData)]() mutable
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), PCMData = MoveTemp(PCMData)]() mutable
 		{
-			if (OnPopulateAudioDataNative.IsBound())
+			if (WeakThis.IsValid())
 			{
-				OnPopulateAudioDataNative.Broadcast(PCMData);
-			}
+				if (WeakThis->OnPopulateAudioDataNative.IsBound())
+				{
+					WeakThis->OnPopulateAudioDataNative.Broadcast(PCMData);
+				}
 
-			if (OnPopulateAudioData.IsBound())
-			{
-				OnPopulateAudioData.Broadcast(PCMData);
+				if (WeakThis->OnPopulateAudioData.IsBound())
+				{
+					WeakThis->OnPopulateAudioData.Broadcast(PCMData);
+				}
 			}
 		});
 	}
 
 	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this)]()
 		{
-			if (OnPopulateAudioStateNative.IsBound())
+			if (WeakThis.IsValid())
 			{
-				OnPopulateAudioStateNative.Broadcast();
-			}
+				if (WeakThis->OnPopulateAudioStateNative.IsBound())
+				{
+					WeakThis->OnPopulateAudioStateNative.Broadcast();
+				}
 
-			if (OnPopulateAudioState.IsBound())
+				if (WeakThis->OnPopulateAudioState.IsBound())
+				{
+					WeakThis->OnPopulateAudioState.Broadcast();
+				}
+			}
+			else
 			{
-				OnPopulateAudioState.Broadcast();
+				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioStateNative and OnPopulateAudioState delegates because the streaming sound wave has been destroyed"));
 			}
 		});
 	}
@@ -193,9 +204,16 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 {
 	if (!IsInAudioThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([this, NumOfBytesToPreAllocate, Result]()
+		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), NumOfBytesToPreAllocate, Result]()
 		{
-			PreAllocateAudioData(NumOfBytesToPreAllocate, Result);
+			if (WeakThis.IsValid())
+			{
+				WeakThis->PreAllocateAudioData(NumOfBytesToPreAllocate, Result);
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to pre-allocate streaming sound wave audio data as the streaming sound wave has been destroyed"));
+			}
 		});
 		return;
 	}
@@ -220,7 +238,7 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 	float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NumOfBytesToPreAllocate));
 	if (!NewPCMDataPtr)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to pre-allocate streaming sound wave audio data"));
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to pre-allocate streaming sound wave audio data with '%lld' number of bytes"), NumOfBytesToPreAllocate);
 		ExecuteResult(false);
 		return;
 	}
@@ -238,9 +256,16 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 {
 	if (!IsInAudioThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([this, AudioData = MoveTemp(AudioData), AudioFormat]() mutable
+		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), AudioData = MoveTemp(AudioData), AudioFormat]() mutable
 		{
-			AppendAudioDataFromEncoded(MoveTemp(AudioData), AudioFormat);
+			if (WeakThis.IsValid())
+			{
+				WeakThis->AppendAudioDataFromEncoded(MoveTemp(AudioData), AudioFormat);
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append audio data to streaming sound wave as the streaming sound wave has been destroyed"));
+			}
 		});
 		return;
 	}
@@ -260,9 +285,16 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 {
 	if (!IsInAudioThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([this, RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
+		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 		{
-			AppendAudioDataFromRAW(MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels);
+			if (WeakThis.IsValid())
+			{
+				WeakThis->AppendAudioDataFromRAW(MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels);
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append RAW audio data to streaming sound wave as the streaming sound wave has been destroyed"));
+			}
 		});
 		return;
 	}
