@@ -261,9 +261,9 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 	else
 	{
 #if PLATFORM_IOS && !PLATFORM_TVOS
-		if (!AudioCaptureIOS.IsCapturing())
+		if (AudioCaptureIOS.IsCapturing())
 #else
-		if (!AudioCapture.IsCapturing())
+		if (AudioCapture.IsCapturing())
 #endif
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to unmute as the stream for %s is already open"), *GetName());
