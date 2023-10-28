@@ -8,7 +8,6 @@
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #endif
 #include "Codecs/RAW_RuntimeCodec.h"
-#include "UObject/GCObjectScopeGuard.h"
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -162,16 +161,19 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 	if (OnGeneratePCMDataNative.IsBound() || OnGeneratePCMData.IsBound())
 	{
 		TArray<float> PCMData(RetrievedPCMDataPtr, NumSamples);
-		AsyncTask(ENamedThreads::GameThread, [this, PCMData = MoveTemp(PCMData)]() mutable
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
 		{
-			if (OnGeneratePCMDataNative.IsBound())
+			if (WeakThis.IsValid())
 			{
-				OnGeneratePCMDataNative.Broadcast(PCMData);
-			}
+				if (WeakThis->OnGeneratePCMDataNative.IsBound())
+				{
+					WeakThis->OnGeneratePCMDataNative.Broadcast(PCMData);
+				}
 
-			if (OnGeneratePCMData.IsBound())
-			{
-				OnGeneratePCMData.Broadcast(PCMData);
+				if (WeakThis->OnGeneratePCMData.IsBound())
+				{
+					WeakThis->OnGeneratePCMData.Broadcast(PCMData);
+				}
 			}
 		});
 	}
@@ -219,16 +221,19 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 
 			if (OnAudioPlaybackFinishedNative.IsBound() || OnAudioPlaybackFinished.IsBound())
 			{
-				AsyncTask(ENamedThreads::GameThread, [this]()
+				AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this)]()
 				{
-					if (OnAudioPlaybackFinishedNative.IsBound())
+					if (WeakThis.IsValid())
 					{
-						OnAudioPlaybackFinishedNative.Broadcast();
-					}
+						if (WeakThis->OnAudioPlaybackFinishedNative.IsBound())
+						{
+							WeakThis->OnAudioPlaybackFinishedNative.Broadcast();
+						}
 
-					if (OnAudioPlaybackFinished.IsBound())
-					{
-						OnAudioPlaybackFinished.Broadcast();
+						if (WeakThis->OnAudioPlaybackFinished.IsBound())
+						{
+							WeakThis->OnAudioPlaybackFinished.Broadcast();
+						}
 					}
 				});
 			}
@@ -272,32 +277,38 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
 	{
 		TArray<float> PCMData(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
-		AsyncTask(ENamedThreads::GameThread, [this, PCMData = MoveTemp(PCMData)]() mutable
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
 		{
-			if (OnPopulateAudioDataNative.IsBound())
+			if (WeakThis.IsValid())
 			{
-				OnPopulateAudioDataNative.Broadcast(PCMData);
-			}
+				if (WeakThis->OnPopulateAudioDataNative.IsBound())
+				{
+					WeakThis->OnPopulateAudioDataNative.Broadcast(PCMData);
+				}
 
-			if (OnPopulateAudioData.IsBound())
-			{
-				OnPopulateAudioData.Broadcast(PCMData);
+				if (WeakThis->OnPopulateAudioData.IsBound())
+				{
+					WeakThis->OnPopulateAudioData.Broadcast(PCMData);
+				}
 			}
 		});
 	}
 
 	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
 	{
-		AsyncTask(ENamedThreads::GameThread, [this]()
+		AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this)]()
 		{
-			if (OnPopulateAudioStateNative.IsBound())
+			if (WeakThis.IsValid())
 			{
-				OnPopulateAudioStateNative.Broadcast();
-			}
+				if (WeakThis->OnPopulateAudioStateNative.IsBound())
+				{
+					WeakThis->OnPopulateAudioStateNative.Broadcast();
+				}
 
-			if (OnPopulateAudioState.IsBound())
-			{
-				OnPopulateAudioState.Broadcast();
+				if (WeakThis->OnPopulateAudioState.IsBound())
+				{
+					WeakThis->OnPopulateAudioState.Broadcast();
+				}
 			}
 		});
 	}
@@ -316,30 +327,35 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWave
 void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWaveForMetaSoundsResultNative& Result)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, Result]()
+	if (IsInGameThread())
 	{
-		FGCObjectScopeGuard Guard(this);
-
-		auto ExecuteResult = [Result](bool bSucceeded)
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), Result]()
 		{
-			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
-			{
-				Result.ExecuteIfBound(bSucceeded);
-			});
-		};
-
-		const bool bSucceeded = InitAudioResource(Audio::NAME_OGG);
-		if (bSucceeded)
+			WeakThis->PrepareSoundWaveForMetaSounds(Result);
+		});
+		return;
+	}
+	
+	auto ExecuteResult = [Result](bool bSucceeded)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
 		{
-			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully prepared the sound wave '%s' for MetaSounds"), *GetName());
-		}
-		else
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize audio resource to prepare the sound wave '%s' for MetaSounds"), *GetName());
-		}
+			Result.ExecuteIfBound(bSucceeded);
+		});
+	};
 
-		ExecuteResult(bSucceeded);
-	});
+	const bool bSucceeded = InitAudioResource(Audio::NAME_OGG);
+	if (bSucceeded)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully prepared the sound wave '%s' for MetaSounds"), *GetName());
+	}
+	else
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to initialize audio resource to prepare the sound wave '%s' for MetaSounds"), *GetName());
+	}
+
+	ExecuteResult(bSucceeded);
+		
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("PrepareSoundWaveForMetaSounds works only for Unreal Engine version >= 5.3 and if explicitly enabled in RuntimeAudioImporter.Build.cs"));
 	Result.ExecuteIfBound(false);
@@ -364,65 +380,77 @@ void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseR
 
 void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, Result]() mutable
+	if (IsInGameThread())
 	{
-		FGCObjectScopeGuard Guard(this);
-		FScopeLock Lock(&DataGuard);
-
-		auto ExecuteResult = [Result](bool bSucceeded)
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), Result]()
 		{
-			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
+			if (WeakThis.IsValid())
 			{
-				Result.ExecuteIfBound(bSucceeded);
-			});
-		};
+				WeakThis->ReleasePlayedAudioData(Result);
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to release played audio data because the sound wave has been destroyed"));
+			}
+		});
+		return;
+	}
 
-		if (GetNumOfPlayedFrames_Internal() == 0)
+	FScopeLock Lock(&DataGuard);
+
+	auto ExecuteResult = [Result](bool bSucceeded)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
 		{
-			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("No audio data will be released because the current playback time is zero"));
-			ExecuteResult(false);
-			return;
-		}
+			Result.ExecuteIfBound(bSucceeded);
+		});
+	};
 
-		const int64 OldNumOfPCMData = PCMBufferInfo->PCMData.GetView().Num();
-		if (GetNumOfPlayedFrames_Internal() >= PCMBufferInfo->PCMNumOfFrames)
-		{
-			ReleaseMemory();
-			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released all PCM data (%lld)"), OldNumOfPCMData);
-			ExecuteResult(true);
-			return;
-		}
+	if (GetNumOfPlayedFrames_Internal() == 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("No audio data will be released because the current playback time is zero"));
+		ExecuteResult(false);
+		return;
+	}
 
-		const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels;
-		float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
-		if (!NewPCMDataPtr)
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate new memory to free already played audio data"));
-			ExecuteResult(false);
-			return;
-		}
-
-		// PCM data offset to retrieve remaining data for playback
-		const int64 PCMDataOffset = GetNumOfPlayedFrames_Internal() * NumChannels;
-
-		FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData() + PCMDataOffset, NewPCMDataSize * sizeof(float));
-		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
-
-		// Decreasing the amount of PCM frames
-		PCMBufferInfo->PCMNumOfFrames -= GetNumOfPlayedFrames_Internal();
-
-		// Decreasing duration and increasing duration offset
-		{
-			const float DurationOffsetToReduce = GetPlaybackTime_Internal();
-			Duration -= DurationOffsetToReduce;
-			DurationOffset += DurationOffsetToReduce;
-		}
-
-		PlayedNumOfFrames = 0;
-
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released %lld number of PCM data"), static_cast<int64>(OldNumOfPCMData - PCMBufferInfo->PCMData.GetView().Num()));
+	const int64 OldNumOfPCMData = PCMBufferInfo->PCMData.GetView().Num();
+	if (GetNumOfPlayedFrames_Internal() >= PCMBufferInfo->PCMNumOfFrames)
+	{
+		ReleaseMemory();
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released all PCM data (%lld)"), OldNumOfPCMData);
 		ExecuteResult(true);
-	});
+		return;
+	}
+
+	const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels;
+	float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
+	if (!NewPCMDataPtr)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate new memory to free already played audio data"));
+		ExecuteResult(false);
+		return;
+	}
+
+	// PCM data offset to retrieve remaining data for playback
+	const int64 PCMDataOffset = GetNumOfPlayedFrames_Internal() * NumChannels;
+
+	FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData() + PCMDataOffset, NewPCMDataSize * sizeof(float));
+	PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
+
+	// Decreasing the amount of PCM frames
+	PCMBufferInfo->PCMNumOfFrames -= GetNumOfPlayedFrames_Internal();
+
+	// Decreasing duration and increasing duration offset
+	{
+		const float DurationOffsetToReduce = GetPlaybackTime_Internal();
+		Duration -= DurationOffsetToReduce;
+		DurationOffset += DurationOffsetToReduce;
+	}
+
+	PlayedNumOfFrames = 0;
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully released %lld number of PCM data"), static_cast<int64>(OldNumOfPCMData - PCMBufferInfo->PCMData.GetView().Num()));
+	ExecuteResult(true);
 }
 
 void UImportedSoundWave::SetLooping(bool bLoop)
