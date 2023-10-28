@@ -7,7 +7,6 @@
 #include "Codecs/RAW_RuntimeCodec.h"
 
 #include "Async/Async.h"
-#include "UObject/GCObjectScopeGuard.h"
 #include "SampleBuffer.h"
 #include "UObject/WeakObjectPtrTemplates.h"
 
@@ -119,7 +118,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
 	{
 		TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), PCMData = MoveTemp(PCMData)]() mutable
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
@@ -138,7 +137,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 
 	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this)]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this)]()
 		{
 			if (WeakThis.IsValid())
 			{
