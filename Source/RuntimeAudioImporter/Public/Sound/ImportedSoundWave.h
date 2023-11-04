@@ -339,6 +339,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnGeneratePCMData OnGeneratePCMData;
 
+protected:
+	/** Data guard (mutex) for thread safety */
+	mutable FCriticalSection OnGeneratePCMData_DataGuard;
+	
+public:
 	/** Bind to this delegate to obtain audio data every time it is populated. Suitable for use in C++ */
 	FOnPopulateAudioDataNative OnPopulateAudioDataNative;
 
@@ -346,6 +351,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
 	FOnPopulateAudioData OnPopulateAudioData;
 
+protected:
+	/** Data guard (mutex) for thread safety */
+	mutable FCriticalSection OnPopulateAudioData_DataGuard;
+
+public:
 	/** Bind to this delegate to know when the audio data is populated. Same as OnPopulateAudioDataNative except it doesn't broadcast the audio data. Suitable for use in C++ */
 	FOnPopulateAudioStateNative OnPopulateAudioStateNative;
 
