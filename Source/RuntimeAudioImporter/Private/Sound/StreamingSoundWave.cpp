@@ -115,22 +115,31 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
 	ResetPlaybackFinish();
 
-	if (OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound())
+	const bool IsBound = [this]()
+	{
+		FScopeLock Lock(&OnPopulateAudioData_DataGuard);
+		return OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound();
+	}();
+	if (IsBound)
 	{
 		TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
+				FScopeLock Lock(&WeakThis->OnPopulateAudioData_DataGuard);
 				if (WeakThis->OnPopulateAudioDataNative.IsBound())
 				{
 					WeakThis->OnPopulateAudioDataNative.Broadcast(PCMData);
 				}
-
 				if (WeakThis->OnPopulateAudioData.IsBound())
 				{
 					WeakThis->OnPopulateAudioData.Broadcast(PCMData);
 				}
+			}
+			else
+			{
+				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioDataNative and OnPopulateAudioData delegates because the streaming sound wave has been destroyed"));
 			}
 		});
 	}
@@ -141,15 +150,8 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		{
 			if (WeakThis.IsValid())
 			{
-				if (WeakThis->OnPopulateAudioStateNative.IsBound())
-				{
-					WeakThis->OnPopulateAudioStateNative.Broadcast();
-				}
-
-				if (WeakThis->OnPopulateAudioState.IsBound())
-				{
-					WeakThis->OnPopulateAudioState.Broadcast();
-				}
+				WeakThis->OnPopulateAudioStateNative.Broadcast();
+				WeakThis->OnPopulateAudioState.Broadcast();
 			}
 			else
 			{

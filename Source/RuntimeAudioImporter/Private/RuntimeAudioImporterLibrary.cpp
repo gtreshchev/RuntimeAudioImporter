@@ -428,7 +428,7 @@ void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave*
 		{
 			ImportedSoundWave->RemoveFromRoot();
 			ExecuteResult(true, ImportedSoundWave);
-			ImportedSoundWave->OnPopulateAudioDataNative.Remove(Handle);
+			ImportedSoundWave->OnPopulateAudioStateNative.Remove(Handle);
 		});
 
 		ImportedSoundWave->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));

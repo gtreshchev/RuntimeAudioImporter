@@ -162,9 +162,9 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 									InSampleRate
 #else
 #if PLATFORM_IOS && !PLATFORM_TVOS
-			                       AudioCaptureIOS.GetSampleRate()
+			                       WeakThis->AudioCaptureIOS.GetSampleRate()
 #else
-			                       AudioCapture.GetSampleRate()
+			                       WeakThis->AudioCapture.GetSampleRate()
 #endif
 #endif
 			                     , NumOfChannels);
