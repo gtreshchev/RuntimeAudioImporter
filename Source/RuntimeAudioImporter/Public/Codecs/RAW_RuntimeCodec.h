@@ -25,37 +25,37 @@ public:
 		// Signed 8-bit integer
 		if (std::is_same<IntegralType, int8>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<int8>::min(), std::numeric_limits<int8>::max());
+			return TTuple<long long, long long>((std::numeric_limits<int8>::min)(), (std::numeric_limits<int8>::max)());
 		}
 
 		// Unsigned 8-bit integer
 		if (std::is_same<IntegralType, uint8>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max());
+			return TTuple<long long, long long>((std::numeric_limits<uint8>::min)(), (std::numeric_limits<uint8>::max)());
 		}
 
 		// Signed 16-bit integer
 		if (std::is_same<IntegralType, int16>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<int16>::min(), std::numeric_limits<int16>::max());
+			return TTuple<long long, long long>((std::numeric_limits<int16>::min)(), (std::numeric_limits<int16>::max)());
 		}
 
 		// Unsigned 16-bit integer
 		if (std::is_same<IntegralType, uint16>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<uint16>::min(), std::numeric_limits<uint16>::max());
+			return TTuple<long long, long long>((std::numeric_limits<uint16>::min)(), (std::numeric_limits<uint16>::max)());
 		}
 
 		// Signed 32-bit integer
 		if (std::is_same<IntegralType, int32>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<int32>::min(), std::numeric_limits<int32>::max());
+			return TTuple<long long, long long>((std::numeric_limits<int32>::min)(), (std::numeric_limits<int32>::max)());
 		}
 
 		// Unsigned 32-bit integer
 		if (std::is_same<IntegralType, uint32>::value)
 		{
-			return TTuple<long long, long long>(std::numeric_limits<uint32>::min(), std::numeric_limits<uint32>::max());
+			return TTuple<long long, long long>((std::numeric_limits<uint32>::min)(), (std::numeric_limits<uint32>::max)());
 		}
 
 		// Floating point 32-bit
