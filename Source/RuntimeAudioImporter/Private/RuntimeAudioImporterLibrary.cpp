@@ -374,9 +374,9 @@ bool URuntimeAudioImporterLibrary::TryToRetrieveSoundWaveData(USoundWave* SoundW
 
 void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave* SoundWave, TSubclassOf<UImportedSoundWave> ImportedSoundWaveClass, const FOnRegularToAudioImporterSoundWaveConvertResultNative& Result)
 {
-	if (!IsInAudioThread())
+	if (IsInGameThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([SoundWave, ImportedSoundWaveClass, Result]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [SoundWave, ImportedSoundWaveClass, Result]()
 		{
 			ConvertRegularToImportedSoundWave(SoundWave, ImportedSoundWaveClass, Result);
 		});
@@ -413,7 +413,7 @@ void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave*
 		return;
 	}
 
-	FAudioThread::RunCommandOnGameThread([ExecuteResult, ImportedSoundWaveClass, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+	AsyncTask(ENamedThreads::GameThread, [ExecuteResult, ImportedSoundWaveClass, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
 	{
 		UImportedSoundWave* ImportedSoundWave = NewObject<UImportedSoundWave>((UObject*)GetTransientPackage(), ImportedSoundWaveClass);
 		if (!ImportedSoundWave)

@@ -69,7 +69,7 @@ void UCapturableSoundWave::GetAvailableAudioInputDevices(const FOnGetAvailableAu
 
 	auto ExecuteResult = [Result](const TArray<FRuntimeAudioInputDeviceInfo>& AvailableDevices)
 	{
-		AsyncTask(ENamedThreads::GameThread, [Result, AvailableDevices]()
+		FAudioThread::RunCommandOnGameThread([Result, AvailableDevices]()
 		{
 			Result.ExecuteIfBound(AvailableDevices);
 		});
