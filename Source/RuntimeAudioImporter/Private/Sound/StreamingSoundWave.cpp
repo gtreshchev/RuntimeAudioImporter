@@ -2,7 +2,6 @@
 
 #include "Sound/StreamingSoundWave.h"
 
-#include "AudioThread.h"
 #include "RuntimeAudioImporterLibrary.h"
 #include "Codecs/RAW_RuntimeCodec.h"
 
@@ -203,9 +202,9 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 
 void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, const FOnPreAllocateAudioDataResultNative& Result)
 {
-	if (!IsInAudioThread())
+	if (IsInGameThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), NumOfBytesToPreAllocate, Result]()
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), NumOfBytesToPreAllocate, Result]()
 		{
 			if (WeakThis.IsValid())
 			{
@@ -255,9 +254,9 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 
 void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ERuntimeAudioFormat AudioFormat)
 {
-	if (!IsInAudioThread())
+	if (IsInGameThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), AudioData = MoveTemp(AudioData), AudioFormat]() mutable
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), AudioData = MoveTemp(AudioData), AudioFormat]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
@@ -284,9 +283,9 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 
 void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntimeRAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
 {
-	if (!IsInAudioThread())
+	if (IsInGameThread())
 	{
-		FAudioThread::RunCommandOnAudioThread([WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = TWeakObjectPtr<UStreamingSoundWave>(this), RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
