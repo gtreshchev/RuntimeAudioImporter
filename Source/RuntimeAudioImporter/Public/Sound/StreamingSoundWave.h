@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ImportedSoundWave.h"
+#include "Delegates/Delegate.h"
 #include "Containers/Queue.h"
 #include "StreamingSoundWave.generated.h"
 
@@ -85,8 +86,11 @@ public:
 	//~ End UImportedSoundWave Interface
 
 protected:
+	/** Audio task execution delegate */
+	DECLARE_DELEGATE(FAudioTaskDelegate);
+
 	/** Queue of audio data to be appended. Needed to maintain the consecutive order of audio data when appending */
-	TQueue<TDelegate<void()>> AppendAudioTaskQueue;
+	TQueue<FAudioTaskDelegate> AppendAudioTaskQueue;
 
 private:
 	/** Whether the initial audio data is filled in or not */

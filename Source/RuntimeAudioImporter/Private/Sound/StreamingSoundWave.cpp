@@ -170,7 +170,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	}
 
 	AppendAudioTaskQueue.Pop();
-	if (TDelegate<void()>* AppendAudioTask = AppendAudioTaskQueue.Peek())
+	if (FAudioTaskDelegate* AppendAudioTask = AppendAudioTaskQueue.Peek())
 	{
 		AppendAudioTask->ExecuteIfBound();
 	}
@@ -286,7 +286,7 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 		return;
 	}
 
-	TDelegate<void()> AppendAudioDataTask = TDelegate<void()>::CreateWeakLambda(this, [this, AudioData = MoveTemp(AudioData), AudioFormat]() mutable
+	FAudioTaskDelegate AppendAudioDataTask = FAudioTaskDelegate::CreateWeakLambda(this, [this, AudioData = MoveTemp(AudioData), AudioFormat]() mutable
 	{
 		FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
 		FDecodedAudioStruct DecodedAudioInfo;
@@ -406,7 +406,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 	}
 
-	TDelegate<void()> AppendAudioDataTask = TDelegate<void()>::CreateWeakLambda(this, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+	FAudioTaskDelegate AppendAudioDataTask = FAudioTaskDelegate::CreateWeakLambda(this, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
 	{
 		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 	});
