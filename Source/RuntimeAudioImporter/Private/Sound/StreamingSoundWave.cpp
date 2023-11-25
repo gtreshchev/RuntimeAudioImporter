@@ -114,49 +114,59 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 	Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
 	ResetPlaybackFinish();
 
-	const bool IsBound = [this]()
 	{
-		FScopeLock Lock(&OnPopulateAudioData_DataGuard);
-		return OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound();
-	}();
-	if (IsBound)
-	{
-		TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
-		AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
+		const bool IsBound = [this]()
 		{
-			if (WeakThis.IsValid())
+			FScopeLock Lock(&OnPopulateAudioData_DataGuard);
+			return OnPopulateAudioDataNative.IsBound() || OnPopulateAudioData.IsBound();
+		}();
+		if (IsBound)
+		{
+			TArray<float> PCMData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
+			AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this), PCMData = MoveTemp(PCMData)]() mutable
 			{
-				FScopeLock Lock(&WeakThis->OnPopulateAudioData_DataGuard);
-				if (WeakThis->OnPopulateAudioDataNative.IsBound())
+				if (WeakThis.IsValid())
 				{
-					WeakThis->OnPopulateAudioDataNative.Broadcast(PCMData);
+					FScopeLock Lock(&WeakThis->OnPopulateAudioData_DataGuard);
+					if (WeakThis->OnPopulateAudioDataNative.IsBound())
+					{
+						WeakThis->OnPopulateAudioDataNative.Broadcast(PCMData);
+					}
+					if (WeakThis->OnPopulateAudioData.IsBound())
+					{
+						WeakThis->OnPopulateAudioData.Broadcast(PCMData);
+					}
 				}
-				if (WeakThis->OnPopulateAudioData.IsBound())
+				else
 				{
-					WeakThis->OnPopulateAudioData.Broadcast(PCMData);
+					UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioDataNative and OnPopulateAudioData delegates because the streaming sound wave has been destroyed"));
 				}
-			}
-			else
-			{
-				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioDataNative and OnPopulateAudioData delegates because the streaming sound wave has been destroyed"));
-			}
-		});
+			});
+		}
 	}
 
-	if (OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound())
 	{
-		AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this)]()
+		const bool IsBound = [this]()
 		{
-			if (WeakThis.IsValid())
+			FScopeLock Lock(&OnPopulateAudioData_DataGuard);
+			return OnPopulateAudioStateNative.IsBound() || OnPopulateAudioState.IsBound();
+		}();
+		if (IsBound)
+		{
+			AsyncTask(ENamedThreads::GameThread, [WeakThis = MakeWeakObjectPtr(this)]()
 			{
-				WeakThis->OnPopulateAudioStateNative.Broadcast();
-				WeakThis->OnPopulateAudioState.Broadcast();
-			}
-			else
-			{
-				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioStateNative and OnPopulateAudioState delegates because the streaming sound wave has been destroyed"));
-			}
-		});
+				if (WeakThis.IsValid())
+				{
+					FScopeLock Lock(&WeakThis->OnPopulateAudioData_DataGuard);
+					WeakThis->OnPopulateAudioStateNative.Broadcast();
+					WeakThis->OnPopulateAudioState.Broadcast();
+				}
+				else
+				{
+					UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Unable to broadcast OnPopulateAudioStateNative and OnPopulateAudioState delegates because the streaming sound wave has been destroyed"));
+				}
+			});
+		}
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
