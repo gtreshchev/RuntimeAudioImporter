@@ -169,6 +169,12 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		}
 	}
 
+	AppendAudioTaskQueue.Pop();
+	if (TDelegate<void()>* AppendAudioTask = AppendAudioTaskQueue.Peek())
+	{
+		AppendAudioTask->ExecuteIfBound();
+	}
+
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
 
@@ -279,16 +285,28 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 		});
 		return;
 	}
-	
-	FEncodedAudioStruct EncodedAudioInfo(AudioData, AudioFormat);
-	FDecodedAudioStruct DecodedAudioInfo;
-	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
-	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
-		return;
-	}
 
-	PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+	TDelegate<void()> AppendAudioDataTask = TDelegate<void()>::CreateWeakLambda(this, [this, AudioData = MoveTemp(AudioData), AudioFormat]() mutable
+	{
+		FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
+		FDecodedAudioStruct DecodedAudioInfo;
+		if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
+			return;
+		}
+
+		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+	});
+
+	if (!AppendAudioTaskQueue.IsEmpty())
+	{
+		AppendAudioTaskQueue.Enqueue(AppendAudioDataTask);
+	}
+	else
+	{
+		AppendAudioDataTask.ExecuteIfBound();
+	}
 }
 
 void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntimeRAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
@@ -388,7 +406,19 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 	}
 
-	PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+	TDelegate<void()> AppendAudioDataTask = TDelegate<void()>::CreateWeakLambda(this, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+	{
+		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+	});
+
+	if (!AppendAudioTaskQueue.IsEmpty())
+	{
+		AppendAudioTaskQueue.Enqueue(AppendAudioDataTask);
+	}
+	else
+	{
+		AppendAudioDataTask.ExecuteIfBound();
+	}
 }
 
 void UStreamingSoundWave::SetStopSoundOnPlaybackFinish(bool bStop)
