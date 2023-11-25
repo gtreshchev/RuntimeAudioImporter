@@ -93,5 +93,7 @@ private:
 	/** Audio capture instance specific to iOS. Implemented manually due to the engine not properly supporting iOS audio capture at the moment */
 	Audio::FAudioCaptureIOS AudioCaptureIOS;
 #endif
+	/** The last device index used for capture */
+	int32 LastDeviceIndex = -1;
 #endif
 };
