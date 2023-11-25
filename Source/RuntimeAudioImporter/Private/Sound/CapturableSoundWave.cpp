@@ -124,6 +124,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 	
 	Audio::FAudioCaptureDeviceParams Params = Audio::FAudioCaptureDeviceParams();
 	Params.DeviceIndex = DeviceId;
+	LastDeviceIndex = DeviceId;
 
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 	Audio::FOnAudioCaptureFunction
@@ -233,6 +234,17 @@ void UCapturableSoundWave::StopCapture()
 bool UCapturableSoundWave::ToggleMute(bool bMute)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
+#if UE_VERSION_NEWER_THAN(5, 2, 9)
+	if (bMute)
+	{
+		StopCapture();
+		return true;
+	}
+	else
+	{
+		return StartCapture(LastDeviceIndex);
+	}
+#else
 #if PLATFORM_IOS && !PLATFORM_TVOS
 	if (!AudioCaptureIOS.IsStreamOpen())
 #else
@@ -288,6 +300,7 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully unmuted the stream for sound wave %s"), *GetName());
 		return true;
 	}
+#endif
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to toggle mute as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
 	return false;
