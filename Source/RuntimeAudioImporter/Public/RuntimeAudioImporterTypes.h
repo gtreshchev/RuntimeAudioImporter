@@ -2,12 +2,19 @@
 
 #pragma once
 
+#include "Misc/Build.h"
+
+// Whether to use debug scope lock
+#define WITH_DEBUG_SCOPE_LOCK UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT || WITH_EDITOR
+
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #include "AudioCaptureDeviceInterface.h"
 #endif
+#include "RuntimeAudioImporterDefines.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
 #include "Misc/EngineVersionComparison.h"
+#include "Misc/ScopeLock.h"
 
 #if UE_VERSION_OLDER_THAN(4, 26, 0)
 #include "DSP/BufferVectorOperations.h"
@@ -20,6 +27,26 @@ namespace Audio
 {
 	using FAlignedFloatBuffer = Audio::AlignedFloatBuffer;
 }
+#endif
+
+// This might be useful for scope lock debugging
+#if WITH_DEBUG_SCOPE_LOCK
+class FRAIScopeLock : public FScopeLock
+{
+public:
+	~FRAIScopeLock()
+	{
+		UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("Debug scope lock destroyed"));
+	}
+
+	FRAIScopeLock(FCriticalSection* InCriticalSection)
+		: FScopeLock(InCriticalSection)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("Debug scope lock created"));
+	}
+};
+#else
+using FRAIScopeLock = FScopeLock;
 #endif
 
 /** Possible audio importing results */

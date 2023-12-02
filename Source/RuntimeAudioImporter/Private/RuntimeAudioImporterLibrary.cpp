@@ -691,7 +691,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToBuffer(TWeakObjectPtr<UImpor
 
 	FDecodedAudioStruct DecodedAudioInfo;
 	{
-		FScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
+		FRAIScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
 
 		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
 		{
@@ -842,7 +842,7 @@ void URuntimeAudioImporterLibrary::ExportSoundWaveToRAWBuffer(TWeakObjectPtr<UIm
 			return;
 		}
 
-		FScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
+		FRAIScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
 
 		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
 		{
