@@ -12,24 +12,7 @@
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	PlaybackFinishedBroadcast = true;
-
-	// No need to stop the sound after the end of streaming sound wave playback, assuming the PCM data can be filled after that
-	// (except if this is overridden in SetStopSoundOnPlaybackFinish)
-	bStopSoundOnPlaybackFinish = false;
-
-	// No need to loop streaming sound wave by default
-	bLooping = false;
-
-	// It is necessary to populate the sample rate and the number of channels to make the streaming wave playable even if there is no audio data
-	// (since the audio data may be filled in after the sound wave starts playing)
-	{
-		SetSampleRate(44100);
-		NumChannels = 2;
-	}
-
-	bFilledInitialAudioData = false;
-	NumOfPreAllocatedByteData = 0;
+	ReleaseMemory();
 }
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
@@ -182,6 +165,26 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 void UStreamingSoundWave::ReleaseMemory()
 {
 	Super::ReleaseMemory();
+
+	PlaybackFinishedBroadcast = true;
+
+	// No need to stop the sound after the end of streaming sound wave playback, assuming the PCM data can be filled after that
+	// (except if this is overridden in SetStopSoundOnPlaybackFinish)
+	bStopSoundOnPlaybackFinish = false;
+
+	// No need to loop streaming sound wave by default
+	bLooping = false;
+
+	// It is necessary to populate the sample rate and the number of channels to make the streaming wave playable even if there is no audio data
+	// (since the audio data may be filled in after the sound wave starts playing)
+	{
+		SetSampleRate(44100);
+		NumChannels = 2;
+	}
+
+	bFilledInitialAudioData = false;
+	NumOfPreAllocatedByteData = 0;
+	bFilledInitialAudioData = false;
 	NumOfPreAllocatedByteData = 0;
 }
 
