@@ -131,7 +131,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #else
 	Audio::FOnCaptureFunction
 #endif
-	OnCapture = [WeakThis = TWeakObjectPtr<UCapturableSoundWave>(this)](const void* PCMData, int32 NumFrames, int32 NumOfChannels,
+	OnCapture = [WeakThis = MakeWeakObjectPtr(this)](const void* PCMData, int32 NumFrames, int32 NumOfChannels,
 #if UE_VERSION_NEWER_THAN(4, 25, 0)
 	                   int32 InSampleRate,
 #endif
