@@ -11,12 +11,24 @@
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+  , DurationOffset(0)
   , PlaybackFinishedBroadcast(false)
+  , PlayedNumOfFrames(0)
   , PCMBufferInfo(MakeUnique<FPCMStruct>())
   , bStopSoundOnPlaybackFinish(true)
 {
 	ensure(PCMBufferInfo);
-	ReleaseMemory();
+
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+	SetImportedSampleRate(0);
+#endif
+	SetSampleRate(0);
+	NumChannels = 0;
+	Duration = 0;
+	bProcedural = true;
+	DecompressionType = EDecompressionType::DTYPE_Procedural;
+	SoundGroup = ESoundGroup::SOUNDGROUP_Default;
+	SetPrecacheState(ESoundWavePrecacheState::Done);
 }
 
 UImportedSoundWave* UImportedSoundWave::CreateImportedSoundWave()
@@ -376,20 +388,8 @@ void UImportedSoundWave::ReleaseMemory()
 {
 	FRAIScopeLock Lock(&DataGuard);
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
-	SetImportedSampleRate(0);
-#endif
-	bProcedural = true;
-	DecompressionType = EDecompressionType::DTYPE_Procedural;
-	SoundGroup = ESoundGroup::SOUNDGROUP_Default;
-	SetPrecacheState(ESoundWavePrecacheState::Done);
 	PCMBufferInfo->PCMData.Empty();
 	PCMBufferInfo->PCMNumOfFrames = 0;
-	Duration = 0;
-	SetSampleRate(0);
-	NumChannels = 0;
-	DurationOffset = 0;
-	PlayedNumOfFrames = 0;
 }
 
 void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResult& Result)
