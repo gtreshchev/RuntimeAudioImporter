@@ -82,7 +82,7 @@ enum class ERuntimeAudioFormat : uint8
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
 	Bink UMETA(DisplayName = "bink"),
-	Invalid UMETA(DisplayName = "invalid (not defined format, internal use only)", Hidden)
+	Invalid UMETA(DisplayName = "invalid", Hidden)
 };
 
 /** Possible RAW (uncompressed, PCM) audio formats */
@@ -224,6 +224,7 @@ struct FSoundWaveBasicStruct
 		: NumOfChannels(0)
 	  , SampleRate(0)
 	  , Duration(0)
+	  , AudioFormat(ERuntimeAudioFormat::Invalid)
 	{
 	}
 
@@ -235,6 +236,9 @@ struct FSoundWaveBasicStruct
 
 	/** Sound wave duration, sec */
 	float Duration;
+
+	/** Audio format if the original audio data was encoded */
+	ERuntimeAudioFormat AudioFormat;
 
 	/**
 	 * Whether the sound wave data appear to be valid or not

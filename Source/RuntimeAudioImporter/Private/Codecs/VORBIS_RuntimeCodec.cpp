@@ -279,6 +279,7 @@ bool FVORBIS_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudio
 		DecodedData.SoundWaveBasicInfo.Duration = SoundQualityInfo.Duration;
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = SoundQualityInfo.NumChannels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = SoundQualityInfo.SampleRate;
+		DecodedData.SoundWaveBasicInfo.AudioFormat = GetAudioFormat();
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully decoded VORBIS audio data to uncompressed audio format.\nDecoded audio info: %s"), *DecodedData.ToString());

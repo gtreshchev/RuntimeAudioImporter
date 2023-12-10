@@ -424,7 +424,7 @@ void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave*
 		}
 
 		ImportedSoundWave->AddToRoot();
-		FDelegateHandle Handle = ImportedSoundWave->OnPopulateAudioStateNative.AddLambda([&Handle, ExecuteResult, ImportedSoundWave]()
+		FDelegateHandle Handle = ImportedSoundWave->OnPopulateAudioStateNative.AddLambda([Handle, ExecuteResult, ImportedSoundWave]()
 		{
 			ImportedSoundWave->RemoveFromRoot();
 			ExecuteResult(true, ImportedSoundWave);

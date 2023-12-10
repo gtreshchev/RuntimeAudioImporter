@@ -97,6 +97,7 @@ bool FMP3_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(PCMFrameCount) / MP3_Decoder.sampleRate;
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = MP3_Decoder.channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = MP3_Decoder.sampleRate;
+		DecodedData.SoundWaveBasicInfo.AudioFormat = GetAudioFormat();
 	}
 
 	drmp3_uninit(&MP3_Decoder);
