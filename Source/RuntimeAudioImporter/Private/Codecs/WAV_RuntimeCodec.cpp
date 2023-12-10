@@ -203,6 +203,7 @@ bool FWAV_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(WAV_Decoder.totalPCMFrameCount) / WAV_Decoder.sampleRate;
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = WAV_Decoder.channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = WAV_Decoder.sampleRate;
+		DecodedData.SoundWaveBasicInfo.AudioFormat = GetAudioFormat();
 	}
 
 	drwav_uninit(&WAV_Decoder);

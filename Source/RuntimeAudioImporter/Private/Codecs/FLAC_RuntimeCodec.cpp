@@ -93,6 +93,7 @@ bool FFLAC_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 		DecodedData.SoundWaveBasicInfo.Duration = static_cast<float>(FLAC_Decoder->totalPCMFrameCount) / FLAC_Decoder->sampleRate;
 		DecodedData.SoundWaveBasicInfo.NumOfChannels = FLAC_Decoder->channels;
 		DecodedData.SoundWaveBasicInfo.SampleRate = FLAC_Decoder->sampleRate;
+		DecodedData.SoundWaveBasicInfo.AudioFormat = GetAudioFormat();
 	}
 
 	drflac_close(FLAC_Decoder);

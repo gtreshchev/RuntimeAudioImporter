@@ -379,6 +379,13 @@ public:
 	 */
 	const FPCMStruct& GetPCMBuffer() const;
 
+	/**
+	 * Get audio format of the audio imported into the sound wave
+	 * @return Audio format
+	 */
+	UFUNCTION(BlueprintPure, Category = "Imported Sound Wave|Info")
+	ERuntimeAudioFormat GetAudioFormat() const;
+
 	/** Data guard (mutex) for thread safety */
 	mutable FCriticalSection DataGuard;
 
@@ -397,4 +404,7 @@ protected:
 
 	/** Whether to stop the sound at the end of playback or not. Sound wave will not be garbage collected if playback was completed while this parameter is set to false */
 	bool bStopSoundOnPlaybackFinish;
+
+	/** Audio format of the audio imported into the sound wave */
+	ERuntimeAudioFormat ImportedAudioFormat;
 };

@@ -16,6 +16,7 @@ UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializ
   , PlayedNumOfFrames(0)
   , PCMBufferInfo(MakeUnique<FPCMStruct>())
   , bStopSoundOnPlaybackFinish(true)
+  , ImportedAudioFormat(ERuntimeAudioFormat::Invalid)
 {
 	ensure(PCMBufferInfo);
 
@@ -276,6 +277,7 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 #endif
 	SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
 	NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
+	ImportedAudioFormat = DecodedAudioInfo.SoundWaveBasicInfo.AudioFormat;
 
 	PCMBufferInfo->PCMData = MoveTemp(DecodedAudioInfo.PCMInfo.PCMData);
 	PCMBufferInfo->PCMNumOfFrames = DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
@@ -709,9 +711,9 @@ bool UImportedSoundWave::GetAudioHeaderInfo(FRuntimeAudioHeaderInfo& HeaderInfo)
 
 	{
 		HeaderInfo.Duration = GetDurationConst_Internal();
-		HeaderInfo.AudioFormat = ERuntimeAudioFormat::Auto;
+		HeaderInfo.AudioFormat = GetAudioFormat();
 		HeaderInfo.SampleRate = GetSampleRate();
-		HeaderInfo.NumOfChannels = NumChannels;
+		HeaderInfo.NumOfChannels = GetNumOfChannels();
 		HeaderInfo.PCMDataSize = PCMBufferInfo->PCMData.GetView().Num();
 	}
 	
@@ -732,4 +734,9 @@ TArray<float> UImportedSoundWave::GetPCMBufferCopy()
 const FPCMStruct& UImportedSoundWave::GetPCMBuffer() const
 {
 	return *PCMBufferInfo.Get();
+}
+
+ERuntimeAudioFormat UImportedSoundWave::GetAudioFormat() const
+{
+	return ImportedAudioFormat;
 }
