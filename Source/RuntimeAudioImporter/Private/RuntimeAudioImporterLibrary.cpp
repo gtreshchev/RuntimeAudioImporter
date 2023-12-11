@@ -16,6 +16,7 @@
 #include "Codecs/RuntimeCodecFactory.h"
 #include "Engine/Engine.h"
 #include "UObject/WeakObjectPtrTemplates.h"
+#include "Templates/SharedPointer.h"
 
 #include "Interfaces/IAudioFormat.h"
 
@@ -424,11 +425,12 @@ void URuntimeAudioImporterLibrary::ConvertRegularToImportedSoundWave(USoundWave*
 		}
 
 		ImportedSoundWave->AddToRoot();
-		FDelegateHandle Handle = ImportedSoundWave->OnPopulateAudioStateNative.AddLambda([Handle, ExecuteResult, ImportedSoundWave]()
+		TSharedPtr<FDelegateHandle> Handle = MakeShareable<FDelegateHandle>(new FDelegateHandle());
+		*Handle = ImportedSoundWave->OnPopulateAudioStateNative.AddLambda([Handle, ExecuteResult, ImportedSoundWave]()
 		{
 			ImportedSoundWave->RemoveFromRoot();
 			ExecuteResult(true, ImportedSoundWave);
-			ImportedSoundWave->OnPopulateAudioStateNative.Remove(Handle);
+			ImportedSoundWave->OnPopulateAudioStateNative.Remove(*Handle);
 		});
 
 		ImportedSoundWave->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
