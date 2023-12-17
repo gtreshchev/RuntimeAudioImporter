@@ -1,6 +1,6 @@
 /*
 WAV audio loader and writer. Choice of public domain or MIT-0. See license statements at the end of this file.
-dr_wav - v0.13.10 - 2023-05-29
+dr_wav - v0.13.14 - 2023-12-02
 
 David Reid - mackron@gmail.com
 
@@ -147,7 +147,7 @@ extern "C" {
 
 #define DRWAV_VERSION_MAJOR     0
 #define DRWAV_VERSION_MINOR     13
-#define DRWAV_VERSION_REVISION  10
+#define DRWAV_VERSION_REVISION  14
 #define DRWAV_VERSION_STRING    DRWAV_XSTRINGIFY(DRWAV_VERSION_MAJOR) "." DRWAV_XSTRINGIFY(DRWAV_VERSION_MINOR) "." DRWAV_XSTRINGIFY(DRWAV_VERSION_REVISION)
 
 #include <stddef.h> /* For size_t. */
@@ -934,6 +934,7 @@ typedef struct
     struct
     {
         drwav_bool8 isLE;   /* Will be set to true if the audio data is little-endian encoded. */
+        drwav_bool8 isUnsigned; /* Only used for 8-bit samples. When set to true, will be treated as unsigned. */
     } aiff;
 } drwav;
 
@@ -1434,8 +1435,8 @@ DRWAV_API drwav_bool32 drwav_fourcc_equal(const drwav_uint8* a, const char* b);
 /* End SIZE_MAX */
 
 /* Weird bit manipulation is for C89 compatibility (no direct support for 64-bit integers). */
-#define DRWAV_INT64_MIN   ((drwav_int64)0x80000000  << 32)
-#define DRWAV_INT64_MAX ((((drwav_int64)0x7FFFFFFF) << 32) | 0xFFFFFFFF)
+#define DRWAV_INT64_MIN ((drwav_int64) ((drwav_uint64)0x80000000 << 32))
+#define DRWAV_INT64_MAX ((drwav_int64)(((drwav_uint64)0x7FFFFFFF << 32) | 0xFFFFFFFF))
 
 #if defined(_MSC_VER) && _MSC_VER >= 1400
     #define DRWAV_HAS_BYTESWAP16_INTRINSIC
@@ -1786,7 +1787,7 @@ DRWAV_PRIVATE drwav_int64 drwav_aiff_extented_to_s64(const drwav_uint8* data)
     exponent -= 16383;
 
     if (exponent > 63) {
-        return sign ? DRWAV_INT64_MIN : DRWAV_INT64_MAX;    /* Too bit for a 64-bit integer. */
+        return sign ? DRWAV_INT64_MIN : DRWAV_INT64_MAX;    /* Too big for a 64-bit integer. */
     } else if (exponent < 1) {
         return 0;  /* Number is less than 1, so rounds down to 0. */
     }
@@ -1932,13 +1933,7 @@ DRWAV_PRIVATE drwav_result drwav__read_chunk_header(drwav_read_proc onRead, void
         }
 
         pHeaderOut->sizeInBytes = drwav_bytes_to_u32_ex(sizeInBytes, container);
-
-        /* There is padding on standard WAV files, but from what I can tell, not with AIFF. */
-        if (container == drwav_container_aiff) {
-            pHeaderOut->paddingSize = 0;
-        } else {
-            pHeaderOut->paddingSize = drwav__chunk_padding_size_riff(pHeaderOut->sizeInBytes);
-        }
+        pHeaderOut->paddingSize = drwav__chunk_padding_size_riff(pHeaderOut->sizeInBytes);
 
         *pRunningBytesReadOut += 8;
     } else if (container == drwav_container_w64) {
@@ -3026,6 +3021,7 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
     drwav_bool8 foundChunk_fmt  = DRWAV_FALSE;
     drwav_bool8 foundChunk_data = DRWAV_FALSE;
     drwav_bool8 isAIFCFormType = DRWAV_FALSE;   /* Only used with AIFF. */
+    drwav_uint64 aiffFrameCount = 0;
 
     cursor = 0;
     sequential = (flags & DRWAV_SEQUENTIAL) != 0;
@@ -3407,7 +3403,7 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
             drwav_uint8 commData[24];
             drwav_uint32 commDataBytesToRead;
             drwav_uint16 channels;
-            /*drwav_uint32 frameCount;*/
+            drwav_uint32 frameCount;
             drwav_uint16 sampleSizeInBits;
             drwav_int64  sampleRate;
             drwav_uint16 compressionFormat;
@@ -3432,7 +3428,7 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
 
             
             channels         = drwav_bytes_to_u16_ex     (commData + 0, pWav->container);
-            /*frameCount       = drwav_bytes_to_u32_ex     (commData + 2, pWav->container);*/
+            frameCount       = drwav_bytes_to_u32_ex     (commData + 2, pWav->container);
             sampleSizeInBits = drwav_bytes_to_u16_ex     (commData + 6, pWav->container);
             sampleRate       = drwav_aiff_extented_to_s64(commData + 8);
 
@@ -3444,15 +3440,22 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
                 const drwav_uint8* type = commData + 18;
 
                 if (drwav_fourcc_equal(type, "NONE")) {
-                    compressionFormat = DR_WAVE_FORMAT_PCM; /* PCM, bit-endian. */
+                    compressionFormat = DR_WAVE_FORMAT_PCM; /* PCM, big-endian. */
+                } else if (drwav_fourcc_equal(type, "raw ")) {
+                    compressionFormat = DR_WAVE_FORMAT_PCM;
+
+                    /* In my testing, it looks like when the "raw " compression type is used, 8-bit samples should be considered unsigned. */
+                    if (sampleSizeInBits == 8) {
+                        pWav->aiff.isUnsigned = DRWAV_TRUE;
+                    }
                 } else if (drwav_fourcc_equal(type, "sowt")) {
                     compressionFormat = DR_WAVE_FORMAT_PCM; /* PCM, little-endian. */
                     pWav->aiff.isLE = DRWAV_TRUE;
                 } else if (drwav_fourcc_equal(type, "fl32") || drwav_fourcc_equal(type, "fl64") || drwav_fourcc_equal(type, "FL32") || drwav_fourcc_equal(type, "FL64")) {
                     compressionFormat = DR_WAVE_FORMAT_IEEE_FLOAT;
-                } else if (drwav_fourcc_equal(type, "alaw")) {
+                } else if (drwav_fourcc_equal(type, "alaw") || drwav_fourcc_equal(type, "ALAW")) {
                     compressionFormat = DR_WAVE_FORMAT_ALAW;
-                } else if (drwav_fourcc_equal(type, "ulaw")) {
+                } else if (drwav_fourcc_equal(type, "ulaw") || drwav_fourcc_equal(type, "ULAW")) {
                     compressionFormat = DR_WAVE_FORMAT_MULAW;
                 } else if (drwav_fourcc_equal(type, "ima4")) {
                     compressionFormat = DR_WAVE_FORMAT_DVI_ADPCM;
@@ -3470,6 +3473,9 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
                 compressionFormat = DR_WAVE_FORMAT_PCM; /* It's a standard AIFF form which is always compressed. */
             }
 
+            /* With AIFF we want to use the explicitly defined frame count rather than deriving it from the size of the chunk. */
+            aiffFrameCount = frameCount;
+
             /* We should now have enough information to fill out our fmt structure. */
             fmt.formatTag      = compressionFormat;
             fmt.channels       = channels;
@@ -3481,6 +3487,20 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
             if (fmt.blockAlign == 0 && compressionFormat == DR_WAVE_FORMAT_DVI_ADPCM) {
                 fmt.blockAlign = 34 * fmt.channels;
             }
+
+            /*
+            Weird one. I've seen some alaw and ulaw encoded files that for some reason set the bits per sample to 16 when
+            it should be 8. To get this working I need to explicitly check for this and change it.
+            */
+            if (compressionFormat == DR_WAVE_FORMAT_ALAW || compressionFormat == DR_WAVE_FORMAT_MULAW) {
+                if (fmt.bitsPerSample > 8) {
+                    fmt.bitsPerSample = 8;
+                    fmt.blockAlign = fmt.channels;
+                }
+            }
+
+            /* In AIFF, samples are padded to 8 byte boundaries. We need to round up our bits per sample here. */
+            fmt.bitsPerSample += (fmt.bitsPerSample & 7);
             
 
             /* If the form type is AIFC there will be some additional data in the chunk. We need to seek past it. */
@@ -3534,10 +3554,7 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
 
         /* Getting here means it's not a chunk that we care about internally, but might need to be handled as metadata by the caller. */
         if (isProcessingMetadata) {
-            drwav_uint64 metadataBytesRead;
-            
-            metadataBytesRead = drwav__metadata_process_chunk(&metadataParser, &header, drwav_metadata_type_all_including_unknown);
-            DRWAV_ASSERT(metadataBytesRead <= header.sizeInBytes);
+            drwav__metadata_process_chunk(&metadataParser, &header, drwav_metadata_type_all_including_unknown);
 
             /* Go back to the start of the chunk so we can normalize the position of the cursor. */
             if (drwav__seek_from_start(pWav->onSeek, cursor, pWav->pUserData) == DRWAV_FALSE) {
@@ -3663,6 +3680,8 @@ DRWAV_PRIVATE drwav_bool32 drwav_init__internal(drwav* pWav, drwav_chunk_proc on
 
     if (sampleCountFromFactChunk != 0) {
         pWav->totalPCMFrameCount = sampleCountFromFactChunk;
+    } else if (aiffFrameCount != 0) {
+        pWav->totalPCMFrameCount = aiffFrameCount;
     } else {
         drwav_uint32 bytesPerFrame = drwav_get_bytes_per_pcm_frame(pWav);
         if (bytesPerFrame == 0) {
@@ -5675,6 +5694,7 @@ DRWAV_API drwav_uint64 drwav_read_pcm_frames_le(drwav* pWav, drwav_uint64 frames
 {
     drwav_uint32 bytesPerFrame;
     drwav_uint64 bytesToRead;   /* Intentionally uint64 instead of size_t so we can do a check that we're not reading too much on 32-bit builds. */
+    drwav_uint64 framesRemainingInFile;
 
     if (pWav == NULL || framesToRead == 0) {
         return 0;
@@ -5683,6 +5703,11 @@ DRWAV_API drwav_uint64 drwav_read_pcm_frames_le(drwav* pWav, drwav_uint64 frames
     /* Cannot use this function for compressed formats. */
     if (drwav__is_compressed_format_tag(pWav->translatedFormatTag)) {
         return 0;
+    }
+
+    framesRemainingInFile = pWav->totalPCMFrameCount - pWav->readCursorInPCMFrames;
+    if (framesToRead > framesRemainingInFile) {
+        framesToRead = framesRemainingInFile;
     }
 
     bytesPerFrame = drwav_get_bytes_per_pcm_frame(pWav);
@@ -5725,6 +5750,8 @@ DRWAV_API drwav_uint64 drwav_read_pcm_frames_be(drwav* pWav, drwav_uint64 frames
 
 DRWAV_API drwav_uint64 drwav_read_pcm_frames(drwav* pWav, drwav_uint64 framesToRead, void* pBufferOut)
 {
+    drwav_uint64 framesRead = 0;
+
     if (drwav_is_container_be(pWav->container)) {
         /*
         Special case for AIFF. AIFF is a big-endian encoded format, but it supports a format that is
@@ -5733,19 +5760,40 @@ DRWAV_API drwav_uint64 drwav_read_pcm_frames(drwav* pWav, drwav_uint64 framesToR
         */
         if (pWav->container != drwav_container_aiff || pWav->aiff.isLE == DRWAV_FALSE) {
             if (drwav__is_little_endian()) {
-                return drwav_read_pcm_frames_be(pWav, framesToRead, pBufferOut);
+                framesRead = drwav_read_pcm_frames_be(pWav, framesToRead, pBufferOut);
             } else {
-                return drwav_read_pcm_frames_le(pWav, framesToRead, pBufferOut);
+                framesRead = drwav_read_pcm_frames_le(pWav, framesToRead, pBufferOut);
             }
-        }   
+
+            goto post_process;
+        }
     }
 
     /* Getting here means the data should be considered little-endian. */
     if (drwav__is_little_endian()) {
-        return drwav_read_pcm_frames_le(pWav, framesToRead, pBufferOut);
+        framesRead = drwav_read_pcm_frames_le(pWav, framesToRead, pBufferOut);
     } else {
-        return drwav_read_pcm_frames_be(pWav, framesToRead, pBufferOut);
+        framesRead = drwav_read_pcm_frames_be(pWav, framesToRead, pBufferOut);
     }
+
+    /*
+    Here is where we check if we need to do a signed/unsigned conversion for AIFF. The reason we need to do this
+    is because dr_wav always assumes an 8-bit sample is unsigned, whereas AIFF can have signed 8-bit formats.
+    */
+    post_process:
+    {
+        if (pWav->container == drwav_container_aiff && pWav->bitsPerSample == 8 && pWav->aiff.isUnsigned == DRWAV_FALSE) {
+            if (pBufferOut != NULL) {
+                drwav_uint64 iSample;
+
+                for (iSample = 0; iSample < framesRead * pWav->channels; iSample += 1) {
+                    ((drwav_uint8*)pBufferOut)[iSample] += 128;
+                }
+            }
+        }
+    }
+
+    return framesRead;
 }
 
 
@@ -5856,7 +5904,7 @@ DRWAV_API drwav_bool32 drwav_seek_to_pcm_frame(drwav* pWav, drwav_uint64 targetF
         }
 
         totalSizeInBytes = pWav->totalPCMFrameCount * bytesPerFrame;
-        DRWAV_ASSERT(totalSizeInBytes >= pWav->bytesRemaining);
+        /*DRWAV_ASSERT(totalSizeInBytes >= pWav->bytesRemaining);*/
 
         currentBytePos = totalSizeInBytes - pWav->bytesRemaining;
         targetBytePos  = targetFrameIndex * bytesPerFrame;
@@ -6645,6 +6693,23 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_s16__alaw(drwav* pWav, drwav_ui
 
         drwav_alaw_to_s16(pBufferOut, sampleData, (size_t)samplesRead);
 
+        /*
+        For some reason libsndfile seems to be returning samples of the opposite sign for a-law, but only
+        with AIFF files. For WAV files it seems to be the same as dr_wav. This is resulting in dr_wav's
+        automated tests failing. I'm not sure which is correct, but will assume dr_wav. If we're enforcing
+        libsndfile compatibility we'll swap the signs here.
+        */
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
+
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
         totalFramesRead += framesRead;
@@ -6694,6 +6759,21 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_s16__mulaw(drwav* pWav, drwav_u
         }
 
         drwav_mulaw_to_s16(pBufferOut, sampleData, (size_t)samplesRead);
+
+        /*
+        Just like with alaw, for some reason the signs between libsndfile and dr_wav are opposite. We just need to
+        swap the sign if we're compiling with libsndfile compatiblity so our automated tests don't fail.
+        */
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
 
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
@@ -6845,7 +6925,6 @@ DRWAV_API void drwav_mulaw_to_s16(drwav_int16* pOut, const drwav_uint8* pIn, siz
         pOut[i] = drwav__mulaw_to_s16(pIn[i]);
     }
 }
-
 
 
 DRWAV_PRIVATE void drwav__pcm_to_f32(float* pOut, const drwav_uint8* pIn, size_t sampleCount, unsigned int bytesPerSample)
@@ -7081,6 +7160,17 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_f32__alaw(drwav* pWav, drwav_ui
 
         drwav_alaw_to_f32(pBufferOut, sampleData, (size_t)samplesRead);
 
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
+
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
         totalFramesRead += framesRead;
@@ -7126,6 +7216,17 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_f32__mulaw(drwav* pWav, drwav_u
         }
 
         drwav_mulaw_to_f32(pBufferOut, sampleData, (size_t)samplesRead);
+
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
 
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
@@ -7538,6 +7639,17 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_s32__alaw(drwav* pWav, drwav_ui
 
         drwav_alaw_to_s32(pBufferOut, sampleData, (size_t)samplesRead);
 
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
+
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
         totalFramesRead += framesRead;
@@ -7583,6 +7695,17 @@ DRWAV_PRIVATE drwav_uint64 drwav_read_pcm_frames_s32__mulaw(drwav* pWav, drwav_u
         }
 
         drwav_mulaw_to_s32(pBufferOut, sampleData, (size_t)samplesRead);
+
+        #ifdef DR_WAV_LIBSNDFILE_COMPAT
+        {
+            if (pWav->container == drwav_container_aiff) {
+                drwav_uint64 iSample;
+                for (iSample = 0; iSample < samplesRead; iSample += 1) {
+                    pBufferOut[iSample] = -pBufferOut[iSample];
+                }
+            }
+        }
+        #endif
 
         pBufferOut      += samplesRead;
         framesToRead    -= framesRead;
@@ -8221,10 +8344,22 @@ DRWAV_API drwav_bool32 drwav_fourcc_equal(const drwav_uint8* a, const char* b)
 /*
 REVISION HISTORY
 ================
+v0.13.14 - 2023-12-02
+  - Fix a warning about an unused variable.
+
+v0.13.13 - 2023-11-02
+  - Fix a warning when compiling with Clang.
+
+v0.13.12 - 2023-08-07
+  - Fix a possible crash in drwav_read_pcm_frames().
+
+v0.13.11 - 2023-07-07
+  - AIFF compatibility improvements.
+
 v0.13.10 - 2023-05-29
   - Fix a bug where drwav_init_with_metadata() does not decode any frames after initializtion.
 
-v0.13.9 - 2022-05-22
+v0.13.9 - 2023-05-22
   - Add support for AIFF decoding (writing and metadata not supported).
   - Add support for RIFX decoding (writing and metadata not supported).
   - Fix a bug where metadata is not processed if it's located before the "fmt " chunk.
