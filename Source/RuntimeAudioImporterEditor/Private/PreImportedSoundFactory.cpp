@@ -4,6 +4,9 @@
 #include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
 #include "RuntimeAudioImporterLibrary.h"
+#include "RuntimeAudioUtilities.h"
+#include "Codecs/BaseRuntimeCodec.h"
+#include "Codecs/RuntimeCodecFactory.h"
 #include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "PreImportedSoundFactory"
@@ -31,39 +34,53 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString FileExtension{FPaths::GetExtension(Filename).ToLower()};
-	return FileExtension == TEXT("imp") || URuntimeAudioImporterLibrary::GetAudioFormat(Filename) != ERuntimeAudioFormat::Invalid;
+	return FileExtension == TEXT("imp") || URuntimeAudioUtilities::GetAudioFormat(Filename) != ERuntimeAudioFormat::Invalid;
 }
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-	TArray<uint8> AudioData;
+	TArray64<uint8> AudioData;
 
-	if (!FFileHelper::LoadFileToArray(AudioData, *Filename))
+	if (!RuntimeAudioImporter::LoadAudioFileToArray(AudioData, *Filename))
 	{
 		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_ReadError", "Unable to read the audio file '{0}'. Check file permissions'"), FText::FromString(Filename)));
 		return nullptr;
 	}
 
-	// Removing unused two uninitialized bytes
-	AudioData.RemoveAt(AudioData.Num() - 2, 2);
+	FRuntimeBulkDataBuffer<uint8> BulkDataBuffer(AudioData);
+	AudioData.Empty();
 
-	FDecodedAudioStruct DecodedAudioInfo;
-	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(AudioData, ERuntimeAudioFormat::Auto);
+	FRuntimeCodecFactory CodecFactory;
+	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(BulkDataBuffer);
 
-	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+	if (!RuntimeCodec.IsValid())
 	{
-		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_DecodeError", "Unable to decode the audio file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_CodecError", "Unable to determine the audio codec for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
+		return nullptr;
+	}
+
+	FRuntimeAudioHeaderInfo HeaderInfo;
+	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(BulkDataBuffer, ERuntimeAudioFormat::Auto);
+	if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedAudioInfo), HeaderInfo))
+	{
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_HeaderError", "Unable to get the header info for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
 		return nullptr;
 	}
 
 	UPreImportedSoundAsset* PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
+	if (!PreImportedSoundAsset)
+	{
+		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_CreateError", "Unable to create the sound asset '{0}'"), FText::FromString(Filename)));
+		return nullptr;
+	}
+
 	PreImportedSoundAsset->AudioDataArray = AudioData;
-	PreImportedSoundAsset->AudioFormat = EncodedAudioInfo.AudioFormat;
+	PreImportedSoundAsset->AudioFormat = HeaderInfo.AudioFormat;
 	PreImportedSoundAsset->SourceFilePath = Filename;
 
-	PreImportedSoundAsset->SoundDuration = URuntimeAudioImporterLibrary::ConvertSecondsToString(DecodedAudioInfo.SoundWaveBasicInfo.Duration);
-	PreImportedSoundAsset->NumberOfChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
-	PreImportedSoundAsset->SampleRate = DecodedAudioInfo.SoundWaveBasicInfo.SampleRate;
+	PreImportedSoundAsset->SoundDuration = URuntimeAudioUtilities::ConvertSecondsToString(HeaderInfo.Duration);
+	PreImportedSoundAsset->NumberOfChannels = HeaderInfo.NumOfChannels;
+	PreImportedSoundAsset->SampleRate = HeaderInfo.SampleRate;
 
 	bOutOperationCanceled = false;
 
