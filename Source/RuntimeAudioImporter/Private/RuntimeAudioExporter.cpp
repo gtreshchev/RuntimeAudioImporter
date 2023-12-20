@@ -6,6 +6,7 @@
 #include "RuntimeAudioTranscoder.h"
 #include "RuntimeAudioUtilities.h"
 #include "Codecs/RAW_RuntimeCodec.h"
+#include "Async/Async.h"
 
 void URuntimeAudioExporter::ExportSoundWaveToFile(UImportedSoundWave* ImportedSoundWave, const FString& SavePath, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToFileResult& Result)
 {
