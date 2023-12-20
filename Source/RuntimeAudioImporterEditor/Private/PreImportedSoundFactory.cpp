@@ -60,7 +60,8 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 
 	FRuntimeAudioHeaderInfo HeaderInfo;
-	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(BulkDataBuffer, ERuntimeAudioFormat::Auto);
+	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(BulkDataBuffer, RuntimeCodec->GetAudioFormat());
+	
 	if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedAudioInfo), HeaderInfo))
 	{
 		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_HeaderError", "Unable to get the header info for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
