@@ -18,7 +18,7 @@
     {
       "Name": "RuntimeAudioImporter",
       "Type": "Runtime",
-      "LoadingPhase": "Default"
+      "LoadingPhase": "PreDefault"
     },
     {
       "Name": "RuntimeAudioImporterEditor",
