@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--RuntimeAudioImporter plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- init section is always evaluated once per architecture -->
+    <init>
+        <log text="RuntimeAudioImporter init"/>
+    </init>
+
+    <!-- optional updates applied to AndroidManifest.xml -->
+    <androidManifestUpdates>
+        <addPermission android:name="android.permission.RECORD_AUDIO"/>
+    </androidManifestUpdates>
+
+    <!-- optional additions to the GameActivity imports in GameActivity.java -->
+    <gameActivityImportAdditions>
+        <insert>
+            import java.util.Arrays;
+            import android.media.AudioRecord;
+            import android.media.AudioFormat;
+            import android.media.MediaRecorder;
+            import android.media.audiofx.AcousticEchoCanceler;
+        </insert>
+    </gameActivityImportAdditions>
+
+    <!-- optional additions to the GameActivity class in GameActivity.java -->
+    <gameActivityClassAdditions>
+        <insert>
+            <![CDATA[
+ /* Callback from Java to C++ */
+ private static native void audioCapturePayload(short[] shortPCMDataArray, int readSize);
+
+ AudioRecord microphone = null;
+ Thread threadAudioCapture = null;
+ RunnableAudioCapture runnableAudioCapture = null;
+
+ public boolean AndroidThunkJava_AndroidStartCapture(int TargetSampleRate) {
+
+     if (microphone == null) {
+         final int sampleRateInHz = TargetSampleRate;
+         final int channelConfig = AudioFormat.CHANNEL_IN_MONO;
+         final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+
+         final int minBufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
+         microphone = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, minBufferSize);
+
+         if (AcousticEchoCanceler.isAvailable()) {
+             AcousticEchoCanceler aec = AcousticEchoCanceler.create(microphone.getAudioSessionId());
+             if (aec != null) {
+                 aec.setEnabled(true);
+             }
+         }
+         microphone.startRecording();
+
+         runnableAudioCapture = new RunnableAudioCapture(microphone, minBufferSize);
+         threadAudioCapture = new Thread(runnableAudioCapture);
+
+         threadAudioCapture.start();
+     }
+
+     microphone.startRecording();
+     runnableAudioCapture.setIsRunning(true);
+
+     return true;
+ }
+
+ public void AndroidThunkJava_AndroidStopCapture() {
+     runnableAudioCapture.setIsRunning(false);
+     microphone.stop();
+ }
+
+
+ public class RunnableAudioCapture implements Runnable {
+     public volatile boolean isRunning = false;
+     public AudioRecord audioRecordThread = null;
+     int minBufferSize;
+
+     public RunnableAudioCapture(AudioRecord audioRecordThread, int minBufferSize) {
+         this.audioRecordThread = audioRecordThread;
+         this.minBufferSize = minBufferSize;
+     }
+
+     public void setIsRunning(boolean isRunning) {
+         this.isRunning = isRunning;
+     }
+
+     @Override
+     public void run() {
+         short[] buffer = new short[minBufferSize / 2];
+         while (true) {
+             if (isRunning) {
+                 int readSize = audioRecordThread.read(buffer, 0, buffer.length);
+                 audioCapturePayload(buffer, readSize);
+             }
+         }
+     }
+ }
+]]>
+        </insert>
+    </gameActivityClassAdditions>
+</root>

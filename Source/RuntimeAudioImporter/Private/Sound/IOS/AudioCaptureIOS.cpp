@@ -181,6 +181,7 @@ bool Audio::FAudioCaptureIOS::CloseStream()
 {
 	StopStream();
 	AudioComponentInstanceDispose(IOUnit);
+	bIsStreamOpen = false;
 	return true;
 }
 

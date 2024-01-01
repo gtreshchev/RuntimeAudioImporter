@@ -2,23 +2,23 @@
 
 #pragma once
 
-#if PLATFORM_IOS && !PLATFORM_TVOS
+#if PLATFORM_ANDROID
+
 #include "AudioCaptureCore.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Math/UnrealMathUtility.h"
 
-#import <AudioToolbox/AudioToolbox.h>
-#import <AudioUnit/AudioUnit.h>
-#import <AVFoundation/AVFoundation.h>
-
 /**
- * This recreates the FAudioCaptureAudioUnitStream iOS-specific audio capture implementation, but with fixes to make it work correctly on iOS and avoid crashes
+ * This recreates the FAudioCaptureAndroidStream Android-specific audio capture implementation, but with fixes to make it work correctly on Android
  */
 namespace Audio
 {
-	class FAudioCaptureIOS : public IAudioCaptureStream
+	class FAudioCaptureAndroid : public IAudioCaptureStream
 	{
 	public:
+		FAudioCaptureAndroid();
+		virtual ~FAudioCaptureAndroid() override;
+
 		//~ Begin IAudioCaptureStream Interface
 		virtual bool GetCaptureDeviceInfo(Audio::FCaptureDeviceInfo& OutInfo, int32 DeviceIndex) override;
 		virtual bool 
@@ -44,25 +44,27 @@ namespace Audio
 		virtual bool IsCapturing() const override;
 		virtual void OnAudioCapture(void* InBuffer, uint32 InBufferFrames, double StreamTime, bool bOverflow) override;
 		virtual bool GetInputDevicesAvailable(TArray<FCaptureDeviceInfo>& OutDevices) override;
-#if UE_VERSION_NEWER_THAN(4, 25, 0)
-		virtual void SetHardwareFeatureEnabled(Audio::EHardwareInputFeature FeatureType, bool bEnabled) override;
-#endif
 		//~ End IAudioCaptureStream Interface
 
-		OSStatus OnCaptureCallback(AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData);
+	protected:
+		/**
+		 * Starts the Android microphone capture
+		 * @param TargetSampleRate The sample rate to capture at
+		 * @return true if the capture was started successfully
+		 */
+		bool AndroidCaptureStart(int32 TargetSampleRate);
+
+		/**
+		 * Stops the Android microphone capture
+		 */
+		void AndroidCaptureStop();
 
 	private:
-		void AllocateBuffer(int32 SizeInBytes);
-
 		bool bIsStreamOpen = false;
 		bool bHasCaptureStarted = false;
-		AudioComponentInstance IOUnit;
 
 		int32 NumChannels = 1;
 		int32 SampleRate = 48000;
-
-		TArray<uint8> CaptureBuffer;
-		int32 BufferSize = 0;
 
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 		FOnAudioCaptureFunction

@@ -102,9 +102,12 @@ public class RuntimeAudioImporter : ModuleRules
 					new string[]
 					{
 						"AudioCaptureAndroid",
-						//"AndroidPermission"
+						"AndroidPermission"
 					}
 				);
+
+				string BuildPath = Utils.MakePathRelativeTo(ModuleDirectory, Target.RelativeEnginePath);
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", Path.Combine(BuildPath, "RuntimeAudioImporter_AndroidAPL.xml"));
 			}
 
 			PublicDependencyModuleNames.AddRange(

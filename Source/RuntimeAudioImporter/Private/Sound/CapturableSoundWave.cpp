@@ -3,14 +3,12 @@
 #include "Sound/CapturableSoundWave.h"
 
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
-
-// Untested thus disabled for now
-#if false && PLATFORM_ANDROID
+#if PLATFORM_ANDROID
 #include "AndroidPermissionCallbackProxy.h"
 #include "AndroidPermissionFunctionLibrary.h"
 #endif
-
 #endif
+
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioThread.h"
 #include "Async/Async.h"
@@ -27,6 +25,9 @@ void UCapturableSoundWave::BeginDestroy()
 #if PLATFORM_IOS && !PLATFORM_TVOS
 	AudioCaptureIOS.AbortStream();
 	AudioCaptureIOS.CloseStream();
+#elif PLATFORM_ANDROID
+	AudioCaptureAndroid.AbortStream();
+	AudioCaptureAndroid.CloseStream();
 #else
 	AudioCapture.AbortStream();
 	AudioCapture.CloseStream();
@@ -97,28 +98,68 @@ void UCapturableSoundWave::GetAvailableAudioInputDevices(const FOnGetAvailableAu
 bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
-// Untested thus disabled for now
-#if false && PLATFORM_ANDROID
+#if PLATFORM_ANDROID
 	TArray<FString> Permissions = {"android.permission.RECORD_AUDIO"};
 	if (!UAndroidPermissionFunctionLibrary::CheckPermission(Permissions[0]))
 	{
-		TPromise<bool> bPermissionGrantedPromise;
-		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise.GetFuture();
-		UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions)->OnPermissionsGrantedDelegate.AddWeakLambda(this, [this, bPermissionGrantedPromise = MoveTemp(bPermissionGrantedPromise), Permissions = MoveTemp(Permissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
+		TSharedRef<TPromise<bool>> bPermissionGrantedPromise = MakeShared<TPromise<bool>>();
+		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise->GetFuture();
+		UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
+		if (!PermissionsGrantedCallbackProxy)
 		{
-			if (GrantPermissions.Find(Permissions[0]) == INDEX_NONE || GrantResults.Find(true) != INDEX_NONE)
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted (PermissionsGrantedCallbackProxy is null)"));
+			return false;
+		}
+
+		FAndroidPermissionDelegate OnPermissionsGrantedDelegate;
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		TSharedRef<FDelegateHandle> OnPermissionsGrantedDelegateHandle = MakeShared<FDelegateHandle>();
+		*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddWeakLambda
+#else
+		OnPermissionsGrantedDelegate.BindWeakLambda
+#endif
+		(this, [this,
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		OnPermissionsGrantedDelegateHandle,
+#endif
+		OnPermissionsGrantedDelegate, bPermissionGrantedPromise, Permissions = MoveTemp(Permissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
+		{
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+			OnPermissionsGrantedDelegate.Remove(OnPermissionsGrantedDelegateHandle.Get());
+#else
+			OnPermissionsGrantedDelegate.Unbind();
+#endif
+			if (!GrantPermissions.Contains(Permissions[0]) || !GrantResults.Contains(true))
 			{
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the permission was not granted"));
-				bPermissionGrantedPromise.SetValue(false);
+				TArray<FString> GrantResultsString;
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted"));
+				bPermissionGrantedPromise->SetValue(false);
 				return;
 			}
-			bPermissionGrantedPromise.SetValue(true);
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully granted record audio permission for Android"));
+			bPermissionGrantedPromise->SetValue(true);
 		});
+		PermissionsGrantedCallbackProxy->OnPermissionsGrantedDelegate = OnPermissionsGrantedDelegate;
 		bPermissionGrantedFuture.Wait();
 		if (!bPermissionGrantedFuture.Get())
 		{
 			return false;
 		}
+	}
+#endif
+
+#if PLATFORM_IOS && !PLATFORM_TVOS
+	const bool bPermissionGranted = 
+#if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
+	[[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
+#else
+	[[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
+#endif
+
+	if (!bPermissionGranted)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the iOS record audio permission was not granted"));
+		return false;
 	}
 #endif
 	
@@ -145,6 +186,8 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (WeakThis->AudioCaptureIOS.IsCapturing())
+#elif PLATFORM_ANDROID
+		if (WeakThis->AudioCaptureAndroid.IsCapturing())
 #else
 		if (WeakThis->AudioCapture.IsCapturing())
 #endif
@@ -164,6 +207,8 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #else
 #if PLATFORM_IOS && !PLATFORM_TVOS
 			                       WeakThis->AudioCaptureIOS.GetSampleRate()
+#elif PLATFORM_ANDROID
+			                       WeakThis->AudioCaptureAndroid.GetSampleRate()
 #else
 			                       WeakThis->AudioCapture.GetSampleRate()
 #endif
@@ -173,19 +218,24 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 	};
 
 #if PLATFORM_IOS && !PLATFORM_TVOS
-#if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
-	return [[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
-#else
-	return [[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
-#endif
+	if (AudioCaptureIOS.IsStreamOpen())
+#elif PLATFORM_ANDROID
+	if (AudioCaptureAndroid.IsStreamOpen())
 #else
 	if (AudioCapture.IsStreamOpen())
+#endif
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the stream is already open"));
 		return false;
 	}
 
+#if PLATFORM_IOS && !PLATFORM_TVOS
+	if (!AudioCaptureIOS.
+#elif PLATFORM_ANDROID
+	if (!AudioCaptureAndroid.
+#else
 	if (!AudioCapture.
+#endif
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 		OpenAudioCaptureStream
 #else
@@ -197,7 +247,13 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 		return false;
 	}
 
+#if PLATFORM_IOS && !PLATFORM_TVOS
+	if (!AudioCaptureIOS.StartStream())
+#elif PLATFORM_ANDROID
+	if (!AudioCaptureAndroid.StartStream())
+#else
 	if (!AudioCapture.StartStream())
+#endif
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capturing for sound wave %s"), *GetName());
 		return false;
@@ -205,7 +261,6 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully started capturing for sound wave %s"), *GetName());
 	return true;
-#endif
 #else
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capturing as its support is disabled (please enable in RuntimeAudioImporter.Build.cs)"));
 	return false;
@@ -219,6 +274,11 @@ void UCapturableSoundWave::StopCapture()
 	if (AudioCaptureIOS.IsStreamOpen())
 	{
 		AudioCaptureIOS.CloseStream();
+	}
+#elif PLATFORM_ANDROID
+	if (AudioCaptureAndroid.IsStreamOpen())
+	{
+		AudioCaptureAndroid.CloseStream();
 	}
 #else
 	if (AudioCapture.IsStreamOpen())
@@ -234,7 +294,7 @@ void UCapturableSoundWave::StopCapture()
 bool UCapturableSoundWave::ToggleMute(bool bMute)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
-#if UE_VERSION_NEWER_THAN(5, 2, 9)
+#if UE_VERSION_NEWER_THAN(5, 2, 9) || PLATFORM_ANDROID
 	if (bMute)
 	{
 		StopCapture();
@@ -247,6 +307,8 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 #else
 #if PLATFORM_IOS && !PLATFORM_TVOS
 	if (!AudioCaptureIOS.IsStreamOpen())
+#elif PLATFORM_ANDROID
+	if (!AudioCaptureAndroid.IsStreamOpen())
 #else
 	if (!AudioCapture.IsStreamOpen())
 #endif
@@ -258,6 +320,8 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 	{
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (!AudioCaptureIOS.IsCapturing())
+#elif PLATFORM_ANDROID
+		if (!AudioCaptureAndroid.IsCapturing())
 #else
 		if (!AudioCapture.IsCapturing())
 #endif
@@ -267,6 +331,8 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 		}
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (!AudioCaptureIOS.StopStream())
+#elif PLATFORM_ANDROID
+		if (!AudioCaptureAndroid.StopStream())
 #else
 		if (!AudioCapture.StopStream())
 #endif
@@ -281,6 +347,8 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 	{
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (AudioCaptureIOS.IsCapturing())
+#elif PLATFORM_ANDROID
+		if (AudioCaptureAndroid.IsCapturing())
 #else
 		if (AudioCapture.IsCapturing())
 #endif
@@ -290,6 +358,8 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 		}
 #if PLATFORM_IOS && !PLATFORM_TVOS
 		if (!AudioCaptureIOS.StartStream())
+#elif PLATFORM_ANDROID
+		if (!AudioCaptureAndroid.StartStream())
 #else
 		if (!AudioCapture.StartStream())
 #endif
@@ -312,6 +382,8 @@ bool UCapturableSoundWave::IsCapturing() const
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if PLATFORM_IOS && !PLATFORM_TVOS
 	return AudioCaptureIOS.IsCapturing();
+#elif PLATFORM_ANDROID
+	return AudioCaptureAndroid.IsCapturing();
 #else
 	return AudioCapture.IsCapturing();
 #endif

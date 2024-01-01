@@ -5,8 +5,10 @@
 #include "CoreMinimal.h"
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #include "AudioCaptureCore.h"
-#if PLATFORM_IOS
+#if PLATFORM_IOS && !PLATFORM_TVOS
 #include "IOS/AudioCaptureIOS.h"
+#elif PLATFORM_ANDROID
+#include "Android/AudioCaptureAndroid.h"
 #endif
 #endif
 #include "StreamingSoundWave.h"
@@ -92,6 +94,9 @@ private:
 #if PLATFORM_IOS && !PLATFORM_TVOS
 	/** Audio capture instance specific to iOS. Implemented manually due to the engine not properly supporting iOS audio capture at the moment */
 	Audio::FAudioCaptureIOS AudioCaptureIOS;
+#elif PLATFORM_ANDROID
+	/** Audio capture instance specific to Android. Implemented manually due to the engine not properly supporting Android audio capture at the moment */
+	Audio::FAudioCaptureAndroid AudioCaptureAndroid;
 #endif
 	/** The last device index used for capture */
 	int32 LastDeviceIndex = -1;
