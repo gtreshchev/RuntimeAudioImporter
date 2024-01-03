@@ -10,6 +10,9 @@
 #include <Android/AndroidApplication.h>
 #include <Android/AndroidJNI.h>
 
+#include "AndroidPermissionCallbackProxy.h"
+#include "AndroidPermissionFunctionLibrary.h"
+
 static JNIEnv* JavaEnv;
 static jmethodID AndroidThunkJava_AndroidStartCapture = nullptr;
 static jmethodID AndroidThunkJava_AndroidStopCapture = nullptr;
@@ -88,6 +91,54 @@ OpenCaptureStream
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream because it is already open"));
 		return true;
+	}
+
+	TArray<FString> Permissions = {"android.permission.RECORD_AUDIO"};
+	if (!UAndroidPermissionFunctionLibrary::CheckPermission(Permissions[0]))
+	{
+		TSharedRef<TPromise<bool>> bPermissionGrantedPromise = MakeShared<TPromise<bool>>();
+		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise->GetFuture();
+		UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
+		if (!PermissionsGrantedCallbackProxy)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted (PermissionsGrantedCallbackProxy is null)"));
+			return false;
+		}
+
+		FAndroidPermissionDelegate OnPermissionsGrantedDelegate;
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		TSharedRef<FDelegateHandle> OnPermissionsGrantedDelegateHandle = MakeShared<FDelegateHandle>();
+		*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddLambda
+#else
+		OnPermissionsGrantedDelegate.BindLambda
+#endif
+		([this,
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		OnPermissionsGrantedDelegateHandle,
+#endif
+		OnPermissionsGrantedDelegate, bPermissionGrantedPromise, Permissions = MoveTemp(Permissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
+		{
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+			OnPermissionsGrantedDelegate.Remove(OnPermissionsGrantedDelegateHandle.Get());
+#else
+			OnPermissionsGrantedDelegate.Unbind();
+#endif
+			if (!GrantPermissions.Contains(Permissions[0]) || !GrantResults.Contains(true))
+			{
+				TArray<FString> GrantResultsString;
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted"));
+				bPermissionGrantedPromise->SetValue(false);
+				return;
+			}
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully granted record audio permission for Android"));
+			bPermissionGrantedPromise->SetValue(true);
+		});
+		PermissionsGrantedCallbackProxy->OnPermissionsGrantedDelegate = OnPermissionsGrantedDelegate;
+		bPermissionGrantedFuture.Wait();
+		if (!bPermissionGrantedFuture.Get())
+		{
+			return false;
+		}
 	}
 
 	OnCapture = MoveTemp(InOnCapture);

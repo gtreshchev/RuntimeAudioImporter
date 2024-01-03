@@ -49,6 +49,19 @@ bool Audio::FAudioCaptureIOS::
 		return true;
 	}
 
+	const bool bPermissionGranted = 
+#if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
+	[[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
+#else
+	[[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
+#endif
+
+	if (!bPermissionGranted)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream as the iOS record audio permission was not granted"));
+		return false;
+	}
+
 	OnCapture = MoveTemp(InOnCapture);
 
 	OSStatus Status = noErr;
