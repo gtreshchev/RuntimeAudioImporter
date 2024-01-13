@@ -107,12 +107,16 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
+
+	// BinkAudioFileHeader is only available with the encoding support
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
 	// Early out if the audio data is too small to contain the header (otherwise it will crash upon assertion check in FBinkAudioInfo::ParseHeader)
 	if (EncodedData.AudioData.GetView().Num() < sizeof(BinkAudioFileHeader))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to read BINK compressed info since the audio data is too small"));
 		return false;
 	}
+#endif
 
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
