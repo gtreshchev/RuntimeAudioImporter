@@ -18,6 +18,8 @@
 #define memset(Dest, Char, Count) FMemory::Memset(Dest, Char, Count)
 #define memcpy(Dest, Src, Count) FMemory::Memcpy(Dest, Src, Count)
 
+THIRD_PARTY_INCLUDES_START
+
 #ifdef INCLUDE_MP3
 #define DRMP3_API static
 #define DRMP3_PRIVATE static
@@ -50,6 +52,8 @@
 #include "binka_ue_encode.h"
 #endif
 #endif
+
+THIRD_PARTY_INCLUDES_END
 
 #undef calloc
 #undef malloc
