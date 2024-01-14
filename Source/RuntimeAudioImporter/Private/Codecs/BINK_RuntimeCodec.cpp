@@ -1,4 +1,4 @@
-﻿// Georgy Treshchev 2023.
+﻿// Georgy Treshchev 2024.
 
 #include "Codecs/BINK_RuntimeCodec.h"
 #include "RuntimeAudioImporterTypes.h"

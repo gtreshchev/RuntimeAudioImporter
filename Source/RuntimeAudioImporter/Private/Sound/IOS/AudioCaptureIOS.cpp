@@ -1,4 +1,4 @@
-// Georgy Treshchev 2023.
+// Georgy Treshchev 2024.
 
 #if PLATFORM_IOS && !PLATFORM_TVOS
 #include "Sound/IOS/AudioCaptureIOS.h"
