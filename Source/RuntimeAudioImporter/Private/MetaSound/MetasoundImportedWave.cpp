@@ -1,4 +1,4 @@
-﻿// Georgy Treshchev 2023.
+﻿// Georgy Treshchev 2024.
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "MetaSound/MetasoundImportedWave.h"
