@@ -48,7 +48,6 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 
 	FRuntimeBulkDataBuffer<uint8> BulkDataBuffer(AudioData);
-	AudioData.Empty();
 
 	FRuntimeCodecFactory CodecFactory;
 	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(BulkDataBuffer);
