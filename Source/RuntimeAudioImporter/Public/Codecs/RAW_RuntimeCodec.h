@@ -125,6 +125,29 @@ public:
 	 */
 	static bool ResampleRAWData(Audio::FAlignedFloatBuffer& RAWData, int32 NumOfChannels, int32 SourceSampleRate, int32 DestinationSampleRate, Audio::FAlignedFloatBuffer& ResampledRAWData)
 	{
+		if (NumOfChannels <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data because the number of channels is invalid (%d)"), NumOfChannels);
+			return false;
+		}
+		if (SourceSampleRate <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data because the source sample rate is invalid (%d)"), SourceSampleRate);
+			return false;
+		}
+		if (DestinationSampleRate <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data because the destination sample rate is invalid (%d)"), DestinationSampleRate);
+			return false;
+		}
+
+		// No need to resample if the sample rates are the same
+		if (SourceSampleRate == DestinationSampleRate)
+		{
+			ResampledRAWData = RAWData;
+			return true;
+		}
+
 		const Audio::FResamplingParameters ResampleParameters = {
 			Audio::EResamplingMethod::BestSinc,
 			NumOfChannels,
@@ -158,6 +181,29 @@ public:
 	 */
 	static bool MixChannelsRAWData(Audio::FAlignedFloatBuffer& RAWData, int32 SampleRate, int32 SourceNumOfChannels, int32 DestinationNumOfChannels, Audio::FAlignedFloatBuffer& RemixedRAWData)
 	{
+		if (SampleRate <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio data because the sample rate is invalid (%d)"), SampleRate);
+			return false;
+		}
+		if (SourceNumOfChannels <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio data because the source number of channels is invalid (%d)"), SourceNumOfChannels);
+			return false;
+		}
+		if (DestinationNumOfChannels <= 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio data because the destination number of channels is invalid (%d)"), DestinationNumOfChannels);
+			return false;
+		}
+
+		// No need to mix if the number of channels are the same
+		if (SourceNumOfChannels == DestinationNumOfChannels)
+		{
+			RemixedRAWData = MoveTemp(RAWData);
+			return true;
+		}
+
 		Audio::TSampleBuffer<float> PCMSampleBuffer(RAWData, SourceNumOfChannels, SampleRate);
 		{
 			PCMSampleBuffer.MixBufferToChannels(DestinationNumOfChannels);
