@@ -539,6 +539,12 @@ bool UImportedSoundWave::ResampleSoundWave(int32 NewSampleRate)
 		return true;
 	}
 
+	if (NewSampleRate <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample the imported sound wave '%s' to sample rate '%d' because the sample rate must be greater than zero"), *GetName(), NewSampleRate);
+		return false;
+	}
+
 	FRAIScopeLock Lock(&DataGuard);
 
 	Audio::FAlignedFloatBuffer NewPCMData;
@@ -565,6 +571,12 @@ bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Skipping mixing the imported sound wave '%s' because the new number of channels '%d' is the same as the current number of channels '%d'"), *GetName(), NewNumOfChannels, GetNumOfChannels());
 		return true;
+	}
+
+	if (NewNumOfChannels <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix the imported sound wave '%s' to number of channels '%d' because the number of channels must be greater than zero"), *GetName(), NewNumOfChannels);
+		return false;
 	}
 
 	FRAIScopeLock Lock(&DataGuard);
@@ -663,6 +675,11 @@ int32 UImportedSoundWave::GetSampleRate() const
 int32 UImportedSoundWave::GetNumOfChannels() const
 {
 	return NumChannels;
+}
+
+int32 UImportedSoundWave::GetNumberOfChannels() const
+{
+	return GetNumOfChannels();
 }
 
 float UImportedSoundWave::GetPlaybackPercentage() const

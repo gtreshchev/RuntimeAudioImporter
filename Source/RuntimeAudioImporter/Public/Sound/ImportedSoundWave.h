@@ -279,6 +279,13 @@ public:
 	int32 GetNumOfChannels() const;
 
 	/**
+	 * Get number of channels
+	 * Alias for GetNumOfChannels. Needed since the GetNumOfChannels function sometimes isn't exposed to Blueprints for some reason
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
+	int32 GetNumberOfChannels() const;
+
+	/**
 	 * Get the current sound playback percentage, 0-100%
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
