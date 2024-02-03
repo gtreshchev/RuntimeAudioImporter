@@ -4,6 +4,11 @@
 #include "RuntimeAudioImporterDefines.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
+#if UE_VERSION_OLDER_THAN(5, 2, 0)
+#include "AudioDevice.h"
+#else
+#include "AudioDeviceHandle.h"
+#endif
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #endif
@@ -11,10 +16,11 @@
 
 UImportedSoundWave::UImportedSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+  , DataGuard(MakeShared<FCriticalSection>())
   , DurationOffset(0)
   , PlaybackFinishedBroadcast(false)
   , PlayedNumOfFrames(0)
-  , PCMBufferInfo(MakeUnique<FPCMStruct>())
+  , PCMBufferInfo(MakeShared<FPCMStruct>())
   , bStopSoundOnPlaybackFinish(true)
   , ImportedAudioFormat(ERuntimeAudioFormat::Invalid)
 {
@@ -41,6 +47,60 @@ UImportedSoundWave* UImportedSoundWave::CreateImportedSoundWave()
 	}
 
 	return NewObject<UImportedSoundWave>();
+}
+
+void UImportedSoundWave::DuplicateSoundWave(bool bUseSharedAudioBuffer, const FOnDuplicateSoundWave& Result)
+{
+	DuplicateSoundWave(bUseSharedAudioBuffer, FOnDuplicateSoundWaveNative::CreateWeakLambda(this, [Result](bool bSucceeded, UImportedSoundWave* DuplicatedSoundWave)
+	{
+		Result.ExecuteIfBound(bSucceeded, DuplicatedSoundWave);
+	}));
+}
+
+void UImportedSoundWave::DuplicateSoundWave(bool bUseSharedAudioBuffer, const FOnDuplicateSoundWaveNative& Result)
+{
+	if (IsInGameThread())
+	{
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), bUseSharedAudioBuffer, Result]()
+		{
+			WeakThis->DuplicateSoundWave(bUseSharedAudioBuffer, Result);
+		});
+		return;
+	}
+
+	auto ExecuteResult = [Result](bool bSucceeded, UImportedSoundWave* DuplicatedSoundWave)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, DuplicatedSoundWave]()
+		{
+			if (DuplicatedSoundWave)
+			{
+				DuplicatedSoundWave->ClearInternalFlags(EInternalObjectFlags::Async);
+			}
+			Result.ExecuteIfBound(bSucceeded, DuplicatedSoundWave);
+		});
+	};
+
+	UImportedSoundWave* DuplicatedSoundWave = NewObject<UImportedSoundWave>(GetOuter());
+	if (!DuplicatedSoundWave)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to duplicate the imported sound wave '%s'"), *GetName());
+		Result.ExecuteIfBound(false, nullptr);
+		return;
+	}
+	DuplicatedSoundWave->SetInternalFlags(EInternalObjectFlags::Async);
+	FRAIScopeLock Lock(&*DataGuard);
+	DuplicatedSoundWave->DurationOffset = DurationOffset;
+	DuplicatedSoundWave->PCMBufferInfo = bUseSharedAudioBuffer ? PCMBufferInfo : MakeShared<FPCMStruct>(*PCMBufferInfo);
+	DuplicatedSoundWave->bStopSoundOnPlaybackFinish = bStopSoundOnPlaybackFinish;
+	DuplicatedSoundWave->ImportedAudioFormat = ImportedAudioFormat;
+	DuplicatedSoundWave->Duration = Duration;
+	DuplicatedSoundWave->SetSampleRate(GetSampleRate());
+	DuplicatedSoundWave->NumChannels = NumChannels;
+	if (bUseSharedAudioBuffer)
+	{
+		DuplicatedSoundWave->DataGuard = DataGuard;
+	}
+	ExecuteResult(true, DuplicatedSoundWave);
 }
 
 Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMDataFormat() const
@@ -75,7 +135,7 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 
 	FDecodedAudioStruct DecodedAudioInfo;
 	{
-		FRAIScopeLock Lock(&DataGuard);
+		FRAIScopeLock Lock(&*DataGuard);
 		{
 			DecodedAudioInfo.PCMInfo = GetPCMBuffer();
 			FSoundWaveBasicStruct SoundWaveBasicInfo;
@@ -116,7 +176,7 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 
 bool UImportedSoundWave::IsSeekable() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return PCMBufferInfo.IsValid() && PCMBufferInfo.Get()->PCMData.GetView().Num() > 0 && PCMBufferInfo.Get()->PCMNumOfFrames > 0;
 }
 #endif
@@ -125,7 +185,7 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 {
 	float* RetrievedPCMDataPtr;
 	{
-		FRAIScopeLock Lock(&DataGuard);
+		FRAIScopeLock Lock(&*DataGuard);
 
 		if (!PCMBufferInfo.IsValid())
 		{
@@ -200,7 +260,7 @@ void UImportedSoundWave::BeginDestroy()
 
 void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances)
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	if (ActiveSound.PlaybackTime == 0.f)
 	{
@@ -217,9 +277,9 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 	const TArray<FActiveSound*>& ActiveSounds = AudioDevice->GetActiveSounds();
 	for (FActiveSound* ActiveSoundPtr : ActiveSounds)
 	{
-		if (ActiveSoundPtr->GetSound() == this && &ActiveSound != ActiveSoundPtr)
+		if (ActiveSoundPtr->GetSound() == this && ActiveSoundPtr->IsPlayingAudio() && &ActiveSound != ActiveSoundPtr)
 		{
-			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Stopping the active sound '%s' because it is using the same sound wave '%s' (only one imported sound wave can be played at a time)"), *ActiveSoundPtr->GetOwnerName(), *GetName());
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Stopping the active sound '%s' because it is using the same sound wave '%s' (only one imported sound wave can be played at a time)"), *ActiveSoundPtr->GetOwnerName(), *GetName());
 			AudioDevice->StopActiveSound(ActiveSoundPtr);
 		}
 	}
@@ -272,7 +332,7 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 
 void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
 
@@ -393,7 +453,7 @@ void UImportedSoundWave::PrepareSoundWaveForMetaSounds(const FOnPrepareSoundWave
 
 void UImportedSoundWave::ReleaseMemory()
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Releasing memory for the sound wave '%s'"), *GetName());
 	PCMBufferInfo->PCMData.Empty();
 	PCMBufferInfo->PCMNumOfFrames = 0;
@@ -426,7 +486,7 @@ void UImportedSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseR
 		return;
 	}
 
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	auto ExecuteResult = [Result](bool bSucceeded)
 	{
@@ -516,7 +576,7 @@ void UImportedSoundWave::SetPitch(float InPitch)
 
 bool UImportedSoundWave::RewindPlaybackTime(float PlaybackTime)
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return RewindPlaybackTime_Internal(PlaybackTime - GetDurationOffset_Internal());
 }
 
@@ -545,7 +605,7 @@ bool UImportedSoundWave::ResampleSoundWave(int32 NewSampleRate)
 		return false;
 	}
 
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	Audio::FAlignedFloatBuffer NewPCMData;
 	Audio::FAlignedFloatBuffer SourcePCMData = Audio::FAlignedFloatBuffer(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
@@ -579,7 +639,7 @@ bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
 		return false;
 	}
 
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	Audio::FAlignedFloatBuffer NewPCMData;
 	Audio::FAlignedFloatBuffer SourcePCMData = Audio::FAlignedFloatBuffer(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
@@ -601,7 +661,7 @@ bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
 
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return SetNumOfPlayedFrames_Internal(NumOfFrames);
 }
 
@@ -622,7 +682,7 @@ bool UImportedSoundWave::SetNumOfPlayedFrames_Internal(uint32 NumOfFrames)
 
 uint32 UImportedSoundWave::GetNumOfPlayedFrames() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return GetNumOfPlayedFrames_Internal();
 }
 
@@ -633,7 +693,7 @@ uint32 UImportedSoundWave::GetNumOfPlayedFrames_Internal() const
 
 float UImportedSoundWave::GetPlaybackTime() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return GetPlaybackTime_Internal() + GetDurationOffset_Internal();
 }
 
@@ -649,7 +709,7 @@ float UImportedSoundWave::GetPlaybackTime_Internal() const
 
 float UImportedSoundWave::GetDurationConst() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return GetDurationConst_Internal() + GetDurationOffset_Internal();
 }
 
@@ -684,7 +744,7 @@ int32 UImportedSoundWave::GetNumberOfChannels() const
 
 float UImportedSoundWave::GetPlaybackPercentage() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	if (GetNumOfPlayedFrames_Internal() == 0 || PCMBufferInfo->PCMNumOfFrames == 0)
 	{
@@ -696,13 +756,48 @@ float UImportedSoundWave::GetPlaybackPercentage() const
 
 bool UImportedSoundWave::IsPlaybackFinished() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return IsPlaybackFinished_Internal();
+}
+
+bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
+{
+	if (!GEngine)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to check if the sound wave '%s' is playing because the GEngine is invalid"), *GetName());
+		return false;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!ThisWorld)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to check if the sound wave '%s' is playing because the world context object is invalid"), *GetName());
+		return false;
+	}
+
+#if UE_VERSION_OLDER_THAN(4, 25, 0)
+		if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+#else
+		if (FAudioDeviceHandle AudioDevice = ThisWorld->GetAudioDevice())
+#endif
+	{
+		const TArray<FActiveSound*>& ActiveSounds = AudioDevice->GetActiveSounds();
+		for (FActiveSound* ActiveSoundPtr : ActiveSounds)
+		{
+			if (ActiveSoundPtr->GetSound() == this && ActiveSoundPtr->IsPlayingAudio())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The sound wave '%s' is playing by the owner '%s' and audio component '%s'"), *GetName(), *ActiveSoundPtr->GetOwnerName(), *ActiveSoundPtr->GetAudioComponentName());
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 float UImportedSoundWave::GetDurationOffset() const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return DurationOffset;
 }
 
@@ -724,7 +819,7 @@ bool UImportedSoundWave::IsPlaybackFinished_Internal() const
 
 bool UImportedSoundWave::GetAudioHeaderInfo(FRuntimeAudioHeaderInfo& HeaderInfo) const
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	if (!PCMBufferInfo.IsValid())
 	{
@@ -750,7 +845,7 @@ void UImportedSoundWave::ResetPlaybackFinish()
 
 TArray<float> UImportedSoundWave::GetPCMBufferCopy()
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	return TArray<float>(PCMBufferInfo.Get()->PCMData.GetView().GetData(), PCMBufferInfo.Get()->PCMData.GetView().Num());
 }
 

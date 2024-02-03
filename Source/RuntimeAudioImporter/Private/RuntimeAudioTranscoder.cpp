@@ -179,6 +179,12 @@ void URuntimeAudioTranscoder::TranscodeEncodedDataFromBuffer(TArray<uint8> Encod
 {
 	TranscodeEncodedDataFromBuffer(TArray64<uint8>(MoveTemp(EncodedDataFrom)), EncodedFormatFrom, EncodedFormatTo, Quality, OverrideOptions, FOnEncodedDataTranscodeFromBufferResultNative::CreateLambda([Result](bool bSucceeded, const TArray64<uint8>& EncodedData)
 	{
+		if (EncodedData.Num() > TNumericLimits<int32>::Max())
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to transcode encoded audio data from buffer: array with int32 size (max length: %d) cannot fit int64 size data (retrieved length: %lld)\nA standard byte array can hold a maximum of 2 GB of data"), TNumericLimits<int32>::Max(), EncodedData.Num());
+			Result.ExecuteIfBound(false, TArray<uint8>());
+			return;
+		}
 		Result.ExecuteIfBound(bSucceeded, TArray<uint8>(EncodedData));
 	}));
 }

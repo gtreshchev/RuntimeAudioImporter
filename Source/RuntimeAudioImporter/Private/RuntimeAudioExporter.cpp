@@ -58,7 +58,7 @@ void URuntimeAudioExporter::ExportSoundWaveToBuffer(UImportedSoundWave* Imported
 	{
 		if (AudioData.Num() > TNumericLimits<int32>::Max())
 		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Array with int32 size (max length: %d) cannot fit int64 size data (retrieved length: %lld)\nA standard byte array can hold a maximum of 2 GB of data"), TNumericLimits<int32>::Max(), AudioData.Num());
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to buffer: array with int32 size (max length: %d) cannot fit int64 size data (retrieved length: %lld)\nA standard byte array can hold a maximum of 2 GB of data"), TNumericLimits<int32>::Max(), AudioData.Num());
 			Result.ExecuteIfBound(false, TArray<uint8>());
 			return;
 		}
@@ -95,7 +95,7 @@ void URuntimeAudioExporter::ExportSoundWaveToBuffer(TWeakObjectPtr<UImportedSoun
 
 	FDecodedAudioStruct DecodedAudioInfo;
 	{
-		FRAIScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
+		FRAIScopeLock Lock(&*ImportedSoundWavePtr->DataGuard);
 
 		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
 		{
@@ -229,76 +229,82 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWBuffer(UImportedSoundWave* Impor
 
 void URuntimeAudioExporter::ExportSoundWaveToRAWBuffer(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, ERuntimeRAWAudioFormat RAWFormat, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToBufferResultNative& Result)
 {
-	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWavePtr, RAWFormat, OverrideOptions, Result]
+	if (IsInGameThread())
 	{
-		auto ExecuteResult = [Result](bool bSucceeded, TArray64<uint8> AudioData)
+		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [ImportedSoundWavePtr, RAWFormat, OverrideOptions, Result]()
 		{
-			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, AudioData = MoveTemp(AudioData)]() mutable
+			ExportSoundWaveToRAWBuffer(ImportedSoundWavePtr, RAWFormat, OverrideOptions, Result);
+		});
+		return;
+	}
+
+	auto ExecuteResult = [Result](bool bSucceeded, TArray64<uint8> AudioData)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, AudioData = MoveTemp(AudioData)]() mutable
+		{
+			Result.ExecuteIfBound(bSucceeded, AudioData);
+		});
+	};
+
+	if (!ImportedSoundWavePtr.IsValid())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
+		ExecuteResult(false, TArray64<uint8>());
+		return;
+	}
+
+	FRAIScopeLock Lock(&*ImportedSoundWavePtr->DataGuard);
+
+	if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as the PCM data is invalid"));
+		ExecuteResult(false, TArray64<uint8>());
+		return;
+	}
+
+	TArray64<uint8> RAWDataFrom;
+
+	// Check if the number of channels and the sampling rate of the sound wave and desired override options are not the same
+	if (OverrideOptions.IsOverriden() && (ImportedSoundWavePtr->GetSampleRate() != OverrideOptions.SampleRate || ImportedSoundWavePtr->GetNumOfChannels() != OverrideOptions.NumOfChannels))
+	{
+		Audio::FAlignedFloatBuffer WaveData(ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().GetData(), ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().Num());
+
+		// Resampling if needed
+		if (OverrideOptions.IsSampleRateOverriden() && ImportedSoundWavePtr->GetSampleRate() != OverrideOptions.SampleRate)
+		{
+			Audio::FAlignedFloatBuffer ResamplerOutputData;
+			if (!FRAW_RuntimeCodec::ResampleRAWData(WaveData, ImportedSoundWavePtr->GetNumOfChannels(), ImportedSoundWavePtr->GetSampleRate(), OverrideOptions.SampleRate, ResamplerOutputData))
 			{
-				Result.ExecuteIfBound(bSucceeded, AudioData);
-			});
-		};
-
-		if (!ImportedSoundWavePtr.IsValid())
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as it is invalid"));
-			ExecuteResult(false, TArray64<uint8>());
-			return;
-		}
-
-		FRAIScopeLock Lock(&ImportedSoundWavePtr->DataGuard);
-
-		if (!ImportedSoundWavePtr->GetPCMBuffer().IsValid())
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave as the PCM data is invalid"));
-			ExecuteResult(false, TArray64<uint8>());
-			return;
-		}
-
-		TArray64<uint8> RAWDataFrom;
-
-		// Check if the number of channels and the sampling rate of the sound wave and desired override options are not the same
-		if (OverrideOptions.IsOverriden() && (ImportedSoundWavePtr->GetSampleRate() != OverrideOptions.SampleRate || ImportedSoundWavePtr->GetNumOfChannels() != OverrideOptions.NumOfChannels))
-		{
-			Audio::FAlignedFloatBuffer WaveData(ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().GetData(), ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().Num());
-
-			// Resampling if needed
-			if (OverrideOptions.IsSampleRateOverriden() && ImportedSoundWavePtr->GetSampleRate() != OverrideOptions.SampleRate)
-			{
-				Audio::FAlignedFloatBuffer ResamplerOutputData;
-				if (!FRAW_RuntimeCodec::ResampleRAWData(WaveData, ImportedSoundWavePtr->GetNumOfChannels(), ImportedSoundWavePtr->GetSampleRate(), OverrideOptions.SampleRate, ResamplerOutputData))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data to the overriden sample rate. Resampling failed"));
-					ExecuteResult(false, TArray64<uint8>());
-					return;
-				}
-
-				WaveData = MoveTemp(ResamplerOutputData);
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data to the overriden sample rate. Resampling failed"));
+				ExecuteResult(false, TArray64<uint8>());
+				return;
 			}
 
-			// Mixing the channels if needed
-			if (OverrideOptions.IsNumOfChannelsOverriden() && ImportedSoundWavePtr->GetNumOfChannels() != OverrideOptions.NumOfChannels)
+			WaveData = MoveTemp(ResamplerOutputData);
+		}
+
+		// Mixing the channels if needed
+		if (OverrideOptions.IsNumOfChannelsOverriden() && ImportedSoundWavePtr->GetNumOfChannels() != OverrideOptions.NumOfChannels)
+		{
+			Audio::FAlignedFloatBuffer WaveDataTemp;
+			if (!FRAW_RuntimeCodec::MixChannelsRAWData(WaveData, OverrideOptions.SampleRate, ImportedSoundWavePtr->GetNumOfChannels(), OverrideOptions.NumOfChannels, WaveDataTemp))
 			{
-				Audio::FAlignedFloatBuffer WaveDataTemp;
-				if (!FRAW_RuntimeCodec::MixChannelsRAWData(WaveData, OverrideOptions.SampleRate, ImportedSoundWavePtr->GetNumOfChannels(), OverrideOptions.NumOfChannels, WaveDataTemp))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio channels to the overriden number of channels. Mixing failed"));
-					ExecuteResult(false, TArray64<uint8>());
-					return;
-				}
-				WaveData = MoveTemp(WaveDataTemp);
+				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio channels to the overriden number of channels. Mixing failed"));
+				ExecuteResult(false, TArray64<uint8>());
+				return;
 			}
-
-			RAWDataFrom = TArray64<uint8>(reinterpret_cast<uint8*>(WaveData.GetData()), WaveData.Num() * sizeof(float));
-		}
-		else
-		{
-			RAWDataFrom = TArray64<uint8>(reinterpret_cast<uint8*>(ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().GetData()), ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().Num() * sizeof(float));
+			WaveData = MoveTemp(WaveDataTemp);
 		}
 
-		URuntimeAudioTranscoder::TranscodeRAWDataFromBuffer(MoveTemp(RAWDataFrom), ERuntimeRAWAudioFormat::Float32, RAWFormat, FOnRAWDataTranscodeFromBufferResultNative::CreateWeakLambda(ImportedSoundWavePtr.Get(), [Result, ExecuteResult](bool bSucceeded, const TArray64<uint8>& RAWData)
-		{
-			ExecuteResult(bSucceeded, RAWData);
-		}));
-	});
+		RAWDataFrom = TArray64<uint8>(reinterpret_cast<uint8*>(WaveData.GetData()), WaveData.Num() * sizeof(float));
+	}
+	else
+	{
+		RAWDataFrom = TArray64<uint8>(reinterpret_cast<uint8*>(ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().GetData()), ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().Num() * sizeof(float));
+	}
+
+	URuntimeAudioTranscoder::TranscodeRAWDataFromBuffer(MoveTemp(RAWDataFrom), ERuntimeRAWAudioFormat::Float32, RAWFormat, FOnRAWDataTranscodeFromBufferResultNative::CreateWeakLambda(ImportedSoundWavePtr.Get(), [Result, ExecuteResult](bool bSucceeded, const TArray64<uint8>& RAWData)
+	{
+		ExecuteResult(bSucceeded, RAWData);
+	}));
 }
