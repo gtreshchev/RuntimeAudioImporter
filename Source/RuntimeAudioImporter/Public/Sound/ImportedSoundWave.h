@@ -6,6 +6,8 @@
 #include "Sound/SoundWaveProcedural.h"
 #include "ImportedSoundWave.generated.h"
 
+class UImportedSoundWave;
+
 /** Static delegate broadcast to track the end of audio playback */
 DECLARE_MULTICAST_DELEGATE(FOnAudioPlaybackFinishedNative);
 
@@ -46,9 +48,17 @@ DECLARE_MULTICAST_DELEGATE(FOnPopulateAudioStateNative);
 /** Dynamic delegate broadcast when the PCM data is populated. Same as FOnPopulateAudioData except it doesn't broadcast the audio data */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPopulateAudioState);
 
+/** Static delegate broadcast when a sound wave is duplicated */
+DECLARE_DELEGATE_TwoParams(FOnDuplicateSoundWaveNative, bool, UImportedSoundWave*);
+
+/** Dynamic delegate broadcast when a sound wave is duplicated */
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnDuplicateSoundWave, bool, bSucceeded, UImportedSoundWave*, DuplicatedSoundWave);
+
 
 /**
  * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
+ * Accumulates audio data in 32-bit interleaved floating-point format.
+ * Only a single playback is supported at a time (see DuplicateSoundWave for parallel playback)
  * Audio data preparation takes place in the Runtime Audio Importer library
  */
 UCLASS(BlueprintType, Category = "Imported Sound Wave")
@@ -80,6 +90,23 @@ public:
 	//~ Begin USoundWaveProcedural Interface
 	virtual int32 OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumSamples) override;
 	//~ End USoundWaveProcedural Interface
+
+	/**
+	 * Duplicate the sound wave to be able to play it in parallel
+	 * 
+	 * @param bUseSharedAudioBuffer Whether to use the same audio buffer for the duplicated sound wave or not
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	void DuplicateSoundWave(bool bUseSharedAudioBuffer, const FOnDuplicateSoundWave& Result);
+
+	/**
+	 * Duplicate the sound wave to be able to play it in parallel. Suitable for use in C++
+	 * 
+	 * @param bUseSharedAudioBuffer Whether to use the same audio buffer for the duplicated sound wave or not
+	 * @param Result Delegate broadcasting the result
+	 */
+	virtual void DuplicateSoundWave(bool bUseSharedAudioBuffer, const FOnDuplicateSoundWaveNative& Result);
 
 	/**
 	 * Populate audio data from decoded info
@@ -298,6 +325,13 @@ public:
 	bool IsPlaybackFinished() const;
 
 	/**
+	 * Check if the sound wave is currently playing by the audio device or not
+	 * @return Whether the sound wave is playing or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (WorldContext = "WorldContextObject"))
+	bool IsPlaying(const UObject* WorldContextObject) const;
+
+	/**
 	 * Get the duration offset if some played back audio data was removed during playback (eg in ReleasePlayedAudioData)
 	 * The sound wave starts playing from this time as from the very beginning
 	 */
@@ -394,7 +428,7 @@ public:
 	ERuntimeAudioFormat GetAudioFormat() const;
 
 	/** Data guard (mutex) for thread safety */
-	mutable FCriticalSection DataGuard;
+	mutable TSharedPtr<FCriticalSection> DataGuard;
 
 protected:
 	/** Duration offset, needed to track the clearing of part of the audio data of the sound wave during playback (see ReleasePlayedAudioData) */
@@ -407,7 +441,7 @@ protected:
 	uint32 PlayedNumOfFrames;
 
 	/** Contains PCM data for sound wave playback */
-	TUniquePtr<FPCMStruct> PCMBufferInfo;
+	TSharedPtr<FPCMStruct> PCMBufferInfo;
 
 	/** Whether to stop the sound at the end of playback or not. Sound wave will not be garbage collected if playback was completed while this parameter is set to false */
 	bool bStopSoundOnPlaybackFinish;

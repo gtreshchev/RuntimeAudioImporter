@@ -35,7 +35,7 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
 	{
-		FRAIScopeLock Lock(&DataGuard);
+		FRAIScopeLock Lock(&*DataGuard);
 		if (!DecodedAudioInfo.IsValid())
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to continue populating the audio data because the decoded info is invalid"));
@@ -187,7 +187,7 @@ void UStreamingSoundWave::ReleaseMemory()
 
 void UStreamingSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result)
 {
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 	const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels;
 
 	if (GetNumOfPlayedFrames_Internal() > 0 && NumOfPreAllocatedByteData > 0 && NewPCMDataSize < PCMBufferInfo->PCMData.GetView().Num())
@@ -235,7 +235,7 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 		return;
 	}
 		
-	FRAIScopeLock Lock(&DataGuard);
+	FRAIScopeLock Lock(&*DataGuard);
 
 	auto ExecuteResult = [Result](bool bSucceeded)
 	{
