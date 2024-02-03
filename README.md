@@ -17,9 +17,7 @@
     .
     <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
     <br/>
-    <a href="https://t.me/georgydev">Telegram</a>
-    .
-    <a href="https://discord.gg/s3e53uByCq">Discord</a>
+    <a href="https://discord.gg/s3e53uByCq">Discord support chat</a>
   </p>
 
 ## Features
