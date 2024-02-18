@@ -189,6 +189,16 @@ public:
 	 */
 	void ImportAudioFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo);
 
+	/**
+	 * Resample and mix channels in decoded audio info
+	 * 
+	 * @param DecodedAudioInfo Decoded audio data
+	 * @param NewSampleRate New sample rate
+	 * @param NewNumOfChannels New number of channels
+	 * @return True if the resampling and mixing was successful
+	 */
+	static bool ResampleAndMixChannelsInDecodedInfo(FDecodedAudioStruct& DecodedAudioInfo, uint32 NewSampleRate, uint32 NewNumOfChannels);
+
 protected:
 	/**
 	 * Audio transcoding progress callback

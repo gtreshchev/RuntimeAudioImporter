@@ -93,9 +93,6 @@ protected:
 	TQueue<FAudioTaskDelegate> AppendAudioTaskQueue;
 
 private:
-	/** Whether the initial audio data is filled in or not */
-	bool bFilledInitialAudioData;
-
 	/** Number of pre-allocated byte data for PCM */
 	int64 NumOfPreAllocatedByteData;
 };

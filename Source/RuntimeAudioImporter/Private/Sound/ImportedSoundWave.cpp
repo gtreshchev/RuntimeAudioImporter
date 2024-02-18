@@ -2,6 +2,7 @@
 
 #include "Sound/ImportedSoundWave.h"
 #include "RuntimeAudioImporterDefines.h"
+#include "RuntimeAudioImporterLibrary.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
 #if UE_VERSION_OLDER_THAN(5, 2, 0)
@@ -334,6 +335,14 @@ void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& 
 {
 	FRAIScopeLock Lock(&*DataGuard);
 
+	// If the sound wave has not yet been filled in with audio data and the initial desired sample rate and the number of channels are set, resample and mix the channels
+	if (InitialDesiredSampleRate.IsSet() || InitialDesiredNumOfChannels.IsSet())
+	{
+		URuntimeAudioImporterLibrary::ResampleAndMixChannelsInDecodedInfo(DecodedAudioInfo,
+			InitialDesiredSampleRate.IsSet() ? InitialDesiredSampleRate.GetValue() : DecodedAudioInfo.SoundWaveBasicInfo.SampleRate,
+			InitialDesiredNumOfChannels.IsSet() ? InitialDesiredNumOfChannels.GetValue() : DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels);
+	}
+
 	const FString DecodedAudioInfoString = DecodedAudioInfo.ToString();
 
 	Duration = DecodedAudioInfo.SoundWaveBasicInfo.Duration;
@@ -589,6 +598,44 @@ bool UImportedSoundWave::RewindPlaybackTime_Internal(float PlaybackTime)
 	}
 
 	return SetNumOfPlayedFrames_Internal(PlaybackTime * SampleRate);
+}
+
+bool UImportedSoundWave::SetInitialDesiredSampleRate(int32 DesiredSampleRate)
+{
+	if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set the initial desired sample rate for the imported sound wave '%s' to '%d' because the PCM data has already been populated"), *GetName(), DesiredSampleRate);
+		return false;
+	}
+
+	if (DesiredSampleRate <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set the initial desired sample rate for the imported sound wave '%s' to '%d' because the sample rate must be greater than zero"), *GetName(), DesiredSampleRate);
+		return false;
+	}
+
+	InitialDesiredSampleRate = DesiredSampleRate;
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully set the initial desired sample rate for the imported sound wave '%s' to '%d'"), *GetName(), DesiredSampleRate);
+	return true;
+}
+
+bool UImportedSoundWave::SetInitialDesiredNumOfChannels(int32 DesiredNumOfChannels)
+{
+	if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set the initial desired number of channels for the imported sound wave '%s' to '%d' because the PCM data has already been populated"), *GetName(), DesiredNumOfChannels);
+		return false;
+	}
+
+	if (DesiredNumOfChannels <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set the initial desired number of channels for the imported sound wave '%s' to '%d' because the number of channels must be greater than zero"), *GetName(), DesiredNumOfChannels);
+		return false;
+	}
+
+	InitialDesiredNumOfChannels = DesiredNumOfChannels;
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully set the initial desired number of channels for the imported sound wave '%s' to '%d'"), *GetName(), DesiredNumOfChannels);
+	return true;
 }
 
 bool UImportedSoundWave::ResampleSoundWave(int32 NewSampleRate)
