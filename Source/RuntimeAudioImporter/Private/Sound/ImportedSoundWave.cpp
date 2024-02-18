@@ -615,6 +615,7 @@ bool UImportedSoundWave::SetInitialDesiredSampleRate(int32 DesiredSampleRate)
 	}
 
 	InitialDesiredSampleRate = DesiredSampleRate;
+	SampleRate = DesiredSampleRate;
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully set the initial desired sample rate for the imported sound wave '%s' to '%d'"), *GetName(), DesiredSampleRate);
 	return true;
 }
@@ -634,6 +635,7 @@ bool UImportedSoundWave::SetInitialDesiredNumOfChannels(int32 DesiredNumOfChanne
 	}
 
 	InitialDesiredNumOfChannels = DesiredNumOfChannels;
+	NumChannels = DesiredNumOfChannels;
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully set the initial desired number of channels for the imported sound wave '%s' to '%d'"), *GetName(), DesiredNumOfChannels);
 	return true;
 }
