@@ -123,7 +123,7 @@ public:
 	 * @param ResampledRAWData Resampled RAW data
 	 * @return True if the RAW data was successfully resampled
 	 */
-	static bool ResampleRAWData(Audio::FAlignedFloatBuffer& RAWData, int32 NumOfChannels, int32 SourceSampleRate, int32 DestinationSampleRate, Audio::FAlignedFloatBuffer& ResampledRAWData)
+	static bool ResampleRAWData(Audio::FAlignedFloatBuffer& RAWData, uint32 NumOfChannels, uint32 SourceSampleRate, uint32 DestinationSampleRate, Audio::FAlignedFloatBuffer& ResampledRAWData)
 	{
 		if (NumOfChannels <= 0)
 		{
@@ -150,7 +150,7 @@ public:
 
 		const Audio::FResamplingParameters ResampleParameters = {
 			Audio::EResamplingMethod::BestSinc,
-			NumOfChannels,
+			static_cast<int32>(NumOfChannels),
 			static_cast<float>(SourceSampleRate),
 			static_cast<float>(DestinationSampleRate),
 			RAWData

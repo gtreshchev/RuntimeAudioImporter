@@ -4,6 +4,7 @@
 
 #include "RuntimeAudioImporterTypes.h"
 #include "Sound/SoundWaveProcedural.h"
+#include "Misc/Optional.h"
 #include "ImportedSoundWave.generated.h"
 
 class UImportedSoundWave;
@@ -204,6 +205,30 @@ public:
 	 * @note This does not add a duration offset
 	 */
 	bool RewindPlaybackTime_Internal(float PlaybackTime);
+
+	/**
+	 * Set the initial desired sample rate of the sound wave
+	 * The sound wave PCM data will always contain this sample rate after the sound wave is populated with audio data
+	 *
+	 * @note This should be called before the sound wave is populated with any audio data
+	 * @param DesiredSampleRate The initial desired sample rate
+	 * @return Whether the initial desired sample rate was set or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	bool SetInitialDesiredSampleRate(int32 DesiredSampleRate);
+
+	/**
+	 * Set the initial desired number of channels of the sound wave
+	 * The sound wave PCM data will always contain this number of channels after the sound wave is populated with audio data
+	 *
+	 * @note This should be called before the sound wave is populated with any audio data
+	 * @param DesiredNumOfChannels The initial desired number of channels
+	 * @return Whether the initial desired number of channels was set or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	bool SetInitialDesiredNumOfChannels(int32 DesiredNumOfChannels);
+
+public:
 
 	// TODO: Make this async
 	/**
@@ -448,4 +473,10 @@ protected:
 
 	/** Audio format of the audio imported into the sound wave */
 	ERuntimeAudioFormat ImportedAudioFormat;
+
+	/** Initial desired sample rate of the sound wave (see SetInitialDesiredSampleRate) */
+	TOptional<uint32> InitialDesiredSampleRate;
+
+	/** Initial desired number of channels of the sound wave (see SetInitialDesiredNumChannels) */
+	TOptional<uint32> InitialDesiredNumOfChannels;
 };

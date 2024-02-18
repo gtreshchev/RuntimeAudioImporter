@@ -28,7 +28,6 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 		NumChannels = 2;
 	}
 
-	bFilledInitialAudioData = false;
 	NumOfPreAllocatedByteData = 0;
 }
 
@@ -42,50 +41,30 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 			return;
 		}
 
+		// Make sure the sample rate and the number of channels match the previously populated audio data
+		if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+		{
+			URuntimeAudioImporterLibrary::ResampleAndMixChannelsInDecodedInfo(DecodedAudioInfo, SampleRate, NumChannels);
+		}
+
+		// If the sound wave has not yet been filled in with audio data and the initial desired sample rate and the number of channels are set, resample and mix the channels
+		else if (InitialDesiredSampleRate.IsSet() || InitialDesiredNumOfChannels.IsSet())
+		{
+			URuntimeAudioImporterLibrary::ResampleAndMixChannelsInDecodedInfo(DecodedAudioInfo,
+				InitialDesiredSampleRate.IsSet() ? InitialDesiredSampleRate.GetValue() : DecodedAudioInfo.SoundWaveBasicInfo.SampleRate,
+				InitialDesiredNumOfChannels.IsSet() ? InitialDesiredNumOfChannels.GetValue() : DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels);
+		}
+
 		// Update the initial audio data if it hasn't already been filled in
-		if (!bFilledInitialAudioData)
+		if (PCMBufferInfo->PCMData.GetView().Num() <= 0)
 		{
 			SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
 			NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
-			bFilledInitialAudioData = true;
-		}
-
-		// Check if the number of channels and the sampling rate of the sound wave and the input audio data match
-		if (SampleRate != DecodedAudioInfo.SoundWaveBasicInfo.SampleRate || NumChannels != DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels)
-		{
-			Audio::FAlignedFloatBuffer WaveData(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num());
-
-			// Resampling if needed
-			if (SampleRate != DecodedAudioInfo.SoundWaveBasicInfo.SampleRate)
-			{
-				Audio::FAlignedFloatBuffer ResamplerOutputData;
-				if (!FRAW_RuntimeCodec::ResampleRAWData(WaveData, GetNumOfChannels(), GetSampleRate(), DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, ResamplerOutputData))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to resample audio data to the sound wave's sample rate. Resampling failed"));
-					return;
-				}
-				WaveData = MoveTemp(ResamplerOutputData);
-			}
-
-			// Mixing the channels if needed
-			if (NumChannels != DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels)
-			{
-				Audio::FAlignedFloatBuffer WaveDataTemp;
-				if (!FRAW_RuntimeCodec::MixChannelsRAWData(WaveData, DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, GetNumOfChannels(), DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels, WaveDataTemp))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mix audio data to the sound wave's number of channels. Mixing failed"));
-					return;
-				}
-				WaveData = MoveTemp(WaveDataTemp);
-			}
-
-			DecodedAudioInfo.PCMInfo.PCMData = FRuntimeBulkDataBuffer<float>(WaveData);
 		}
 
 		// Do not reallocate the entire PCM buffer if it has free space to fill in
 		if (static_cast<uint64>(NumOfPreAllocatedByteData) >= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float))
 		{
-			// This should be changed somehow to work with the new calculations
 			FMemory::Memcpy(reinterpret_cast<uint8*>(PCMBufferInfo->PCMData.GetView().GetData()) + ((PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) - NumOfPreAllocatedByteData), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float));
 			NumOfPreAllocatedByteData -= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float);
 			NumOfPreAllocatedByteData = NumOfPreAllocatedByteData < 0 ? 0 : NumOfPreAllocatedByteData;
