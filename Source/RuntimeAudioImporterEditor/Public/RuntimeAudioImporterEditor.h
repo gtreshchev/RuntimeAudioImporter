@@ -4,6 +4,8 @@
 
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogRuntimeAudioImporterEditor, Log, All);
+
 class FRuntimeAudioImporterEditorModule : public IModuleInterface
 {
 public:

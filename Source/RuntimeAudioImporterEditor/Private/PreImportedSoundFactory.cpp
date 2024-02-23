@@ -1,5 +1,6 @@
 // Georgy Treshchev 2023.
 
+#include "RuntimeAudioImporterEditor.h"
 #include "PreImportedSoundFactory.h"
 #include "PreImportedSoundAsset.h"
 #include "Misc/FileHelper.h"
@@ -10,7 +11,6 @@
 #include "Logging/MessageLog.h"
 
 #define LOCTEXT_NAMESPACE "PreImportedSoundFactory"
-DEFINE_LOG_CATEGORY(LogPreImportedSoundFactory);
 
 UPreImportedSoundFactory::UPreImportedSoundFactory()
 {
@@ -84,7 +84,7 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 
 	bOutOperationCanceled = false;
 
-	UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Successfully imported sound asset '%s'"), *Filename);
+	UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("Successfully imported sound asset '%s'"), *Filename);
 
 	return PreImportedSoundAsset;
 }
@@ -116,20 +116,20 @@ EReimportResult::Type UPreImportedSoundFactory::Reimport(UObject* Obj)
 
 	if (!PreImportedSoundAsset)
 	{
-		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The sound asset '%s' cannot be re-imported because the object is corrupted"), *PreImportedSoundAsset->SourceFilePath);
+		UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("The sound asset '%s' cannot be re-imported because the object is corrupted"), *PreImportedSoundAsset->SourceFilePath);
 		return EReimportResult::Failed;
 	}
 
 	if (PreImportedSoundAsset->SourceFilePath.IsEmpty() || !FPaths::FileExists(PreImportedSoundAsset->SourceFilePath))
 	{
-		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("The sound asset '%s' cannot be re-imported because the path to the source file cannot be found"), *PreImportedSoundAsset->SourceFilePath);
+		UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("The sound asset '%s' cannot be re-imported because the path to the source file cannot be found"), *PreImportedSoundAsset->SourceFilePath);
 		return EReimportResult::Failed;
 	}
 
 	bool OutCanceled = false;
 	if (ImportObject(Obj->GetClass(), Obj->GetOuter(), *Obj->GetName(), RF_Public | RF_Standalone, PreImportedSoundAsset->SourceFilePath, nullptr, OutCanceled))
 	{
-		UE_LOG(LogPreImportedSoundFactory, Log, TEXT("Successfully re-imported sound asset '%s'"), *PreImportedSoundAsset->SourceFilePath);
+		UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("Successfully re-imported sound asset '%s'"), *PreImportedSoundAsset->SourceFilePath);
 		return EReimportResult::Succeeded;
 	}
 
