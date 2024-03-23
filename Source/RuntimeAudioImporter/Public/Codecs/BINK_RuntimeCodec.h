@@ -14,5 +14,12 @@ public:
 	virtual bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality) override;
 	virtual bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData) override;
 	virtual ERuntimeAudioFormat GetAudioFormat() const override { return ERuntimeAudioFormat::Bink; }
+	virtual bool IsExtensionSupported(const FString& Extension) const override
+	{
+		return Extension.Equals(TEXT("bik"), ESearchCase::IgnoreCase)
+		|| Extension.Equals(TEXT("bk2"), ESearchCase::IgnoreCase)
+		|| Extension.Equals(TEXT("bink"), ESearchCase::IgnoreCase)
+		|| Extension.Equals(TEXT("binka"), ESearchCase::IgnoreCase);
+	}
 	//~ End FBaseRuntimeCodec Interface
 };

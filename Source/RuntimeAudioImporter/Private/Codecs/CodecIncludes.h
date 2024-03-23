@@ -21,9 +21,17 @@
 THIRD_PARTY_INCLUDES_START
 
 #ifdef INCLUDE_MP3
+
+#if DR_MP3_IMPLEMENTATION
 #define DRMP3_API static
 #define DRMP3_PRIVATE static
 #include "ThirdParty/dr_mp3.h"
+#elif MINIMP3_IMPLEMENTATION
+#define MINIMP3_FLOAT_OUTPUT
+#define MINIMP3_NO_STDIO
+#include "ThirdParty/minimp3_ex.h"
+#include "ThirdParty/minimp3.h"
+#endif
 #endif
 
 #ifdef INCLUDE_WAV
