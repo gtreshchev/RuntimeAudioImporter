@@ -34,7 +34,7 @@ UPreImportedSoundFactory::UPreImportedSoundFactory()
 bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 {
 	const FString FileExtension{FPaths::GetExtension(Filename).ToLower()};
-	return FileExtension == TEXT("imp") || URuntimeAudioUtilities::GetAudioFormat(Filename) != ERuntimeAudioFormat::Invalid;
+	return FileExtension == TEXT("imp") || URuntimeAudioUtilities::GetAudioFormats(Filename).Num() > 0;
 }
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
@@ -50,43 +50,50 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	FRuntimeBulkDataBuffer<uint8> BulkDataBuffer(AudioData);
 
 	FRuntimeCodecFactory CodecFactory;
-	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(BulkDataBuffer);
+	TArray<FBaseRuntimeCodec*> RuntimeCodecs = CodecFactory.GetCodecs(BulkDataBuffer);
 
-	if (!RuntimeCodec.IsValid())
+	if (RuntimeCodecs.Num() == 0)
 	{
 		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_CodecError", "Unable to determine the audio codec for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
 		return nullptr;
 	}
 
-	FRuntimeAudioHeaderInfo HeaderInfo;
-	FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(BulkDataBuffer, RuntimeCodec->GetAudioFormat());
+	FText ErrorText = LOCTEXT("PreImportedSoundFactory_UnknownError", "An unknown error occurred while importing the sound asset");
+	for (FBaseRuntimeCodec* RuntimeCodec : RuntimeCodecs)
+	{
+		FRuntimeAudioHeaderInfo HeaderInfo;
+		FEncodedAudioStruct EncodedAudioInfo = FEncodedAudioStruct(BulkDataBuffer, RuntimeCodec->GetAudioFormat());
 	
-	if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedAudioInfo), HeaderInfo))
-	{
-		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_HeaderError", "Unable to get the header info for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename)));
-		return nullptr;
+		if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedAudioInfo), HeaderInfo))
+		{
+			ErrorText = FText::Format(LOCTEXT("PreImportedSoundFactory_HeaderError", "Unable to get the header info for the file '{0}'. Make sure the file is not corrupted'"), FText::FromString(Filename));
+			continue;
+		}
+
+		UPreImportedSoundAsset* PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
+		if (!PreImportedSoundAsset)
+		{
+			ErrorText = FText::Format(LOCTEXT("PreImportedSoundFactory_CreateError", "Unable to create the sound asset '{0}'"), FText::FromString(Filename));
+			continue;
+		}
+
+		PreImportedSoundAsset->AudioDataArray = AudioData;
+		PreImportedSoundAsset->AudioFormat = HeaderInfo.AudioFormat;
+		PreImportedSoundAsset->SourceFilePath = Filename;
+
+		PreImportedSoundAsset->SoundDuration = URuntimeAudioUtilities::ConvertSecondsToString(HeaderInfo.Duration);
+		PreImportedSoundAsset->NumberOfChannels = HeaderInfo.NumOfChannels;
+		PreImportedSoundAsset->SampleRate = HeaderInfo.SampleRate;
+
+		bOutOperationCanceled = false;
+
+		UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("Successfully imported sound asset '%s'"), *Filename);
+
+		return PreImportedSoundAsset;
 	}
-
-	UPreImportedSoundAsset* PreImportedSoundAsset = NewObject<UPreImportedSoundAsset>(InParent, UPreImportedSoundAsset::StaticClass(), InName, Flags);
-	if (!PreImportedSoundAsset)
-	{
-		FMessageLog("Import").Error(FText::Format(LOCTEXT("PreImportedSoundFactory_CreateError", "Unable to create the sound asset '{0}'"), FText::FromString(Filename)));
-		return nullptr;
-	}
-
-	PreImportedSoundAsset->AudioDataArray = AudioData;
-	PreImportedSoundAsset->AudioFormat = HeaderInfo.AudioFormat;
-	PreImportedSoundAsset->SourceFilePath = Filename;
-
-	PreImportedSoundAsset->SoundDuration = URuntimeAudioUtilities::ConvertSecondsToString(HeaderInfo.Duration);
-	PreImportedSoundAsset->NumberOfChannels = HeaderInfo.NumOfChannels;
-	PreImportedSoundAsset->SampleRate = HeaderInfo.SampleRate;
-
-	bOutOperationCanceled = false;
-
-	UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("Successfully imported sound asset '%s'"), *Filename);
-
-	return PreImportedSoundAsset;
+	
+	FMessageLog("Import").Error(ErrorText);
+	return nullptr;
 }
 
 bool UPreImportedSoundFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)

@@ -6,22 +6,22 @@
 #include "Codecs/BaseRuntimeCodec.h"
 #include "Codecs/RuntimeCodecFactory.h"
 
-ERuntimeAudioFormat URuntimeAudioUtilities::GetAudioFormat(const FString& FilePath)
+TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormats(const FString& FilePath)
 {
 	FRuntimeCodecFactory CodecFactory;
-	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(FilePath);
+	TArray<ERuntimeAudioFormat> AudioFormats;
 
-	if (!RuntimeCodec.IsValid())
+	for (FBaseRuntimeCodec* Codec : CodecFactory.GetCodecs(FilePath))
 	{
-		return ERuntimeAudioFormat::Invalid;
+		AudioFormats.Add(Codec->GetAudioFormat());
 	}
 
-	return RuntimeCodec->GetAudioFormat();
+	return AudioFormats;
 }
 
-ERuntimeAudioFormat URuntimeAudioUtilities::GetAudioFormatAdvanced(const TArray<uint8>& AudioData)
+TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormatsAdvanced(const TArray<uint8>& AudioData)
 {
-	return GetAudioFormatAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));
+	return GetAudioFormatsAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));
 }
 
 void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath, const FOnGetAudioHeaderInfoResult& Result)
@@ -81,47 +81,45 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromBuffer(TArray64<uint8> AudioD
 		FRuntimeBulkDataBuffer<uint8> BulkAudioData = FRuntimeBulkDataBuffer<uint8>(AudioData);
 
 		FRuntimeCodecFactory CodecFactory;
-		TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(BulkAudioData);
-
-		if (!RuntimeCodec.IsValid())
-		{
-			ExecuteResult(false, FRuntimeAudioHeaderInfo());
-			return;
-		}
+		TArray<FBaseRuntimeCodec*> RuntimeCodecs = CodecFactory.GetCodecs(BulkAudioData);
 
 		FEncodedAudioStruct EncodedData;
+		EncodedData.AudioData = MoveTemp(BulkAudioData);
+		for (FBaseRuntimeCodec* RuntimeCodec : RuntimeCodecs)
 		{
-			EncodedData.AudioData = MoveTemp(BulkAudioData);
 			EncodedData.AudioFormat = RuntimeCodec->GetAudioFormat();
-		}
 
-		FRuntimeAudioHeaderInfo HeaderInfo;
-		if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedData), HeaderInfo))
-		{
-			ExecuteResult(false, FRuntimeAudioHeaderInfo());
+			FRuntimeAudioHeaderInfo HeaderInfo;
+			if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedData), HeaderInfo))
+			{
+				continue;
+			}
+
+			ExecuteResult(true, MoveTemp(HeaderInfo));
 			return;
 		}
 
-		ExecuteResult(true, MoveTemp(HeaderInfo));
+		ExecuteResult(false, FRuntimeAudioHeaderInfo());
 	});
 }
 
-ERuntimeAudioFormat URuntimeAudioUtilities::GetAudioFormatAdvanced(const TArray64<uint8>& AudioData)
+TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormatsAdvanced(const TArray64<uint8>& AudioData)
 {
-	return GetAudioFormatAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));
+	return GetAudioFormatsAdvanced(FRuntimeBulkDataBuffer<uint8>(AudioData));
 }
 
-ERuntimeAudioFormat URuntimeAudioUtilities::GetAudioFormatAdvanced(const FRuntimeBulkDataBuffer<uint8>& AudioData)
+TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormatsAdvanced(const FRuntimeBulkDataBuffer<uint8>& AudioData)
 {
 	FRuntimeCodecFactory CodecFactory;
-	TUniquePtr<FBaseRuntimeCodec> RuntimeCodec = CodecFactory.GetCodec(AudioData);
+	TArray<FBaseRuntimeCodec*> RuntimeCodecs = CodecFactory.GetCodecs(AudioData);
+	TArray<ERuntimeAudioFormat> AudioFormats;
 
-	if (!RuntimeCodec.IsValid())
+	for (FBaseRuntimeCodec* RuntimeCodec : RuntimeCodecs)
 	{
-		return ERuntimeAudioFormat::Invalid;
+		AudioFormats.Add(RuntimeCodec->GetAudioFormat());
 	}
 
-	return RuntimeCodec->GetAudioFormat();
+	return AudioFormats;
 }
 
 FString URuntimeAudioUtilities::ConvertSecondsToString(int64 Seconds)
@@ -179,7 +177,7 @@ void URuntimeAudioUtilities::ScanDirectoryForAudioFiles(const FString& Directory
 				}
 
 				FString AudioFilePath = FilenameOrDirectory;
-				if (CodecFactory.GetCodec(AudioFilePath).IsValid())
+				if (CodecFactory.GetCodecs(AudioFilePath).Num() > 0)
 				{
 					AudioFilePaths.Add(MoveTemp(AudioFilePath));
 				}

@@ -18,6 +18,10 @@ public class RuntimeAudioImporter : ModuleRules
 
 		// Bink format is only supported in Unreal Engine version >= 5
 		bool bEnableBinkSupport = Target.Version.MajorVersion >= 5;
+		
+		// Whether to use dr_mp3 or minimp3 for MP3 decoding (minimp3 is used by default)
+		// minimp3 is preferred since it supports LAME tags for more precise seeking and length information
+		bool bUseDrMp3 = false;
 
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -38,12 +42,14 @@ public class RuntimeAudioImporter : ModuleRules
 #endif
 				"libvorbisenc.a"));
 		}
+		
+		PublicDefinitions.Add(string.Format("DR_MP3_IMPLEMENTATION={0}", bUseDrMp3 ? "1" : "0"));
+		PublicDefinitions.Add(string.Format("MINIMP3_IMPLEMENTATION={0}", bUseDrMp3 ? "0" : "1"));
 
 		PublicDefinitions.AddRange(
 			new string[]
 			{
 				"DR_WAV_IMPLEMENTATION=1",
-				"DR_MP3_IMPLEMENTATION=1",
 				"DR_FLAC_IMPLEMENTATION=1"
 			}
 		);

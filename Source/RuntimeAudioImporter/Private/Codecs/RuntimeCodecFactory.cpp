@@ -2,98 +2,75 @@
 
 #include "Codecs/RuntimeCodecFactory.h"
 #include "Codecs/BaseRuntimeCodec.h"
-
-#include "Codecs/MP3_RuntimeCodec.h"
-#include "Codecs/WAV_RuntimeCodec.h"
-#include "Codecs/FLAC_RuntimeCodec.h"
-#include "Codecs/VORBIS_RuntimeCodec.h"
-#include "Codecs/BINK_RuntimeCodec.h"
-
+#include "Features/IModularFeatures.h"
 #include "Misc/Paths.h"
 
 #include "RuntimeAudioImporterDefines.h"
 
-TUniquePtr<FBaseRuntimeCodec> FRuntimeCodecFactory::GetCodec(const FString& FilePath)
+TArray<FBaseRuntimeCodec*> FRuntimeCodecFactory::GetCodecs()
 {
-	const FString Extension = FPaths::GetExtension(FilePath, false).ToLower();
-
-	if (Extension == TEXT("mp3"))
-	{
-		return MakeUnique<FMP3_RuntimeCodec>();
-	}
-	if (Extension == TEXT("wav") || Extension == TEXT("wave"))
-	{
-		return MakeUnique<FWAV_RuntimeCodec>();
-	}
-	if (Extension == TEXT("flac"))
-	{
-		return MakeUnique<FFLAC_RuntimeCodec>();
-	}
-	if (Extension == TEXT("ogg") || Extension == TEXT("oga") || Extension == TEXT("sb0"))
-	{
-		return MakeUnique<FVORBIS_RuntimeCodec>();
-	}
-	if (Extension == TEXT("bink") || Extension == TEXT("binka") || Extension == TEXT("bnk"))
-	{
-		return MakeUnique<FBINK_RuntimeCodec>();
-	}
-
-	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to determine the audio codec for '%s' using its file name"), *FilePath);
-	return nullptr;
+#if UE_VERSION_NEWER_THAN(5, 1, 0)
+	IModularFeatures::FScopedLockModularFeatureList ScopedLockModularFeatureList;
+#endif
+	TArray<FBaseRuntimeCodec*> AvailableCodecs = IModularFeatures::Get().GetModularFeatureImplementations<FBaseRuntimeCodec>(GetModularFeatureName());
+	return AvailableCodecs;
 }
 
-TUniquePtr<FBaseRuntimeCodec> FRuntimeCodecFactory::GetCodec(ERuntimeAudioFormat AudioFormat)
+TArray<FBaseRuntimeCodec*> FRuntimeCodecFactory::GetCodecs(const FString& FilePath)
 {
-	switch (AudioFormat)
+	TArray<FBaseRuntimeCodec*> Codecs;
+	const FString Extension = FPaths::GetExtension(FilePath, false);
+
+	for (FBaseRuntimeCodec* Codec : GetCodecs())
 	{
-	case ERuntimeAudioFormat::Mp3:
-		return MakeUnique<FMP3_RuntimeCodec>();
-	case ERuntimeAudioFormat::Wav:
-		return MakeUnique<FWAV_RuntimeCodec>();
-	case ERuntimeAudioFormat::Flac:
-		return MakeUnique<FFLAC_RuntimeCodec>();
-	case ERuntimeAudioFormat::OggVorbis:
-		return MakeUnique<FVORBIS_RuntimeCodec>();
-	case ERuntimeAudioFormat::Bink:
-		return MakeUnique<FBINK_RuntimeCodec>();
-	default:
+		if (Codec->IsExtensionSupported(Extension))
+		{
+			Codecs.Add(Codec);
+		}
+	}
+
+	if (Codecs.Num() == 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Failed to determine the audio codec for '%s' using its file name"), *FilePath);
+	}
+
+	return Codecs;
+}
+
+TArray<FBaseRuntimeCodec*> FRuntimeCodecFactory::GetCodecs(ERuntimeAudioFormat AudioFormat)
+{
+	TArray<FBaseRuntimeCodec*> Codecs;
+	for (FBaseRuntimeCodec* Codec : GetCodecs())
+	{
+		if (Codec->GetAudioFormat() == AudioFormat)
+		{
+			Codecs.Add(Codec);
+		}
+	}
+
+	if (Codecs.Num() == 0)
+	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to determine the audio codec for the %s format"), *UEnum::GetValueAsString(AudioFormat));
-		return nullptr;
 	}
+
+	return Codecs;
 }
 
-TUniquePtr<FBaseRuntimeCodec> FRuntimeCodecFactory::GetCodec(const FRuntimeBulkDataBuffer<uint8>& AudioData)
+TArray<FBaseRuntimeCodec*> FRuntimeCodecFactory::GetCodecs(const FRuntimeBulkDataBuffer<uint8>& AudioData)
 {
-	TUniquePtr<FBaseRuntimeCodec> MP3_Codec = MakeUnique<FMP3_RuntimeCodec>();
-	if (MP3_Codec->CheckAudioFormat(AudioData))
+	TArray<FBaseRuntimeCodec*> Codecs;
+	for (FBaseRuntimeCodec* Codec : GetCodecs())
 	{
-		return MoveTemp(MP3_Codec);
+		if (Codec->CheckAudioFormat(AudioData))
+		{
+			Codecs.Add(Codec);
+		}
 	}
 
-	TUniquePtr<FBaseRuntimeCodec> FLAC_Codec = MakeUnique<FFLAC_RuntimeCodec>();
-	if (FLAC_Codec->CheckAudioFormat(AudioData))
+	if (Codecs.Num() == 0)
 	{
-		return MoveTemp(FLAC_Codec);
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to determine the audio codec based on the audio data of size %lld bytes"), static_cast<int64>(AudioData.GetView().Num()));
 	}
 
-	TUniquePtr<FBaseRuntimeCodec> VORBIS_Codec = MakeUnique<FVORBIS_RuntimeCodec>();
-	if (VORBIS_Codec->CheckAudioFormat(AudioData))
-	{
-		return MoveTemp(VORBIS_Codec);
-	}
-
-	TUniquePtr<FBaseRuntimeCodec> BINK_Codec = MakeUnique<FBINK_RuntimeCodec>();
-	if (BINK_Codec->CheckAudioFormat(AudioData))
-	{
-		return MoveTemp(BINK_Codec);
-	}
-
-	TUniquePtr<FBaseRuntimeCodec> WAV_Codec = MakeUnique<FWAV_RuntimeCodec>();
-	if (WAV_Codec->CheckAudioFormat(AudioData))
-	{
-		return MoveTemp(WAV_Codec);
-	}
-
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to determine the audio codec based on the audio data of size %lld bytes"), static_cast<int64>(AudioData.GetView().Num()));
-	return nullptr;
+	return Codecs;
 }

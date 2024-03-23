@@ -40,7 +40,7 @@
 
 ## Additional information
 
-The in-memory audio transcoding operation is done on [dr_libs](https://github.com/mackron/dr_libs).
+MP3, WAV, and FLAC audio transcoding operations are powered by [dr_libs](https://github.com/mackron/dr_libs) and [minimp3](https://github.com/lieff/minimp3).
 
 ## Legal info
 

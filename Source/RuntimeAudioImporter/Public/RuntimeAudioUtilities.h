@@ -35,19 +35,19 @@ public:
 	 * Get the audio format based on file extension
 	 *
 	 * @param FilePath File path where to find the format (by extension)
-	 * @return The found audio format (e.g. mp3. flac, etc)
+	 * @return The found audio formats (e.g. mp3. flac, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Utilities|Utilities")
-	static ERuntimeAudioFormat GetAudioFormat(const FString& FilePath);
+	static TArray<ERuntimeAudioFormat> GetAudioFormats(const FString& FilePath);
 
 	/**
 	 * Determine the audio format based on audio data. A more advanced way to get the format
 	 *
 	 * @param AudioData Audio data array
-	 * @return The found audio format (e.g. mp3. flac, etc)
+	 * @return The found audio formats (e.g. mp3. flac, etc)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Runtime Audio Utilities|Utilities")
-	static ERuntimeAudioFormat GetAudioFormatAdvanced(const TArray<uint8>& AudioData);
+	static TArray<ERuntimeAudioFormat> GetAudioFormatsAdvanced(const TArray<uint8>& AudioData);
 
 	/**
 	 * Retrieve audio header (metadata) information from a file
@@ -87,17 +87,17 @@ public:
 	 * Determine audio format based on audio data. A more advanced way to get the format. Suitable for use with 64-bit data size
 	 *
 	 * @param AudioData Audio data array
-	 * @return The found audio format (e.g. mp3. flac, etc)
+	 * @return The found audio formats (e.g. mp3. flac, etc)
 	 */
-	static ERuntimeAudioFormat GetAudioFormatAdvanced(const TArray64<uint8>& AudioData);
+	static TArray<ERuntimeAudioFormat> GetAudioFormatsAdvanced(const TArray64<uint8>& AudioData);
 
 	/**
 	 * Determine audio format based on audio data. A more advanced way to get the format. Suitable for use with 64-bit data size
 	 *
 	 * @param AudioData Audio data array
-	 * @return The found audio format (e.g. mp3. flac, etc)
+	 * @return The found audio formats (e.g. mp3. flac, etc)
 	 */
-	static ERuntimeAudioFormat GetAudioFormatAdvanced(const FRuntimeBulkDataBuffer<uint8>& AudioData);
+	static TArray<ERuntimeAudioFormat> GetAudioFormatsAdvanced(const FRuntimeBulkDataBuffer<uint8>& AudioData);
 
 	/**
 	 * Convert seconds to string (hh:mm:ss or mm:ss depending on the number of seconds)

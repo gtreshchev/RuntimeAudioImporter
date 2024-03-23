@@ -14,5 +14,6 @@ public:
 	virtual bool Encode(FDecodedAudioStruct DecodedData, FEncodedAudioStruct& EncodedData, uint8 Quality) override;
 	virtual bool Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStruct& DecodedData) override;
 	virtual ERuntimeAudioFormat GetAudioFormat() const override { return ERuntimeAudioFormat::Flac; }
+	virtual bool IsExtensionSupported(const FString& Extension) const override { return Extension.Equals(TEXT("flac"), ESearchCase::IgnoreCase); }
 	//~ End FBaseRuntimeCodec Interface
 };
