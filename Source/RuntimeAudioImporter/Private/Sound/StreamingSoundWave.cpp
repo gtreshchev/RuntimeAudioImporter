@@ -27,8 +27,6 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 		SetSampleRate(44100);
 		NumChannels = 2;
 	}
-
-	NumOfPreAllocatedByteData = 0;
 }
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
@@ -41,8 +39,11 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 			return;
 		}
 
+		// Whether the audio data has been populated with PCM buffer
+		const bool bHasPreviouslyPopulatedRealPCMData = PCMBufferInfo->PCMData.GetView().Num() > 0;
+
 		// Make sure the sample rate and the number of channels match the previously populated audio data
-		if (PCMBufferInfo->PCMData.GetView().Num() > 0)
+		if (bHasPreviouslyPopulatedRealPCMData)
 		{
 			URuntimeAudioImporterLibrary::ResampleAndMixChannelsInDecodedInfo(DecodedAudioInfo, SampleRate, NumChannels);
 		}
@@ -56,38 +57,13 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		}
 
 		// Update the initial audio data if it hasn't already been filled in
-		if (PCMBufferInfo->PCMData.GetView().Num() <= 0)
+		if (!bHasPreviouslyPopulatedRealPCMData)
 		{
 			SetSampleRate(DecodedAudioInfo.SoundWaveBasicInfo.SampleRate);
 			NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
 		}
 
-		// Do not reallocate the entire PCM buffer if it has free space to fill in
-		if (static_cast<uint64>(NumOfPreAllocatedByteData) >= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float))
-		{
-			FMemory::Memcpy(reinterpret_cast<uint8*>(PCMBufferInfo->PCMData.GetView().GetData()) + ((PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) - NumOfPreAllocatedByteData), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float));
-			NumOfPreAllocatedByteData -= DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float);
-			NumOfPreAllocatedByteData = NumOfPreAllocatedByteData < 0 ? 0 : NumOfPreAllocatedByteData;
-		}
-		else
-		{
-			const int64 NewPCMDataSize = ((PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) + (DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float)) - NumOfPreAllocatedByteData) / sizeof(float);
-			float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NewPCMDataSize * sizeof(float)));
-
-			if (!NewPCMDataPtr)
-			{
-				return;
-			}
-
-			// Adding new PCM data at the end
-			{
-				FMemory::Memcpy(NewPCMDataPtr, PCMBufferInfo->PCMData.GetView().GetData(), (PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) - NumOfPreAllocatedByteData);
-				FMemory::Memcpy(reinterpret_cast<uint8*>(NewPCMDataPtr) + ((PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) - NumOfPreAllocatedByteData), DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData(), DecodedAudioInfo.PCMInfo.PCMData.GetView().Num() * sizeof(float));
-			}
-
-			PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NewPCMDataSize);
-			NumOfPreAllocatedByteData = 0;
-		}
+		PCMBufferInfo->PCMData.Append(MoveTemp(DecodedAudioInfo.PCMInfo.PCMData));
 
 		PCMBufferInfo->PCMNumOfFrames += DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
 		Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;
@@ -155,26 +131,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		AppendAudioTask->ExecuteIfBound();
 	}
 
-	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
-}
-
-void UStreamingSoundWave::ReleaseMemory()
-{
-	Super::ReleaseMemory();
-	NumOfPreAllocatedByteData = 0;
-}
-
-void UStreamingSoundWave::ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result)
-{
-	FRAIScopeLock Lock(&*DataGuard);
-	const int64 NewPCMDataSize = (PCMBufferInfo->PCMNumOfFrames - GetNumOfPlayedFrames_Internal()) * NumChannels;
-
-	if (GetNumOfPlayedFrames_Internal() > 0 && NumOfPreAllocatedByteData > 0 && NewPCMDataSize < PCMBufferInfo->PCMData.GetView().Num())
-	{
-		NumOfPreAllocatedByteData -= (PCMBufferInfo->PCMData.GetView().Num() * sizeof(float)) - (NewPCMDataSize * sizeof(float));
-		NumOfPreAllocatedByteData = NumOfPreAllocatedByteData < 0 ? 0 : NumOfPreAllocatedByteData;
-	}
-	Super::ReleasePlayedAudioData(Result);
+	UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
 
 UStreamingSoundWave* UStreamingSoundWave::CreateStreamingSoundWave()
@@ -224,25 +181,7 @@ void UStreamingSoundWave::PreAllocateAudioData(int64 NumOfBytesToPreAllocate, co
 		});
 	};
 
-	if (PCMBufferInfo->PCMData.GetView().Num() > 0 || NumOfPreAllocatedByteData > 0)
-	{
-		ensureMsgf(false, TEXT("Pre-allocation of PCM data can only be applied if the PCM data has not yet been allocated"));
-		ExecuteResult(false);
-		return;
-	}
-
-	float* NewPCMDataPtr = static_cast<float*>(FMemory::Malloc(NumOfBytesToPreAllocate));
-	if (!NewPCMDataPtr)
-	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory to pre-allocate streaming sound wave audio data with '%lld' number of bytes"), NumOfBytesToPreAllocate);
-		ExecuteResult(false);
-		return;
-	}
-
-	{
-		NumOfPreAllocatedByteData = NumOfBytesToPreAllocate;
-		PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(NewPCMDataPtr, NumOfBytesToPreAllocate / sizeof(float));
-	}
+	PCMBufferInfo->PCMData.Reserve(NumOfBytesToPreAllocate / sizeof(float));
 
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully pre-allocated '%lld' number of bytes"), NumOfBytesToPreAllocate);
 	ExecuteResult(true);

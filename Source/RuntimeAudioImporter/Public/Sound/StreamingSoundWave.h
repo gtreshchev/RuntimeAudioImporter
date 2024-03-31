@@ -81,8 +81,6 @@ public:
 
 	//~ Begin UImportedSoundWave Interface
 	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo) override;
-	virtual void ReleaseMemory() override;
-	virtual void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result) override;
 	//~ End UImportedSoundWave Interface
 
 protected:
@@ -91,8 +89,4 @@ protected:
 
 	/** Queue of audio data to be appended. Needed to maintain the consecutive order of audio data when appending */
 	TQueue<FAudioTaskDelegate> AppendAudioTaskQueue;
-
-private:
-	/** Number of pre-allocated byte data for PCM */
-	int64 NumOfPreAllocatedByteData;
 };

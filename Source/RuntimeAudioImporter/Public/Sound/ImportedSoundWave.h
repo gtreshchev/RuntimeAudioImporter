@@ -140,24 +140,6 @@ public:
 	virtual void ReleaseMemory();
 
 	/**
-	 * Remove previously played audio data. Adds a duration offset from the removed audio data
-	 * This re-allocates all audio data memory, so should not be called too frequently
-	 * 
-	 * @param Result Delegate broadcasting the result
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Miscellaneous")
-	void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResult& Result);
-
-	/**
-	 * Remove previously played audio data. Adds a duration offset from the removed audio data
-	 * This re-allocates all audio data memory, so should not be called too frequently
-	 * Suitable for use in C++
-	 *
-	 * @param Result Delegate broadcasting the result
-	 */
-	virtual void ReleasePlayedAudioData(const FOnPlayedAudioDataReleaseResultNative& Result);
-
-	/**
 	 * Set whether the sound should loop or not
 	 *
 	 * @param bLoop Whether the sound should loop or not
@@ -192,7 +174,6 @@ public:
 	/**
 	 * Rewind the sound for the specified time
 	 *
-	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 * @param PlaybackTime How long to rewind the sound
 	 * @return Whether the sound was rewound or not
 	 */
@@ -202,7 +183,6 @@ public:
 	/**
 	 * Thread-unsafe equivalent of RewindPlaybackTime
 	 * Should only be used if DataGuard is locked
-	 * @note This does not add a duration offset
 	 */
 	bool RewindPlaybackTime_Internal(float PlaybackTime);
 
@@ -281,7 +261,6 @@ public:
 
 	/**
 	 * Get the current sound wave playback time, in seconds
-	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
 	float GetPlaybackTime() const;
@@ -289,20 +268,17 @@ public:
 	/**
 	 * Thread-unsafe equivalent of GetPlaybackTime
 	 * Should only be used if DataGuard is locked
-	 * @note This does not add a duration offset
 	 */
 	float GetPlaybackTime_Internal() const;
 
 	/**
 	 * Constant alternative for getting the length of the sound wave, in seconds
-	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (DisplayName = "Get Duration"))
 	float GetDurationConst() const;
 
 	/**
 	 * Get the length of the sound wave, in seconds
-	 * @note This adds a duration offset (relevant if ReleasePlayedAudioData was used)
 	 */
 	virtual float GetDuration()
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
@@ -314,7 +290,6 @@ public:
 	/**
 	 * Thread-unsafe equivalent of GetDurationConst
 	 * Should only be used if DataGuard is locked
-	 * @note This does not add a duration offset
 	 */
 	float GetDurationConst_Internal() const;
 
@@ -355,19 +330,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info", meta = (WorldContext = "WorldContextObject"))
 	bool IsPlaying(const UObject* WorldContextObject) const;
-
-	/**
-	 * Get the duration offset if some played back audio data was removed during playback (eg in ReleasePlayedAudioData)
-	 * The sound wave starts playing from this time as from the very beginning
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Info")
-	float GetDurationOffset() const;
-
-	/**
-	 * Thread-unsafe equivalent of GetDurationOffset
-	 * Should only be used if DataGuard is locked
-	 */
-	float GetDurationOffset_Internal() const;
 
 	/**
 	 * Thread-unsafe equivalent of IsPlaybackFinished
@@ -456,9 +418,6 @@ public:
 	mutable TSharedPtr<FCriticalSection> DataGuard;
 
 protected:
-	/** Duration offset, needed to track the clearing of part of the audio data of the sound wave during playback (see ReleasePlayedAudioData) */
-	float DurationOffset;
-
 	/** Bool to control the behaviour of the OnAudioPlaybackFinished delegate */
 	bool PlaybackFinishedBroadcast;
 
