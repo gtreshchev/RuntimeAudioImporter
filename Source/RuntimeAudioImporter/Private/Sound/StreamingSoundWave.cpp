@@ -63,7 +63,7 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 			NumChannels = DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels;
 		}
 
-		PCMBufferInfo->PCMData.Append(MoveTemp(DecodedAudioInfo.PCMInfo.PCMData));
+		PCMBufferInfo->PCMData.Append(DecodedAudioInfo.PCMInfo.PCMData);
 
 		PCMBufferInfo->PCMNumOfFrames += DecodedAudioInfo.PCMInfo.PCMNumOfFrames;
 		Duration += DecodedAudioInfo.SoundWaveBasicInfo.Duration;

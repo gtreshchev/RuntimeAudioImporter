@@ -144,10 +144,15 @@ public:
 		return true;
 	}
 
+	void Append(const FRuntimeBulkDataBuffer<DataType>& Other)
+	{
+		Append(Other.GetView().GetData(), Other.GetView().Num());
+	}
+
 	void Append(FRuntimeBulkDataBuffer<DataType>&& Other)
 	{
 		Append(Other.GetView().GetData(), Other.GetView().Num());
-		Other.View = ViewType();
+		Other.Empty();
 	}
 
 	/**
