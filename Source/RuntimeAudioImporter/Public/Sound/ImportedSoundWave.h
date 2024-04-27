@@ -233,6 +233,16 @@ public:
 	bool MixSoundWaveChannels(int32 NewNumOfChannels);
 
 	/**
+	 * Stop the sound wave playback
+	 * 
+	 * @note It is recommended to stop the sound wave playback using external means (e.g., by calling Stop on the audio component) and to use this function only if external means are not available
+	 * @warning This function does not work for playback from MetaSounds
+	 * @return Whether the sound wave was stopped or not
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main", meta = (WorldContext = "WorldContextObject"))
+	bool StopPlayback(const UObject* WorldContextObject);
+
+	/**
 	 * Change the number of frames played back. Used to rewind the sound
 	 *
 	 * @param NumOfFrames The new number of frames from which to continue playing sound

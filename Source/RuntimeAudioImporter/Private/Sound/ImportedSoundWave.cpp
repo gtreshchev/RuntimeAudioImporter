@@ -624,6 +624,45 @@ bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
 	return true;
 }
 
+bool UImportedSoundWave::StopPlayback(const UObject* WorldContextObject)
+{
+	if (!GEngine)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop the playback of the sound wave '%s' because GEngine is invalid"), *GetName());
+		return false;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!ThisWorld)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop the playback of the sound wave '%s' because the world context object is invalid"), *GetName());
+		return false;
+	}
+
+#if UE_VERSION_OLDER_THAN(4, 25, 0)
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+#else
+	if (FAudioDeviceHandle AudioDevice = ThisWorld->GetAudioDevice())
+#endif
+	{
+		const TArray<FActiveSound*>& ActiveSounds = AudioDevice->GetActiveSounds();
+		for (FActiveSound* ActiveSoundPtr : ActiveSounds)
+		{
+			if (ActiveSoundPtr->GetSound() == this && ActiveSoundPtr->IsPlayingAudio())
+			{
+				UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Stopping the active sound '%s' playing the sound wave '%s'"), *ActiveSoundPtr->GetOwnerName(), *GetName());
+				AudioDevice->StopActiveSound(ActiveSoundPtr);
+
+				// Only one sound wave can be played at a time, so we can stop the loop here
+				return true;
+			}
+		}
+	}
+
+	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("The sound wave '%s' is not playing"), *GetName());
+	return false;
+}
+
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
 	FRAIScopeLock Lock(&*DataGuard);
@@ -729,7 +768,7 @@ bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
 {
 	if (!GEngine)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to check if the sound wave '%s' is playing because the GEngine is invalid"), *GetName());
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to check if the sound wave '%s' is playing because GEngine is invalid"), *GetName());
 		return false;
 	}
 
@@ -757,6 +796,7 @@ bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
 		}
 	}
 
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The sound wave '%s' is not playing"), *GetName());
 	return false;
 }
 
