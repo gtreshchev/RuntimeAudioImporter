@@ -80,6 +80,7 @@ namespace RuntimeAudioImporter
 			return DefaultInterface;
 		}
 
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 		static TUniquePtr<IOperator> CreateOperator(const Metasound::FCreateOperatorParams& InParams, Metasound::FBuildErrorArray& OutErrors)
 		{
 			using namespace Metasound;
@@ -91,6 +92,19 @@ namespace RuntimeAudioImporter
 
 			return MakeUnique<FImportedWaveToWaveAssetNodeOperator>(ImportedWaveIn);
 		}
+#else
+		static TUniquePtr<IOperator> CreateOperator(const Metasound::FBuildOperatorParams& InParams, Metasound::FBuildResults& OutResults)
+		{
+			using namespace Metasound;
+			using namespace ImportedWaveToWaveAssetNodeParameterNames;
+
+			const FInputVertexInterfaceData& InputDataRefs = InParams.InputData;
+
+			FImportedWaveReadRef ImportedWaveIn = InputDataRefs.GetOrCreateDefaultDataReadReference<FImportedWave>(METASOUND_GET_PARAM_NAME(ParamImportedWave), InParams.OperatorSettings);
+
+			return MakeUnique<FImportedWaveToWaveAssetNodeOperator>(ImportedWaveIn);
+		}
+#endif
 
 		virtual Metasound::FDataReferenceCollection GetInputs() const override
 		{
