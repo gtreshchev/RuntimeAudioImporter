@@ -5,6 +5,8 @@
 
 #include "Codecs/BaseRuntimeCodec.h"
 #include "Codecs/RuntimeCodecFactory.h"
+#include "HAL/PlatformFileManager.h"
+#include "Async/Async.h"
 
 TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormats(const FString& FilePath)
 {

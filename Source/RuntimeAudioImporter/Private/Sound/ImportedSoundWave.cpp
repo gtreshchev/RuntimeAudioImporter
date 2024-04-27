@@ -5,6 +5,7 @@
 #include "RuntimeAudioImporterLibrary.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
+#include "Engine/Engine.h"
 #if UE_VERSION_OLDER_THAN(5, 2, 0)
 #include "AudioDevice.h"
 #else

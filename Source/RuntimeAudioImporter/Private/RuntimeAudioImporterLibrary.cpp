@@ -20,6 +20,7 @@
 #include "UObject/WeakObjectPtrTemplates.h"
 #include "Templates/SharedPointer.h"
 #include "SampleBuffer.h"
+#include "Misc/Paths.h"
 
 #include "Interfaces/IAudioFormat.h"
 

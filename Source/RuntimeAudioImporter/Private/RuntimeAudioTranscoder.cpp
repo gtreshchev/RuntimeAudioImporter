@@ -5,6 +5,7 @@
 
 #include "RuntimeAudioImporterLibrary.h"
 #include "Codecs/RAW_RuntimeCodec.h"
+#include "Async/Async.h"
 
 void URuntimeAudioTranscoder::TranscodeRAWDataFromBuffer(TArray<uint8> RAWDataFrom, ERuntimeRAWAudioFormat RAWFormatFrom, ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromBufferResult& Result)
 {
@@ -155,7 +156,7 @@ void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFr
 		return;
 	}
 
-	TranscodeRAWDataFromBuffer(MoveTemp(RAWBufferFrom), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([Result, ExecuteResult, FilePathTo](bool bSucceeded, const TArray64<uint8>& RAWBufferTo)
+	TranscodeRAWDataFromBuffer(MoveTemp(RAWBufferFrom), RAWFormatFrom, RAWFormatTo, FOnRAWDataTranscodeFromBufferResultNative::CreateLambda([ExecuteResult, FilePathTo](bool bSucceeded, const TArray64<uint8>& RAWBufferTo)
 	{
 		if (!bSucceeded)
 		{

@@ -6,7 +6,12 @@
 #include "HAL/PlatformProperties.h"
 #include "HAL/UnrealMemory.h"
 
+#if UE_VERSION_OLDER_THAN(5, 4, 0)
 #include "VorbisAudioInfo.h"
+#else
+#include "Decoders/VorbisAudioInfo.h"
+#endif
+
 #include "Interfaces/IAudioFormat.h"
 #ifndef WITH_OGGVORBIS
 #define WITH_OGGVORBIS 0
