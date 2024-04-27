@@ -13,6 +13,8 @@
 #include "AndroidPermissionCallbackProxy.h"
 #include "AndroidPermissionFunctionLibrary.h"
 
+#include "Async/Future.h"
+
 static JNIEnv* JavaEnv;
 static jmethodID AndroidThunkJava_AndroidStartCapture = nullptr;
 static jmethodID AndroidThunkJava_AndroidStopCapture = nullptr;

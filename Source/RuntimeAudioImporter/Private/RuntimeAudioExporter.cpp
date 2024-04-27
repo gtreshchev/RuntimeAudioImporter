@@ -304,7 +304,7 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWBuffer(TWeakObjectPtr<UImportedS
 		RAWDataFrom = TArray64<uint8>(reinterpret_cast<uint8*>(ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().GetData()), ImportedSoundWavePtr->GetPCMBuffer().PCMData.GetView().Num() * sizeof(float));
 	}
 
-	URuntimeAudioTranscoder::TranscodeRAWDataFromBuffer(MoveTemp(RAWDataFrom), ERuntimeRAWAudioFormat::Float32, RAWFormat, FOnRAWDataTranscodeFromBufferResultNative::CreateWeakLambda(ImportedSoundWavePtr.Get(), [Result, ExecuteResult](bool bSucceeded, const TArray64<uint8>& RAWData)
+	URuntimeAudioTranscoder::TranscodeRAWDataFromBuffer(MoveTemp(RAWDataFrom), ERuntimeRAWAudioFormat::Float32, RAWFormat, FOnRAWDataTranscodeFromBufferResultNative::CreateWeakLambda(ImportedSoundWavePtr.Get(), [ExecuteResult](bool bSucceeded, const TArray64<uint8>& RAWData)
 	{
 		ExecuteResult(bSucceeded, RAWData);
 	}));

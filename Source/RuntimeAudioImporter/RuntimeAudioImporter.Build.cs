@@ -29,7 +29,12 @@ public class RuntimeAudioImporter : ModuleRules
 			"UEOgg",
 			"Vorbis"
 		);
-		
+
+		if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 4)
+		{
+			PrivateDependencyModuleNames.Add("VorbisAudioDecoder");
+		}
+
 		// This is necessary because the Vorbis module does not include the Unix-specific libvorbis encoder library
 		if (Target.Platform != UnrealTargetPlatform.IOS && !Target.IsInPlatformGroup(UnrealPlatformGroup.Android) && Target.Platform != UnrealTargetPlatform.Mac && Target.IsInPlatformGroup(UnrealPlatformGroup.Unix))
 		{
