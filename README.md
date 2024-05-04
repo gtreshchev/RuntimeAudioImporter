@@ -1,5 +1,5 @@
 <a href="https://github.com/gtreshchev/RuntimeAudioImporter/blob/main/LICENSE">![License](https://img.shields.io/badge/license-MIT-brightgreen.svg)</a>
-<a href="https://discord.gg/s3e53uByCq">![Discord](https://img.shields.io/discord/1055168498919284786.svg?label=Discord&logo=discord&color=7289DA&labelColor=2C2F33)</a>
+<a href="https://georgy.dev/discord">![Discord](https://img.shields.io/discord/1055168498919284786.svg?label=Discord&logo=discord&color=7289DA&labelColor=2C2F33)</a>
 <a href="https://www.unrealengine.com/">![Unreal Engine](https://img.shields.io/badge/Unreal-4.24%2B-dea309)</a>
 
 <br/>
@@ -21,7 +21,7 @@
     .
     <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
     <br/>
-    <a href="https://discord.gg/s3e53uByCq">Discord support chat</a>
+    <a href="https://georgy.dev/discord">Discord support chat</a>
   </p>
 
 ## Features
