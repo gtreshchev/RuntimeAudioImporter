@@ -137,6 +137,7 @@ public:
 
 	/**
 	 * Converts a regular SoundWave to an inherited sound wave of type ImportedSoundWave used in RuntimeAudioImporter
+	 * Experimental feature, use with caution
 	 *
 	 * @param SoundWave The regular USoundWave to convert
 	 * @param ImportedSoundWaveClass The subclass of UImportedSoundWave to create and convert to
@@ -147,6 +148,7 @@ public:
 
 	/**
 	 * Converts a regular SoundWave to an inherited sound wave of type ImportedSoundWave used in RuntimeAudioImporter. Suitable for use in C++
+	 * Experimental feature, use with caution
 	 *
 	 * @param SoundWave The regular USoundWave to convert
 	 * @param ImportedSoundWaveClass The subclass of UImportedSoundWave to create and convert to
