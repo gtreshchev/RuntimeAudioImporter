@@ -55,6 +55,12 @@ DECLARE_DELEGATE_TwoParams(FOnDuplicateSoundWaveNative, bool, UImportedSoundWave
 /** Dynamic delegate broadcast when a sound wave is duplicated */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnDuplicateSoundWave, bool, bSucceeded, UImportedSoundWave*, DuplicatedSoundWave);
 
+/** Static delegate broadcast the result of stopping the sound wave playback */
+DECLARE_DELEGATE_OneParam(FOnStopPlaybackResultNative, bool);
+
+/** Dynamic delegate broadcast the result of stopping the sound wave playback */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnStopPlaybackResult, bool, bSucceeded);
+
 
 /**
  * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
@@ -240,7 +246,16 @@ public:
 	 * @return Whether the sound wave was stopped or not
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main", meta = (WorldContext = "WorldContextObject"))
-	bool StopPlayback(const UObject* WorldContextObject);
+	void StopPlayback(const UObject* WorldContextObject, const FOnStopPlaybackResult& Result);
+
+	/**
+	 * Stop the sound wave playback. Suitable for use in C++
+	 * 
+	 * @note It is recommended to stop the sound wave playback using external means (e.g., by calling Stop on the audio component) and to use this function only if external means are not available
+	 * @warning This function does not work for playback from MetaSounds
+	 * @return Whether the sound wave was stopped or not
+	 */
+	void StopPlayback(const UObject* WorldContextObject, const FOnStopPlaybackResultNative& Result);
 
 	/**
 	 * Change the number of frames played back. Used to rewind the sound
