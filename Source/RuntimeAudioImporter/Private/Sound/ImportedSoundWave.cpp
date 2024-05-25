@@ -6,6 +6,7 @@
 #include "AudioDevice.h"
 #include "Async/Async.h"
 #include "Engine/Engine.h"
+#include "AudioThread.h"
 #if UE_VERSION_OLDER_THAN(5, 2, 0)
 #include "AudioDevice.h"
 #else
@@ -624,19 +625,46 @@ bool UImportedSoundWave::MixSoundWaveChannels(int32 NewNumOfChannels)
 	return true;
 }
 
-bool UImportedSoundWave::StopPlayback(const UObject* WorldContextObject)
+void UImportedSoundWave::StopPlayback(const UObject* WorldContextObject, const FOnStopPlaybackResult& Result)
 {
+	StopPlayback(WorldContextObject, FOnStopPlaybackResultNative::CreateWeakLambda(this, [Result](bool bSucceeded)
+	{
+		Result.ExecuteIfBound(bSucceeded);
+	}));
+}
+
+void UImportedSoundWave::StopPlayback(const UObject* WorldContextObject, const FOnStopPlaybackResultNative& Result)
+{
+	if (!IsInAudioThread())
+	{
+		FAudioThread::RunCommandOnAudioThread( [WeakThis = MakeWeakObjectPtr(this), WorldContextObject, Result]()
+		{
+			WeakThis->StopPlayback(WorldContextObject, Result);
+		});
+		return;
+	}
+
+	auto ExecuteResult = [Result](bool bSucceeded)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
+		{
+			Result.ExecuteIfBound(bSucceeded);
+		});
+	};
+
 	if (!GEngine)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop the playback of the sound wave '%s' because GEngine is invalid"), *GetName());
-		return false;
+		ExecuteResult(false);
+		return;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
 	if (!ThisWorld)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to stop the playback of the sound wave '%s' because the world context object is invalid"), *GetName());
-		return false;
+		ExecuteResult(false);
+		return;
 	}
 
 #if UE_VERSION_OLDER_THAN(4, 25, 0)
@@ -654,13 +682,14 @@ bool UImportedSoundWave::StopPlayback(const UObject* WorldContextObject)
 				AudioDevice->StopActiveSound(ActiveSoundPtr);
 
 				// Only one sound wave can be played at a time, so we can stop the loop here
-				return true;
+				ExecuteResult(true);
+				return;
 			}
 		}
 	}
 
 	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("The sound wave '%s' is not playing"), *GetName());
-	return false;
+	ExecuteResult(true);
 }
 
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
