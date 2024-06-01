@@ -15,6 +15,9 @@ public class RuntimeAudioImporter : ModuleRules
 
 		// Disable if you are not using audio input capture
 		bool bEnableCaptureInputSupport = true;
+		
+		// Disable if you are not using Voice Activity Detection
+		bool bEnableVADSupport = true;
 
 		// Bink format is only supported in Unreal Engine version >= 5
 		bool bEnableBinkSupport = Target.Version.MajorVersion >= 5;
@@ -68,6 +71,16 @@ public class RuntimeAudioImporter : ModuleRules
 				"AudioPlatformConfiguration"
 			}
 		);
+
+		if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 1)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[]
+				{
+					"SignalProcessing"
+				}
+			);
+		}
 
 		if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 2)
 		{
@@ -131,6 +144,14 @@ public class RuntimeAudioImporter : ModuleRules
 		}
 
         PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT={0}", (bEnableCaptureInputSupport ? "1" : "0")));
+
+        if (bEnableVADSupport)
+        {
+	        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "..", "ThirdParty", "libfvad", "include"));
+	        PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "..", "ThirdParty", "libfvad", "src"));
+        }
+
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT={0}", (bEnableVADSupport ? "1" : "0")));
 
 		if (bEnableBinkSupport)
 		{
