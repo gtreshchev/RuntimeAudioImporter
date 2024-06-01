@@ -41,6 +41,7 @@
 ## Additional information
 
 MP3, WAV, and FLAC audio transcoding operations are powered by [dr_libs](https://github.com/mackron/dr_libs) and [minimp3](https://github.com/lieff/minimp3).
+VAD (Voice Activity Detection) is powered by [libfvad](https://github.com/dpirch/libfvad).
 
 ## Legal info
 

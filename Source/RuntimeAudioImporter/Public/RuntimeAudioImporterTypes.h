@@ -99,6 +99,41 @@ enum class ERuntimeRAWAudioFormat : uint8
 	Float32 UMETA(DisplayName = "Floating point 32-bit")
 };
 
+/** Possible VAD (Voice Activity Detection) modes */
+UENUM(BlueprintType, Category = "Runtime Audio Importer")
+enum class ERuntimeVADMode : uint8
+{
+	Quality UMETA(ToolTip = "High quality, less restrictive in reporting speech"),
+	LowBitrate UMETA(ToolTip = "Low bitrate, more restrictive in reporting speech"),
+	Aggressive UMETA(ToolTip = "Aggressive, restrictive in reporting speech"),
+	VeryAggressive UMETA(ToolTip = "Very aggressive, extremely restrictive in reporting speech")
+};
+
+namespace VoiceActivityDetector
+{
+	/**
+	 * Converts VAD mode to an integer suitable for the VAD library (libfvad)
+	 * @param Mode VAD mode
+	 * @return Integer representation of the VAD mode
+	 */
+	inline int32 GetVADModeInt(ERuntimeVADMode Mode)
+	{
+		switch (Mode)
+		{
+		case ERuntimeVADMode::Quality:
+			return 0;
+		case ERuntimeVADMode::LowBitrate:
+			return 1;
+		case ERuntimeVADMode::Aggressive:
+			return 2;
+		case ERuntimeVADMode::VeryAggressive:
+			return 3;
+		default:
+			return -1;
+		}
+	}
+}
+
 /**
  * An alternative to FBulkDataBuffer with consistent data types
  */

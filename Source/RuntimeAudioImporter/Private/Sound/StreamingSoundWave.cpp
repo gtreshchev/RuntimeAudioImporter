@@ -7,6 +7,7 @@
 
 #include "Async/Async.h"
 #include "SampleBuffer.h"
+#include "VAD/RuntimeVoiceActivityDetector.h"
 #include "UObject/WeakObjectPtrTemplates.h"
 
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
@@ -27,6 +28,32 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 		SetSampleRate(44100);
 		NumChannels = 2;
 	}
+}
+
+bool UStreamingSoundWave::ToggleVAD(bool bVAD)
+{
+	VADInstance = bVAD ? NewObject<URuntimeVoiceActivityDetector>() : nullptr;
+	return true;
+}
+
+bool UStreamingSoundWave::ResetVAD()
+{
+	if (VADInstance)
+	{
+		return VADInstance->ResetVAD();
+	}
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to reset VAD as the VAD instance is not valid"));
+	return false;
+}
+
+bool UStreamingSoundWave::SetVADMode(ERuntimeVADMode Mode)
+{
+	if (VADInstance)
+	{
+		return VADInstance->SetVADMode(Mode);
+	}
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set VAD mode as the VAD instance is not valid"));
+	return false;
 }
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
@@ -306,6 +333,26 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to transcode RAW data to decoded audio info"))
 		return;
 	}
+
+#if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
+	// Process VAD if necessary
+	if (VADInstance)
+	{
+		bool bDetected = VADInstance->ProcessVAD(TArray<float>(reinterpret_cast<const float*>(Float32DataPtr), static_cast<int32>(NumOfSamples)),
+#if UE_VERSION_NEWER_THAN(4, 25, 0)
+			InSampleRate
+#else
+			WeakThis->AudioCapture.GetSampleRate()
+#endif
+			, NumOfChannels);
+		if (!bDetected)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("VAD detected silence, skipping audio data append"));
+			return;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("VAD detected voice, appending audio data"));
+	}
+#endif
 
 	FDecodedAudioStruct DecodedAudioInfo;
 	{
