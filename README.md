@@ -37,7 +37,7 @@
 - Exporting a sound wave to a separate file
 - Pre-imported sound assets
 - No any static libraries and external dependencies
-- Support for all available devices (Android, iOS, Windows, Mac, Linux, etc)
+- Cross-platform compatibility (Windows, Mac, Linux, Android, iOS, etc)
 
 ## Additional information
 
