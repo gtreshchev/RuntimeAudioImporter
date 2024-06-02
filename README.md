@@ -33,6 +33,7 @@
 - Automatic detection of audio format
 - Audio streaming functionality
 - Audio capturing from input devices (eg microphone)
+- Voice Activity Detection (VAD)
 - Exporting a sound wave to a separate file
 - Pre-imported sound assets
 - No any static libraries and external dependencies
