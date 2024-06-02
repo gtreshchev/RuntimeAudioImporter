@@ -36,7 +36,7 @@
 - Voice Activity Detection (VAD)
 - Exporting a sound wave to a separate file
 - Pre-imported sound assets
-- No any static libraries and external dependencies
+- No static libraries or external dependencies
 - Cross-platform compatibility (Windows, Mac, Linux, Android, iOS, etc)
 
 ## Additional information
