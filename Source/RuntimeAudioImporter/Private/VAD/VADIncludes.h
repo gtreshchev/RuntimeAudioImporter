@@ -24,7 +24,7 @@
 
 THIRD_PARTY_INCLUDES_START
 
-extern "C"
+namespace FVAD_RuntimeAudioImporter
 {
 #include "fvad.h"
 #include "fvad.c"

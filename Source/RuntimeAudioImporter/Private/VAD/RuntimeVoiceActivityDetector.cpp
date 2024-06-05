@@ -18,7 +18,7 @@ URuntimeVoiceActivityDetector::URuntimeVoiceActivityDetector()
 #endif
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
-	VADInstance = fvad_new();
+	VADInstance = FVAD_RuntimeAudioImporter::fvad_new();
 	if (VADInstance)
 	{
 		UE_LOG(LogRuntimeAudioImporter, VeryVerbose, TEXT("Successfully created VAD instance for %s"), *GetName());
@@ -38,7 +38,7 @@ void URuntimeVoiceActivityDetector::BeginDestroy()
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
 	if (VADInstance)
 	{
-		fvad_free(VADInstance);
+		FVAD_RuntimeAudioImporter::fvad_free(VADInstance);
 		VADInstance = nullptr;
 	}
 #endif
@@ -53,7 +53,7 @@ bool URuntimeVoiceActivityDetector::ResetVAD()
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to reset VAD for %s as the VAD instance is not valid"), *GetName());
 		return false;
 	}
-	fvad_reset(VADInstance);
+	FVAD_RuntimeAudioImporter::fvad_reset(VADInstance);
 	SetVADMode(ERuntimeVADMode::VeryAggressive);
 	AppliedSampleRate = 0;
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully reset VAD for %s"), *GetName());
@@ -72,7 +72,7 @@ bool URuntimeVoiceActivityDetector::SetVADMode(ERuntimeVADMode Mode)
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set VAD mode for %s as the VAD instance is not valid"), *GetName());
 		return false;
 	}
-	if (fvad_set_mode(VADInstance, VoiceActivityDetector::GetVADModeInt(Mode)) != 0)
+	if (FVAD_RuntimeAudioImporter::fvad_set_mode(VADInstance, VoiceActivityDetector::GetVADModeInt(Mode)) != 0)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set VAD mode for %s as the mode is invalid"), *GetName());
 		return false;
@@ -143,7 +143,7 @@ bool URuntimeVoiceActivityDetector::ProcessVAD(TArray<float> PCMData, int32 InSa
 	// Apply the sample rate to the VAD instance if it is different from the current sample rate
 	if (AppliedSampleRate != InSampleRate)
 	{
-		if (fvad_set_sample_rate(VADInstance, InSampleRate) != 0)
+		if (FVAD_RuntimeAudioImporter::fvad_set_sample_rate(VADInstance, InSampleRate) != 0)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set VAD sample rate for %s"), *GetName());
 			return false;
@@ -197,7 +197,7 @@ bool URuntimeVoiceActivityDetector::ProcessVAD(TArray<float> PCMData, int32 InSa
 		int32 NumToProcess = ValidLength * AppliedSampleRate / 1000;
 
 		// Process the VAD
-		int32 VADResult = fvad_process(VADInstance, AccumulatedPCMData.GetData(), NumToProcess);
+		int32 VADResult = FVAD_RuntimeAudioImporter::fvad_process(VADInstance, AccumulatedPCMData.GetData(), NumToProcess);
 
 		// Remove processed data from the accumulated buffer
 		AccumulatedPCMData.RemoveAt(0, NumToProcess);
