@@ -7,7 +7,11 @@
 #include "RuntimeVoiceActivityDetector.generated.h"
 
 enum class ERuntimeVADMode : uint8;
-struct Fvad;
+
+namespace FVAD_RuntimeAudioImporter
+{
+	struct Fvad;
+}
 
 /**
  * Runtime Voice Activity Detector
@@ -63,7 +67,7 @@ protected:
 
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
 	/** The VAD instance. Initialized in the constructor and destroyed in BeginDestroy */
-	Fvad* VADInstance;
+	FVAD_RuntimeAudioImporter::Fvad* VADInstance;
 #endif
 
 	/**
