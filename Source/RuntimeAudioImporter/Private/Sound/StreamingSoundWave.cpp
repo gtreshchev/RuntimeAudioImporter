@@ -13,6 +13,9 @@
 UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	AudioTaskPipe = MakeUnique<UE::Tasks::FPipe>(*FString::Printf(TEXT("AudioTaskPipe_%s"), *GetName()));
+	ensureMsgf(AudioTaskPipe, TEXT("AudioTaskPipe is not initialized. This will cause issues with audio data appending"));
+
 	PlaybackFinishedBroadcast = true;
 
 	// No need to stop the sound after the end of streaming sound wave playback, assuming the PCM data can be filled after that
@@ -58,6 +61,20 @@ bool UStreamingSoundWave::SetVADMode(ERuntimeVADMode Mode)
 
 void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
+	// Process VAD if necessary
+	if (VADInstance)
+	{
+		bool bDetected = VADInstance->ProcessVAD(TArray<float>(reinterpret_cast<const float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), static_cast<int32>(DecodedAudioInfo.PCMInfo.PCMData.GetView().Num())), DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels);
+		if (!bDetected)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("VAD detected silence, skipping audio data append"));
+			return;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("VAD detected voice, appending audio data"));
+	}
+#endif
+
 	{
 		FRAIScopeLock Lock(&*DataGuard);
 		if (!DecodedAudioInfo.IsValid())
@@ -152,12 +169,6 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		}
 	}
 
-	AppendAudioTaskQueue.Pop();
-	if (FAudioTaskDelegate* AppendAudioTask = AppendAudioTaskQueue.Peek())
-	{
-		AppendAudioTask->ExecuteIfBound();
-	}
-
 	UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("Successfully added audio data to streaming sound wave.\nAdded audio info: %s"), *DecodedAudioInfo.ToString());
 }
 
@@ -218,40 +229,26 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 {
 	if (IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), AudioData = MoveTemp(AudioData), AudioFormat]() mutable
+		AudioTaskPipe->Launch(AudioTaskPipe->GetDebugName(), [WeakThis = MakeWeakObjectPtr(this), AudioData = MoveTemp(AudioData), AudioFormat]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
-				WeakThis->AppendAudioDataFromEncoded(MoveTemp(AudioData), AudioFormat);
+				FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
+				FDecodedAudioStruct DecodedAudioInfo;
+				if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+				{
+					UE_LOG(LogRuntimeAudioImporter, Error,
+						   TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
+					return;
+				}
+
+				WeakThis->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 			}
 			else
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append audio data to streaming sound wave as the streaming sound wave has been destroyed"));
 			}
-		});
-		return;
-	}
-
-	FAudioTaskDelegate AppendAudioDataTask = FAudioTaskDelegate::CreateWeakLambda(this, [this, AudioData = MoveTemp(AudioData), AudioFormat]() mutable
-	{
-		FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
-		FDecodedAudioStruct DecodedAudioInfo;
-		if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
-			return;
-		}
-
-		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
-	});
-
-	if (!AppendAudioTaskQueue.IsEmpty())
-	{
-		AppendAudioTaskQueue.Enqueue(AppendAudioDataTask);
-	}
-	else
-	{
-		AppendAudioDataTask.ExecuteIfBound();
+		}, UE::Tasks::ETaskPriority::BackgroundHigh);
 	}
 }
 
@@ -259,7 +256,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 {
 	if (IsInGameThread())
 	{
-		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
+		AudioTaskPipe->Launch(AudioTaskPipe->GetDebugName(), [WeakThis = MakeWeakObjectPtr(this), RAWData = MoveTemp(RAWData), RAWFormat, InSampleRate, NumOfChannels]() mutable
 		{
 			if (WeakThis.IsValid())
 			{
@@ -269,7 +266,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append RAW audio data to streaming sound wave as the streaming sound wave has been destroyed"));
 			}
-		});
+		}, UE::Tasks::ETaskPriority::BackgroundHigh);
 		return;
 	}
 
@@ -334,26 +331,6 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		return;
 	}
 
-#if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
-	// Process VAD if necessary
-	if (VADInstance)
-	{
-		bool bDetected = VADInstance->ProcessVAD(TArray<float>(reinterpret_cast<const float*>(Float32DataPtr), static_cast<int32>(NumOfSamples)),
-#if UE_VERSION_NEWER_THAN(4, 25, 0)
-			InSampleRate
-#else
-			WeakThis->AudioCapture.GetSampleRate()
-#endif
-			, NumOfChannels);
-		if (!bDetected)
-		{
-			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("VAD detected silence, skipping audio data append"));
-			return;
-		}
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("VAD detected voice, appending audio data"));
-	}
-#endif
-
 	FDecodedAudioStruct DecodedAudioInfo;
 	{
 		FPCMStruct PCMInfo;
@@ -372,19 +349,17 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 	}
 
-	FAudioTaskDelegate AppendAudioDataTask = FAudioTaskDelegate::CreateWeakLambda(this, [this, DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
+	AudioTaskPipe->Launch(AudioTaskPipe->GetDebugName(), [WeakThis = MakeWeakObjectPtr(this), DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
 	{
-		PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
-	});
-
-	if (!AppendAudioTaskQueue.IsEmpty())
-	{
-		AppendAudioTaskQueue.Enqueue(AppendAudioDataTask);
-	}
-	else
-	{
-		AppendAudioDataTask.ExecuteIfBound();
-	}
+		if (WeakThis.IsValid())
+		{
+			WeakThis->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+		}
+		else
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append RAW audio data to streaming sound wave as the streaming sound wave has been destroyed"));
+		}
+	}, UE::Tasks::ETaskPriority::BackgroundHigh);
 }
 
 void UStreamingSoundWave::SetStopSoundOnPlaybackFinish(bool bStop)

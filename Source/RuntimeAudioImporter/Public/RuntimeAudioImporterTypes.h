@@ -10,11 +10,19 @@
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #include "AudioCaptureDeviceInterface.h"
 #endif
+
 #include "RuntimeAudioImporterDefines.h"
 #include "Engine/EngineBaseTypes.h"
 #include "Sound/SoundGroups.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Misc/ScopeLock.h"
+#if UE_VERSION_OLDER_THAN(5, 0, 0)
+#include "Async/Async.h"
+#include "Containers/Queue.h"
+#include <atomic>
+#else
+#include "Tasks/Pipe.h"
+#endif
 
 #if UE_VERSION_OLDER_THAN(4, 26, 0)
 #include "DSP/BufferVectorOperations.h"
@@ -26,6 +34,66 @@
 namespace Audio
 {
 	using FAlignedFloatBuffer = Audio::AlignedFloatBuffer;
+}
+#endif
+
+/** FPipe isn't supported in UE earlier than 5.0.0, so the task will be launched via async task */
+#if UE_VERSION_OLDER_THAN(5, 0, 0)
+namespace UE
+{
+	namespace Tasks
+	{
+		enum class ETaskPriority : int8
+		{
+			High,
+			Normal,
+			Default,
+			ForegroundCount,
+			BackgroundHigh,
+			BackgroundNormal,
+			BackgroundLow
+		};
+
+		/**
+		 * A pipe for launching tasks with the specified priority. This is a highly simplified version of the pipe from UE >= 5.0.0
+		 */
+		class FPipe
+		{
+		public:
+			FPipe(const FString& InDebugName)
+			{
+			}
+
+			void Launch(const FString& InDebugName, TUniqueFunction<void()>&& TaskBody, ETaskPriority Priority = ETaskPriority::Default)
+			{
+				UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("Pipe isn't supported in UE earlier than 5.0.0. Launching task via async task..."));
+				TaskQueue.Enqueue({ InDebugName, MoveTemp(TaskBody), Priority });
+				if (!bIsTaskRunning) ExecuteNextTask();
+			}
+
+			FString GetDebugName() const { return FString(); }
+
+		private:
+			struct FTaskInfo
+			{
+				FString DebugName;
+				TUniqueFunction<void()> TaskBody;
+				ETaskPriority Priority;
+			};
+
+			void ExecuteNextTask()
+			{
+				if (TaskQueue.IsEmpty()) { bIsTaskRunning = false; return; }
+				bIsTaskRunning = true;
+				FTaskInfo TaskInfo;
+				TaskQueue.Dequeue(TaskInfo);
+				Async(EAsyncExecution::TaskGraph, MoveTemp(TaskInfo.TaskBody), [this]() { ExecuteNextTask(); });
+			}
+
+			TQueue<FTaskInfo> TaskQueue;
+			std::atomic<bool> bIsTaskRunning{false};
+		};
+	}
 }
 #endif
 
