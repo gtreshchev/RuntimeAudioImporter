@@ -116,11 +116,8 @@ public:
 	//~ End UImportedSoundWave Interface
 
 protected:
-	/** Audio task execution delegate */
-	DECLARE_DELEGATE(FAudioTaskDelegate);
-
-	/** Queue of audio data to be appended. Needed to maintain the consecutive order of audio data when appending */
-	TQueue<FAudioTaskDelegate> AppendAudioTaskQueue;
+	/** The audio task pipe (enforces sequential asynchronous execution of audio tasks as opposed to parallel which is possible with the default async task graph) */
+	TUniquePtr<UE::Tasks::FPipe> AudioTaskPipe;
 
 	/** The VAD (Voice Activity Detector) instance. Is valid only if VAD is enabled (see ToggleVAD) */
 	UPROPERTY(Transient, BlueprintReadOnly, Category = "Streaming Sound Wave|VAD")
