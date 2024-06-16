@@ -15,9 +15,6 @@
 DEFINE_LOG_CATEGORY(LogRuntimeAudioImporterEditor);
 #define LOCTEXT_NAMESPACE "FRuntimeAudioImporterEditorModule"
 
-static const FString IOSSettingsSection = TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings");
-static const FString AdditionalPlistDataKey = TEXT("AdditionalPlistData");
-
 static const FString AndroidReadExternalStoragePermission = TEXT("android.permission.READ_EXTERNAL_STORAGE");
 static const FString AndroidWriteExternalStoragePermission = TEXT("android.permission.WRITE_EXTERNAL_STORAGE");
 static const FString AndroidReadMediaAudioPermission = TEXT("android.permission.READ_MEDIA_AUDIO");
