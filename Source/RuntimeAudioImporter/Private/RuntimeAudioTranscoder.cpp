@@ -165,7 +165,7 @@ void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFr
 			return;
 		}
 
-		if (!FFileHelper::SaveArrayToFile(RAWBufferTo, *FilePathTo))
+		if (!RuntimeAudioImporter::SaveAudioFileFromArray(RAWBufferTo, *FilePathTo))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving RAW data to the path '%s'"), *FilePathTo);
 			ExecuteResult(false);
@@ -316,7 +316,7 @@ void URuntimeAudioTranscoder::TranscodeEncodedDataFromFile(const FString& FilePa
 			return;
 		}
 
-		if (!FFileHelper::SaveArrayToFile(EncodedData, *FilePathTo))
+		if (!RuntimeAudioImporter::SaveAudioFileFromArray(EncodedData, *FilePathTo))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s' after transcoding"), *FilePathTo);
 			ExecuteResult(false);
