@@ -35,7 +35,7 @@ void URuntimeAudioExporter::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundW
 			return;
 		}
 
-		if (!FFileHelper::SaveArrayToFile(AudioData, *SavePath))
+		if (!RuntimeAudioImporter::SaveAudioFileFromArray(AudioData, *SavePath))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving audio data to the path '%s'"), *SavePath);
 			Result.ExecuteIfBound(false);
@@ -195,7 +195,7 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWFile(TWeakObjectPtr<UImportedSou
 			return;
 		}
 
-		if (!FFileHelper::SaveArrayToFile(AudioData, *SavePath))
+		if (!RuntimeAudioImporter::SaveAudioFileFromArray(AudioData, *SavePath))
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Something went wrong when saving RAW audio data to the path '%s'"), *SavePath);
 			Result.ExecuteIfBound(false);
