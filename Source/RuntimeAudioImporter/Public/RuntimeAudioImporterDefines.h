@@ -52,6 +52,12 @@ namespace RuntimeAudioImporter
 			}
 		}
 
+		if (UngrantedPermissions.Num() == 0)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("All required permissions are granted on Android. No need to request permissions"));
+			return true;
+		}
+
 		TSharedRef<TPromise<bool>> bPermissionGrantedPromise = MakeShared<TPromise<bool>>();
 		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise->GetFuture();
 		UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(UngrantedPermissions);
