@@ -5,6 +5,7 @@
 #include "RuntimeAudioImporterLibrary.h"
 #include "AudioDevice.h"
 #include "Async/Async.h"
+#include "Async/Future.h"
 #include "Engine/Engine.h"
 #include "AudioThread.h"
 #if UE_VERSION_OLDER_THAN(5, 2, 0)
@@ -795,6 +796,31 @@ bool UImportedSoundWave::IsPlaybackFinished() const
 
 bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
 {
+	// Audio device operations must be done on the audio thread
+	if (!IsInAudioThread())
+	{
+		TPromise<bool> PromiseResult;
+
+		Async(EAsyncExecution::TaskGraph, [WeakThis = MakeWeakObjectPtr(this), WorldContextObject, &PromiseResult]()
+		{
+			FAudioThread::RunCommandOnAudioThread( [WeakThis, WorldContextObject, &PromiseResult]()
+			{
+				if (WeakThis.IsValid())
+				{
+					PromiseResult.SetValue(WeakThis->IsPlaying(WorldContextObject));
+					return;
+				}
+				PromiseResult.SetValue(false);
+			});
+		}).Wait();
+
+		TFuture<bool> FutureResult = PromiseResult.GetFuture();
+
+		// This operation is very short-lasting, so it's fine to wait here, even if it's called from the game thread every frame
+		FutureResult.Wait();
+		return FutureResult.Get();
+	}
+
 	if (!GEngine)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to check if the sound wave '%s' is playing because GEngine is invalid"), *GetName());
@@ -809,9 +835,9 @@ bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
 	}
 
 #if UE_VERSION_OLDER_THAN(4, 25, 0)
-		if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 #else
-		if (FAudioDeviceHandle AudioDevice = ThisWorld->GetAudioDevice())
+	if (FAudioDeviceHandle AudioDevice = ThisWorld->GetAudioDevice())
 #endif
 	{
 		const TArray<FActiveSound*>& ActiveSounds = AudioDevice->GetActiveSounds();
@@ -824,7 +850,6 @@ bool UImportedSoundWave::IsPlaying(const UObject* WorldContextObject) const
 			}
 		}
 	}
-
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The sound wave '%s' is not playing"), *GetName());
 	return false;
 }
