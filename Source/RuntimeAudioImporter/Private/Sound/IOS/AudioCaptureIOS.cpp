@@ -1,8 +1,8 @@
 // Georgy Treshchev 2024.
 
-#if PLATFORM_IOS && !PLATFORM_TVOS
+//#if PLATFORM_IOS && !PLATFORM_TVOS
 #include "Sound/IOS/AudioCaptureIOS.h"
-
+#include "Async/Future.h"
 #include "RuntimeAudioImporterDefines.h"
 
 constexpr int32 kInputBus = 1;
@@ -49,17 +49,46 @@ bool Audio::FAudioCaptureIOS::
 		return true;
 	}
 
-	const bool bPermissionGranted = 
+	auto CheckPermissionGranted = [this]() -> bool {
+		const bool bPermissionGranted = 
 #if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
-	[[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
+		[[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
 #else
-	[[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
+		[[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
 #endif
+		return bPermissionGranted;
+	};
 
-	if (!bPermissionGranted)
+	if (!CheckPermissionGranted())
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream as the iOS record audio permission was not granted"));
-		return false;
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Permission to record audio on iOS is not granted. Requesting permission..."));
+		
+		TPromise<bool> PermissionPromise;
+
+		if (@available(iOS 17.0, *)) {
+			[AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
+				PermissionPromise.SetValue(granted);
+			}];
+		} else {
+			[[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
+				PermissionPromise.SetValue(granted);
+			}];
+		}
+
+		TFuture<bool> PermissionFuture = PermissionPromise.GetFuture();
+
+		// This will automatically block until the future is set
+		bool bPermissionGranted = PermissionFuture.Get();
+
+		if (!bPermissionGranted)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream because permission to record audio was not granted"));
+			return false;
+		}
+		else
+		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Permission to record audio on iOS was granted. Opening capture stream..."));
+		}
 	}
 
 	OnCapture = MoveTemp(InOnCapture);
