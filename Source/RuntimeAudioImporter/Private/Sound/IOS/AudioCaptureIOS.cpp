@@ -1,6 +1,6 @@
 // Georgy Treshchev 2024.
 
-//#if PLATFORM_IOS && !PLATFORM_TVOS
+#if PLATFORM_IOS && !PLATFORM_TVOS
 #include "Sound/IOS/AudioCaptureIOS.h"
 #include "Async/Future.h"
 #include "RuntimeAudioImporterDefines.h"
