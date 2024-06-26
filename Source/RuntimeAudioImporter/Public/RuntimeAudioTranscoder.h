@@ -144,4 +144,16 @@ public:
 	 * @param Result Delegate broadcasting the result
 	 */
 	static void TranscodeEncodedDataFromFile(const FString& FilePathFrom, ERuntimeAudioFormat EncodedFormatFrom, const FString& FilePathTo, ERuntimeAudioFormat EncodedFormatTo, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnEncodedDataTranscodeFromFileResultNative& Result);
+
+	/**
+	 * Helper function for transcoding RAW format
+	 * 
+	 * @param RAWFormatTo The desired format of the transcoded RAW audio data
+	 * @param RAWDataFrom The RAW audio data to transcode
+	 * @param RAWDataTo The RAW transcoded audio data
+	 */
+	template<typename FromType>
+	static void TranscodeTo(ERuntimeRAWAudioFormat RAWFormatTo, TArray64<uint8>& RAWDataFrom, TArray64<uint8>& RAWDataTo);
+
+
 };
