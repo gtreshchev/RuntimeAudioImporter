@@ -172,7 +172,7 @@ void UCapturableSoundWave::StopCapture()
 bool UCapturableSoundWave::ToggleMute(bool bMute)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
-#if UE_VERSION_NEWER_THAN(5, 2, 9) || PLATFORM_ANDROID
+#if UE_VERSION_NEWER_THAN(5, 2, 9) && PLATFORM_WINDOWS
 	if (bMute)
 	{
 		StopCapture();
