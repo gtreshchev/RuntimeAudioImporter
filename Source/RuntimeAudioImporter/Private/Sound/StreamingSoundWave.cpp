@@ -233,23 +233,25 @@ void UStreamingSoundWave::AppendAudioDataFromEncoded(TArray<uint8> AudioData, ER
 		{
 			if (WeakThis.IsValid())
 			{
-				FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
-				FDecodedAudioStruct DecodedAudioInfo;
-				if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
-				{
-					UE_LOG(LogRuntimeAudioImporter, Error,
-						   TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
-					return;
-				}
-
-				WeakThis->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
+				WeakThis->AppendAudioDataFromEncoded(MoveTemp(AudioData), AudioFormat);
 			}
 			else
 			{
 				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append audio data to streaming sound wave as the streaming sound wave has been destroyed"));
 			}
 		}, UE::Tasks::ETaskPriority::BackgroundHigh);
+		return;
 	}
+
+	FEncodedAudioStruct EncodedAudioInfo(MoveTemp(AudioData), AudioFormat);
+	FDecodedAudioStruct DecodedAudioInfo;
+	if (!URuntimeAudioImporterLibrary::DecodeAudioData(MoveTemp(EncodedAudioInfo), DecodedAudioInfo))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to decode audio data to populate streaming sound wave audio data"));
+		return;
+	}
+
+	PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 }
 
 void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntimeRAWAudioFormat RAWFormat, int32 InSampleRate, int32 NumOfChannels)
@@ -349,17 +351,7 @@ void UStreamingSoundWave::AppendAudioDataFromRAW(TArray<uint8> RAWData, ERuntime
 		DecodedAudioInfo.SoundWaveBasicInfo = MoveTemp(SoundWaveBasicInfo);
 	}
 
-	AudioTaskPipe->Launch(AudioTaskPipe->GetDebugName(), [WeakThis = MakeWeakObjectPtr(this), DecodedAudioInfo = MoveTemp(DecodedAudioInfo)]() mutable
-	{
-		if (WeakThis.IsValid())
-		{
-			WeakThis->PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
-		}
-		else
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to append RAW audio data to streaming sound wave as the streaming sound wave has been destroyed"));
-		}
-	}, UE::Tasks::ETaskPriority::BackgroundHigh);
+	PopulateAudioDataFromDecodedInfo(MoveTemp(DecodedAudioInfo));
 }
 
 void UStreamingSoundWave::SetStopSoundOnPlaybackFinish(bool bStop)
