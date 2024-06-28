@@ -63,19 +63,23 @@ bool Audio::FAudioCaptureIOS::
 	{
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Permission to record audio on iOS is not granted. Requesting permission..."));
 		
-		TPromise<bool> PermissionPromise;
+		TSharedPtr<TPromise<bool>> PermissionPromise = MakeShared<TPromise<bool>>();
 
-		if (@available(iOS 17.0, *)) {
-			[AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
-				PermissionPromise.SetValue(granted);
-			}];
-		} else {
-			[[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
-				PermissionPromise.SetValue(granted);
-			}];
-		}
+#if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
+		[AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
+			dispatch_async(dispatch_get_main_queue(), ^{
+				PermissionPromise->SetValue(granted);
+			});
+		}];
+#else
+		[[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
+			dispatch_async(dispatch_get_main_queue(), ^{
+				PermissionPromise->SetValue(granted);
+			});
+		}];
+#endif
 
-		TFuture<bool> PermissionFuture = PermissionPromise.GetFuture();
+		TFuture<bool> PermissionFuture = PermissionPromise->GetFuture();
 
 		// This will automatically block until the future is set
 		bool bPermissionGranted = PermissionFuture.Get();
