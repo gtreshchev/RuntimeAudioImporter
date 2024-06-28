@@ -187,6 +187,7 @@ bool FWAV_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 	if (!TempPCMData)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for WAV Decoder"));
+		
 		return false;
 	}
 
