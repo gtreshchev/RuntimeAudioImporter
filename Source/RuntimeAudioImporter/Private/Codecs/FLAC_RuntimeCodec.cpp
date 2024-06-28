@@ -77,6 +77,7 @@ bool FFLAC_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	if (!TempPCMData)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for FLAC Decoder"));
+		drflac_close(FLAC_Decoder);
 		return false;
 	}
 

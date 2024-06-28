@@ -70,6 +70,8 @@ bool FMP3_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntimeA
 		HeaderInfo.PCMDataSize = SoundInfo.samples;
 		HeaderInfo.AudioFormat = GetAudioFormat();
 	}
+
+	FMemory::Free(SoundInfo.buffer);
 #endif
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully retrieved header information for MP3 audio format.\nHeader info: %s"), *HeaderInfo.ToString());
 	return true;
@@ -106,6 +108,7 @@ bool FMP3_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioStr
 	if (!TempPCMData)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate memory for MP3 Decoder"));
+		drmp3_uninit(&MP3_Decoder);
 		return false;
 	}
 
