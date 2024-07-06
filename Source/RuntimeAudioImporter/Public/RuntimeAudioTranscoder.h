@@ -154,7 +154,7 @@ public:
 	 * @param RAWDataTo The RAW transcoded audio data
 	 */
 	template<typename FromType>
-	void URuntimeAudioTranscoder::TranscodeTo(ERuntimeRAWAudioFormat RAWFormatTo, TArray64<uint8>& RAWDataFrom, TArray64<uint8>& RAWDataTo)
+	static void TranscodeTo(ERuntimeRAWAudioFormat RAWFormatTo, TArray64<uint8>& RAWDataFrom, TArray64<uint8>& RAWDataTo)
 	{
 		switch (RAWFormatTo)
 		{
