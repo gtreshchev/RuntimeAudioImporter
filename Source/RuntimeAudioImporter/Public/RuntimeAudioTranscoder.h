@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
+#include "Codecs/RAW_RuntimeCodec.h"
 #include "RuntimeAudioImporterTypes.h"
 #include "RuntimeAudioTranscoder.generated.h"
 
@@ -144,4 +145,41 @@ public:
 	 * @param Result Delegate broadcasting the result
 	 */
 	static void TranscodeEncodedDataFromFile(const FString& FilePathFrom, ERuntimeAudioFormat EncodedFormatFrom, const FString& FilePathTo, ERuntimeAudioFormat EncodedFormatTo, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnEncodedDataTranscodeFromFileResultNative& Result);
+
+	/**
+	 * Helper function for transcoding RAW format
+	 * 
+	 * @param RAWFormatTo The desired format of the transcoded RAW audio data
+	 * @param RAWDataFrom The RAW audio data to transcode
+	 * @param RAWDataTo The RAW transcoded audio data
+	 */
+	template<typename FromType>
+	void URuntimeAudioTranscoder::TranscodeTo(ERuntimeRAWAudioFormat RAWFormatTo, TArray64<uint8>& RAWDataFrom, TArray64<uint8>& RAWDataTo)
+	{
+		switch (RAWFormatTo)
+		{
+		case ERuntimeRAWAudioFormat::Int8:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, int8>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::UInt8:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, uint8>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::Int16:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, int16>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::UInt16:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, uint16>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::Int32:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, int32>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::UInt32:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, uint32>(RAWDataFrom, RAWDataTo);
+			break;
+		case ERuntimeRAWAudioFormat::Float32:
+			FRAW_RuntimeCodec::TranscodeRAWData<FromType, float>(RAWDataFrom, RAWDataTo);
+			break;
+		}
+	}
+
 };
