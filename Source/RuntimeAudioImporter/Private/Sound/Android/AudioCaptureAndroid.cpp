@@ -13,8 +13,6 @@
 #include "AndroidPermissionCallbackProxy.h"
 #include "AndroidPermissionFunctionLibrary.h"
 
-#include "Async/Future.h"
-
 static JNIEnv* JavaEnv;
 static jmethodID AndroidThunkJava_AndroidStartCapture = nullptr;
 static jmethodID AndroidThunkJava_AndroidStopCapture = nullptr;
@@ -75,19 +73,69 @@ bool Audio::FAudioCaptureAndroid::GetCaptureDeviceInfo(Audio::FCaptureDeviceInfo
 	return true;
 }
 
+TFuture<bool> RequestCapturePermissions()
+{
+	TArray<FString> Permissions = {"android.permission.RECORD_AUDIO"};
+	if (UAndroidPermissionFunctionLibrary::CheckPermission(Permissions[0]))
+	{
+		return MakeFulfilledPromise<bool>(true).GetFuture();
+	}
+
+	UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
+	if (!PermissionsGrantedCallbackProxy)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted (PermissionsGrantedCallbackProxy is null)"));
+		return MakeFulfilledPromise<bool>(false).GetFuture();
+	}
+
+	TSharedPtr<TPromise<bool>> PermissionPromise = MakeShared<TPromise<bool>>();
+	TFuture<bool> PermissionFuture = PermissionPromise->GetFuture();
+
+	FAndroidPermissionDelegate OnPermissionsGrantedDelegate;
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+	TSharedRef<FDelegateHandle> OnPermissionsGrantedDelegateHandle = MakeShared<FDelegateHandle>();
+	*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddLambda
+#else
+	OnPermissionsGrantedDelegate.BindLambda
+#endif
+	([
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+	OnPermissionsGrantedDelegateHandle,
+#endif
+	OnPermissionsGrantedDelegate, PermissionPromise, Permissions = MoveTemp(Permissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
+	{
+#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		OnPermissionsGrantedDelegate.Remove(OnPermissionsGrantedDelegateHandle.Get());
+#else
+		OnPermissionsGrantedDelegate.Unbind();
+#endif
+		if (!GrantPermissions.Contains(Permissions[0]) || !GrantResults.Contains(true))
+		{
+			TArray<FString> GrantResultsString;
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted"));
+			PermissionPromise->SetValue(false);
+			return;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully granted record audio permission for Android"));
+		PermissionPromise->SetValue(true);
+	});
+	PermissionsGrantedCallbackProxy->OnPermissionsGrantedDelegate = OnPermissionsGrantedDelegate;
+	return PermissionFuture;
+}
+
 bool Audio::FAudioCaptureAndroid::
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 	OpenAudioCaptureStream
 #else
-OpenCaptureStream
+	OpenCaptureStream
 #endif
-(const Audio::FAudioCaptureDeviceParams& InParams,
+	(const Audio::FAudioCaptureDeviceParams& InParams,
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 	FOnAudioCaptureFunction InOnCapture
 #else
- FOnCaptureFunction InOnCapture
+	FOnCaptureFunction InOnCapture
 #endif
-, uint32 NumFramesDesired)
+	, uint32 NumFramesDesired)
 {
 	if (bIsStreamOpen)
 	{
@@ -95,56 +143,14 @@ OpenCaptureStream
 		return true;
 	}
 
-	TArray<FString> Permissions = {"android.permission.RECORD_AUDIO"};
-	if (!UAndroidPermissionFunctionLibrary::CheckPermission(Permissions[0]))
+	TSharedPtr<TPromise<bool>> PermissionCheckPromise = MakeShared<TPromise<bool>>();
+	PermissionCheckFuture = PermissionCheckPromise->GetFuture();
+	RequestCapturePermissions().Next([this, InOnCapture, PermissionCheckPromise](bool bPermissionsGranted) mutable
 	{
-		TSharedRef<TPromise<bool>> bPermissionGrantedPromise = MakeShared<TPromise<bool>>();
-		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise->GetFuture();
-		UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(Permissions);
-		if (!PermissionsGrantedCallbackProxy)
-		{
-			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted (PermissionsGrantedCallbackProxy is null)"));
-			return false;
-		}
-
-		FAndroidPermissionDelegate OnPermissionsGrantedDelegate;
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
-		TSharedRef<FDelegateHandle> OnPermissionsGrantedDelegateHandle = MakeShared<FDelegateHandle>();
-		*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddLambda
-#else
-		OnPermissionsGrantedDelegate.BindLambda
-#endif
-		([this,
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
-		OnPermissionsGrantedDelegateHandle,
-#endif
-		OnPermissionsGrantedDelegate, bPermissionGrantedPromise, Permissions = MoveTemp(Permissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
-		{
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
-			OnPermissionsGrantedDelegate.Remove(OnPermissionsGrantedDelegateHandle.Get());
-#else
-			OnPermissionsGrantedDelegate.Unbind();
-#endif
-			if (!GrantPermissions.Contains(Permissions[0]) || !GrantResults.Contains(true))
-			{
-				TArray<FString> GrantResultsString;
-				UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to start capture as the Android record audio permission was not granted"));
-				bPermissionGrantedPromise->SetValue(false);
-				return;
-			}
-			UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully granted record audio permission for Android"));
-			bPermissionGrantedPromise->SetValue(true);
-		});
-		PermissionsGrantedCallbackProxy->OnPermissionsGrantedDelegate = OnPermissionsGrantedDelegate;
-		bPermissionGrantedFuture.Wait();
-		if (!bPermissionGrantedFuture.Get())
-		{
-			return false;
-		}
-	}
-
+		PermissionCheckPromise->SetValue(bPermissionsGranted);
+	});
+	
 	OnCapture = MoveTemp(InOnCapture);
-
 	bIsStreamOpen = true;
 	return true;
 }
@@ -158,8 +164,20 @@ bool Audio::FAudioCaptureAndroid::CloseStream()
 
 bool Audio::FAudioCaptureAndroid::StartStream()
 {
-	bHasCaptureStarted = AndroidCaptureStart(SampleRate);
-	return bHasCaptureStarted;
+	if (PermissionCheckFuture.IsReady() && PermissionCheckFuture.Get())
+	{
+		bHasCaptureStarted = AndroidCaptureStart(SampleRate);
+		return bHasCaptureStarted;
+	}
+	PermissionCheckFuture.Next([this](bool bPermissionsGranted)
+	{
+		if (bPermissionsGranted)
+		{
+			bHasCaptureStarted = AndroidCaptureStart(SampleRate);
+		}
+	});
+	// TODO: Async return
+	return true;
 }
 
 bool Audio::FAudioCaptureAndroid::StopStream()

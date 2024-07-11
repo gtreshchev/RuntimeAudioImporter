@@ -7,6 +7,7 @@
 #include "AudioCaptureCore.h"
 #include "Misc/EngineVersionComparison.h"
 #include "Math/UnrealMathUtility.h"
+#include "Async/Future.h"
 
 /**
  * This recreates the FAudioCaptureAndroidStream Android-specific audio capture implementation, but with fixes to make it work correctly on Android
@@ -60,6 +61,7 @@ namespace Audio
 		void AndroidCaptureStop();
 
 	private:
+		TFuture<bool> PermissionCheckFuture;
 		bool bIsStreamOpen = false;
 		bool bHasCaptureStarted = false;
 
