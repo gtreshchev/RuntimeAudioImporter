@@ -16,10 +16,10 @@ namespace RuntimeAudioImporter
 #if PLATFORM_ANDROID
 		TArray<FString> AllRequiredPermissions = []()
 		{
-			TArray<FString> InternalPermissions = {"android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE"};
-			if (FAndroidMisc::GetAndroidBuildVersion() > 33)
+			TArray<FString> InternalPermissions = {TEXT("android.permission.READ_EXTERNAL_STORAGE"), TEXT("android.permission.WRITE_EXTERNAL_STORAGE")};
+			if (FAndroidMisc::GetAndroidBuildVersion() >= 33)
 			{
-				InternalPermissions.Add("android.permission.READ_MEDIA_AUDIO");
+				InternalPermissions.Add(TEXT("android.permission.READ_MEDIA_AUDIO"));
 			}
 			return InternalPermissions;
 		}();
