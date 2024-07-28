@@ -68,10 +68,10 @@ void UStreamingSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&&
 		bool bDetected = VADInstance->ProcessVAD(TArray<float>(reinterpret_cast<const float*>(DecodedAudioInfo.PCMInfo.PCMData.GetView().GetData()), static_cast<int32>(DecodedAudioInfo.PCMInfo.PCMData.GetView().Num())), DecodedAudioInfo.SoundWaveBasicInfo.SampleRate, DecodedAudioInfo.SoundWaveBasicInfo.NumOfChannels);
 		if (!bDetected)
 		{
-			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("VAD detected silence, skipping audio data append"));
+			UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("VAD detected silence, skipping audio data append"));
 			return;
 		}
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("VAD detected voice, appending audio data"));
+		UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("VAD detected voice, appending audio data"));
 	}
 #endif
 
