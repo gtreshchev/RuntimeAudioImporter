@@ -1,4 +1,4 @@
-﻿// Georgy Treshchev 2023.
+﻿// Georgy Treshchev 2024.
 
 #include "Sound/CapturableSoundWave.h"
 
@@ -80,7 +80,7 @@ void UCapturableSoundWave::GetAvailableAudioInputDevices(const FOnGetAvailableAu
 #endif
 }
 
-bool UCapturableSoundWave::StartCapture(int32 DeviceId)
+bool UCapturableSoundWave::StartCapture_Implementation(int32 DeviceId)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	Audio::FAudioCaptureDeviceParams Params = Audio::FAudioCaptureDeviceParams();
@@ -157,7 +157,7 @@ bool UCapturableSoundWave::StartCapture(int32 DeviceId)
 #endif
 }
 
-void UCapturableSoundWave::StopCapture()
+void UCapturableSoundWave::StopCapture_Implementation()
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	if (AudioCapture.IsStreamOpen())
@@ -169,7 +169,7 @@ void UCapturableSoundWave::StopCapture()
 #endif
 }
 
-bool UCapturableSoundWave::ToggleMute(bool bMute)
+bool UCapturableSoundWave::ToggleMute_Implementation(bool bMute)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if UE_VERSION_NEWER_THAN(5, 2, 9) || PLATFORM_ANDROID
@@ -225,7 +225,7 @@ bool UCapturableSoundWave::ToggleMute(bool bMute)
 #endif
 }
 
-bool UCapturableSoundWave::IsCapturing() const
+bool UCapturableSoundWave::IsCapturing_Implementation() const
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	return AudioCapture.IsCapturing();
