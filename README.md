@@ -32,7 +32,7 @@
 - Same behavior as regular sound wave, including SoundCue, MetaSounds (starting from 5.3), etc
 - Automatic detection of audio format
 - Audio streaming functionality
-- Audio capturing from input devices (eg microphone)
+- Audio capturing from input devices (eg microphone), including within Pixel Streaming context
 - Voice Activity Detection (VAD)
 - Exporting a sound wave to a separate file
 - Pre-imported sound assets
