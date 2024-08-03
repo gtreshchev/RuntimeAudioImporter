@@ -64,28 +64,43 @@ public:
 	 * @param DeviceId Required device index (order as from GetAvailableAudioInputDevices)
 	 * @return Whether the capture was started or not
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Capture")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Capturable Sound Wave|Capture")
 	bool StartCapture(int32 DeviceId);
+
+protected:
+	virtual bool StartCapture_Implementation(int32 DeviceId);
+public:
 
 	/**
 	 * Stop the capture process
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Capture")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Capturable Sound Wave|Capture")
 	void StopCapture();
 
+protected:
+	virtual void StopCapture_Implementation();
+
+public:
 	/**
 	 * Toggles the mute state of audio capture, pausing the accumulation of audio data without closing the stream
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Capture")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Capturable Sound Wave|Capture")
 	bool ToggleMute(bool bMute);
 
+protected:
+	virtual bool ToggleMute_Implementation(bool bMute);
+
+public:
 	/**
 	 * Get whether the capture is processing or not
 	 *
 	 * @return Whether the capture is processing or not
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Capturable Sound Wave|Info")
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Capturable Sound Wave|Info")
 	bool IsCapturing() const;
+
+protected:
+	virtual bool IsCapturing_Implementation() const;
 
 private:
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT

@@ -37,6 +37,28 @@ namespace Audio
 }
 #endif
 
+/** MemIsZero isn't available in UE < 5.2 */
+#if UE_VERSION_OLDER_THAN(5, 2, 0)
+namespace FRAIMemory
+{
+	static FORCEINLINE bool MemIsZero(const void* Ptr, SIZE_T Count)
+	{
+		uint8* Start = (uint8*)Ptr;
+		uint8* End = Start + Count;
+		while (Start < End)
+		{
+			if ((*Start++) != 0)
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+}
+#else
+using FRAIMemory = FMemory;
+#endif
+
 /** FPipe isn't supported in UE earlier than 5.0.0, so the task will be launched via async task */
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
 namespace UE

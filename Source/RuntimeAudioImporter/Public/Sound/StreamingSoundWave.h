@@ -17,7 +17,7 @@ DECLARE_DELEGATE_OneParam(FOnPreAllocateAudioDataResultNative, bool);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocateAudioDataResult, bool, bSucceeded);
 
 /**
- * Streaming sound wave. Can append audio data dynamically, including during playback
+ * Streaming sound wave. Can append audio data dynamically, including during playback.
  * It will live indefinitely, even if the sound wave has finished playing, until SetStopSoundOnPlaybackFinish is called.
  * Audio data is always accumulated, clear memory manually via ReleaseMemory or ReleasePlayedAudioData if necessary.
  */
