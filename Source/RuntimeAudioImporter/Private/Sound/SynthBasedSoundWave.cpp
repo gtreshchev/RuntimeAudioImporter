@@ -99,7 +99,25 @@ void USynthBasedSoundWave::StopCapture_Implementation()
 
 bool USynthBasedSoundWave::ToggleMute_Implementation(bool bMute)
 {
-	return Super::ToggleMute_Implementation(bMute);
+	if (bMute)
+	{
+		if (IsCapturing())
+		{
+			StopCapture();
+			return true;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to mute the sound wave '%s' as it is not capturing"), *GetName());
+		return false;
+	}
+	else
+	{
+		if (!IsCapturing())
+		{
+			return StartCapture(LastDeviceIndex);
+		}
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to unmute the sound wave '%s' as it is already capturing"), *GetName());
+		return false;
+	}
 }
 
 bool USynthBasedSoundWave::IsCapturing_Implementation() const
@@ -109,6 +127,10 @@ bool USynthBasedSoundWave::IsCapturing_Implementation() const
 
 void USynthBasedSoundWave::Tick(float DeltaTime)
 {
+	if (SynthComponent->IsPlaying())
+	{
+		StopSynthSound();
+	}
 	if (IsCapturing())
 	{
 		AudioTaskPipe->Launch(AudioTaskPipe->GetDebugName(), [WeakThis = MakeWeakObjectPtr(this)]() mutable
@@ -203,7 +225,7 @@ ETickableTickType USynthBasedSoundWave::GetTickableTickType() const
 
 bool USynthBasedSoundWave::IsTickable() const
 {
-	return IsCapturing();
+	return SynthComponent != nullptr;
 }
 
 bool USynthBasedSoundWave::IsTickableWhenPaused() const

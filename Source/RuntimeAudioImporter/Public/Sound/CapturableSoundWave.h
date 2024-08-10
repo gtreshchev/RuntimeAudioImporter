@@ -114,6 +114,7 @@ private:
 	/** Audio capture instance */
 	Audio::FAudioCapture AudioCapture;
 #endif
+protected:
 	/** The last device index used for capture */
 	int32 LastDeviceIndex = -1;
 #endif
