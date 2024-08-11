@@ -28,7 +28,7 @@ TArray<ERuntimeAudioFormat> URuntimeAudioUtilities::GetAudioFormatsAdvanced(cons
 
 void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath, const FOnGetAudioHeaderInfoResult& Result)
 {
-	GetAudioHeaderInfoFromFile(FilePath, FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, const FRuntimeAudioHeaderInfo& HeaderInfo)
+	GetAudioHeaderInfoFromFile(FilePath, FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, FRuntimeAudioHeaderInfo HeaderInfo)
 	{
 		Result.ExecuteIfBound(bSucceeded, HeaderInfo);
 	}));
@@ -40,9 +40,9 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath,
 	{
 		auto ExecuteResult = [Result](bool bSucceeded, FRuntimeAudioHeaderInfo&& HeaderInfo)
 		{
-			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]()
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]() mutable
 			{
-				Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+				Result.ExecuteIfBound(bSucceeded, MoveTemp(HeaderInfo));
 			});
 		};
 
@@ -53,9 +53,32 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath,
 			return;
 		}
 
-		GetAudioHeaderInfoFromBuffer(MoveTemp(AudioBuffer), FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, const FRuntimeAudioHeaderInfo& HeaderInfo)
 		{
-			Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+			FRuntimeCodecFactory CodecFactory;
+			TArray<FBaseRuntimeCodec*> RuntimeCodecs = CodecFactory.GetCodecs(FilePath);
+
+			FRuntimeBulkDataBuffer<uint8> BulkAudioData = FRuntimeBulkDataBuffer<uint8>(AudioBuffer);
+
+			FEncodedAudioStruct EncodedData;
+			EncodedData.AudioData = MoveTemp(BulkAudioData);
+			for (FBaseRuntimeCodec* RuntimeCodec : RuntimeCodecs)
+			{
+				EncodedData.AudioFormat = RuntimeCodec->GetAudioFormat();
+
+				FRuntimeAudioHeaderInfo HeaderInfo;
+				if (!RuntimeCodec->GetHeaderInfo(MoveTemp(EncodedData), HeaderInfo))
+				{
+					continue;
+				}
+
+				ExecuteResult(true, MoveTemp(HeaderInfo));
+				return;
+			}
+		}
+
+		GetAudioHeaderInfoFromBuffer(MoveTemp(AudioBuffer), FOnGetAudioHeaderInfoResultNative::CreateLambda([Result](bool bSucceeded, FRuntimeAudioHeaderInfo HeaderInfo) mutable
+		{
+			Result.ExecuteIfBound(bSucceeded, MoveTemp(HeaderInfo));
 		}));
 	});
 }
@@ -74,9 +97,9 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromBuffer(TArray64<uint8> AudioD
 	{
 		auto ExecuteResult = [Result](bool bSucceeded, FRuntimeAudioHeaderInfo&& HeaderInfo)
 		{
-			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]()
+			AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded, HeaderInfo = MoveTemp(HeaderInfo)]() mutable
 			{
-				Result.ExecuteIfBound(bSucceeded, HeaderInfo);
+				Result.ExecuteIfBound(bSucceeded, MoveTemp(HeaderInfo));
 			});
 		};
 

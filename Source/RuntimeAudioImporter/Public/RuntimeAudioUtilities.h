@@ -8,7 +8,7 @@
 #include "RuntimeAudioUtilities.generated.h"
 
 /** Static delegate broadcasting the result of retrieving audio header info */
-DECLARE_DELEGATE_TwoParams(FOnGetAudioHeaderInfoResultNative, bool, const FRuntimeAudioHeaderInfo&);
+DECLARE_DELEGATE_TwoParams(FOnGetAudioHeaderInfoResultNative, bool, FRuntimeAudioHeaderInfo);
 
 /** Dynamic delegate broadcasting the result of retrieving audio header info */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnGetAudioHeaderInfoResult, bool, bSucceeded, const FRuntimeAudioHeaderInfo&, HeaderInfo);
