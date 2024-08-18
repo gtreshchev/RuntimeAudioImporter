@@ -81,9 +81,34 @@ namespace
 }
 #endif
 
+
+namespace
+{
+	bool EarlyOutIfAudioDataIsTooSmall(const FRuntimeBulkDataBuffer<uint8>& AudioData)
+	{
+		// BinkAudioFileHeader is only available with the encoding support
+#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
+		// Early out if the audio data is too small to contain the header (otherwise it will crash upon assertion check in FBinkAudioInfo::ParseHeader)
+		if (AudioData.GetView().Num() < sizeof(BinkAudioFileHeader))
+		{
+			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to read BINK compressed info since the audio data is too small"));
+			return false;
+		}
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Audio data is large enough to contain the header"));
+#endif
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Unable to check if the audio data is too small to contain the header since the encoding support is disabled"));
+		return true;
+	}
+}
+
 bool FBINK_RuntimeCodec::CheckAudioFormat(const FRuntimeBulkDataBuffer<uint8>& AudioData)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
+	if (!EarlyOutIfAudioDataIsTooSmall(AudioData))
+	{
+		return false;
+	}
+	
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
@@ -107,16 +132,10 @@ bool FBINK_RuntimeCodec::GetHeaderInfo(FEncodedAudioStruct EncodedData, FRuntime
 	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
-
-	// BinkAudioFileHeader is only available with the encoding support
-#if WITH_RUNTIMEAUDIOIMPORTER_BINK_ENCODE_SUPPORT
-	// Early out if the audio data is too small to contain the header (otherwise it will crash upon assertion check in FBinkAudioInfo::ParseHeader)
-	if (EncodedData.AudioData.GetView().Num() < sizeof(BinkAudioFileHeader))
+	if (!EarlyOutIfAudioDataIsTooSmall(EncodedData.AudioData))
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to read BINK compressed info since the audio data is too small"));
 		return false;
 	}
-#endif
 
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
@@ -196,6 +215,11 @@ bool FBINK_RuntimeCodec::Decode(FEncodedAudioStruct EncodedData, FDecodedAudioSt
 	                 *UEnum::GetValueAsString(GetAudioFormat()), *UEnum::GetValueAsString(EncodedData.AudioFormat));
 
 #if WITH_RUNTIMEAUDIOIMPORTER_BINK_DECODE_SUPPORT
+	if (!EarlyOutIfAudioDataIsTooSmall(EncodedData.AudioData))
+	{
+		return false;
+	}
+
 	FBinkAudioInfo AudioInfo;
 	FSoundQualityInfo SoundQualityInfo;
 
