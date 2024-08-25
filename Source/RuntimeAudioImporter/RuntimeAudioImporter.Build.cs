@@ -20,7 +20,7 @@ public class RuntimeAudioImporter : ModuleRules
 		bool bEnableVADSupport = true;
 
 		// Disable if you are not using file access
-		bool bEnableFileOperations = true;
+		bool bEnableFileOperationSupport = true;
 
 		// Bink format is only supported in Unreal Engine version >= 5
 		bool bEnableBinkSupport = Target.Version.MajorVersion >= 5;
@@ -156,8 +156,8 @@ public class RuntimeAudioImporter : ModuleRules
 
         PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT={0}", (bEnableVADSupport ? "1" : "0")));
 
-		if (Target.Platform == UnrealTargetPlatform.Android && bEnableFileOperations)
-		{
+        if (Target.Platform == UnrealTargetPlatform.Android && bEnableFileOperationSupport)
+        {
             PrivateDependencyModuleNames.AddRange(
                     new string[]
                     {
@@ -166,7 +166,7 @@ public class RuntimeAudioImporter : ModuleRules
                 );
         }
 
-		PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT={0}", (bEnableFileOperations ? "1" : "0")));
+        PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT={0}", (bEnableFileOperationSupport ? "1" : "0")));
 
 
 		if (bEnableBinkSupport)
