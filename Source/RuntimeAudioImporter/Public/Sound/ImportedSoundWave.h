@@ -178,6 +178,14 @@ public:
 	void SetPitch(UPARAM(DisplayName = "Pitch") float InPitch = 1);
 
 	/**
+	 * Set virtualization mode
+	 *
+	 * @param InVirtualizationMode Virtualization mode
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Properties")
+	void SetVirtualizationMode(UPARAM(DisplayName = "Virtualization Mode") EVirtualizationMode InVirtualizationMode);
+
+	/**
 	 * Rewind the sound for the specified time
 	 *
 	 * @param PlaybackTime How long to rewind the sound
