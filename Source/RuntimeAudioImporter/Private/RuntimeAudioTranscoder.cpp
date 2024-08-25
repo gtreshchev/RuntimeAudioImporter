@@ -119,7 +119,7 @@ void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFr
 		ExecuteResult(true);
 	}));
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("file operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to transcode RAW data from file '%s' to file '%s' because the file operation support is disabled"), *FilePathFrom, *FilePathTo);
 	Result.ExecuteIfBound(false);
 #endif
 }
@@ -275,7 +275,7 @@ void URuntimeAudioTranscoder::TranscodeEncodedDataFromFile(const FString& FilePa
 		ExecuteResult(true);
 	}));
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("file operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to transcode encoded audio data from file '%s' to file '%s' because the file operation support is disabled"), *FilePathFrom, *FilePathTo);
 	Result.ExecuteIfBound(false);
 #endif
 }

@@ -83,7 +83,7 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath,
 		}));
 	});
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("file operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get audio header info from file '%s' because the file operation support is disabled."), *FilePath);
 	Result.ExecuteIfBound(false, FRuntimeAudioHeaderInfo());
 #endif
 }

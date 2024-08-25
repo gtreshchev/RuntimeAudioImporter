@@ -39,7 +39,6 @@ bool UPreImportedSoundFactory::FactoryCanImport(const FString& Filename)
 
 UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, const FString& Filename, const TCHAR* Params, FFeedbackContext* Warn, bool& bOutOperationCanceled)
 {
-#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	TArray64<uint8> AudioData;
 
 	if (!RuntimeAudioImporter::LoadAudioFileToArray(AudioData, *Filename))
@@ -94,9 +93,6 @@ UObject* UPreImportedSoundFactory::FactoryCreateFile(UClass* InClass, UObject* I
 	}
 	
 	FMessageLog("Import").Error(ErrorText);
-	return nullptr;
-#else
-	UE_LOG(LogRuntimeAudioImporterEditor, Error, TEXT("File operation support disabled"));
 	return nullptr;
 }
 

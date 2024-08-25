@@ -68,7 +68,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 
 	ImportAudioFromBuffer(MoveTemp(AudioBuffer), AudioFormat);
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("File operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file '%s' because the file operation support is disabled"), *FilePath);
 	OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
 #endif
 }
@@ -163,7 +163,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 	OnProgress_Internal(35);
 	ImportAudioFromRAWBuffer(MoveTemp(AudioBuffer), RAWFormat, SampleRate, NumOfChannels);
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("File operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file '%s' because the file operation support is disabled"), *FilePath);
 	OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
 #endif
 }

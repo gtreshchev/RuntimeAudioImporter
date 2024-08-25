@@ -46,7 +46,7 @@ void URuntimeAudioExporter::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundW
 		Result.ExecuteIfBound(true);
 	}));
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("File operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to file as file operation support is disabled"));
 	Result.ExecuteIfBound(false);
 #endif
 }
@@ -211,7 +211,7 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWFile(TWeakObjectPtr<UImportedSou
 		Result.ExecuteIfBound(true);
 	}));
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("File operation support disabled"));
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to RAW file as file operation support is disabled"));
 	Result.ExecuteIfBound(false);
 #endif
 }
