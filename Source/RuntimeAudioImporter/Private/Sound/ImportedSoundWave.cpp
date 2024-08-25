@@ -501,6 +501,11 @@ void UImportedSoundWave::SetPitch(float InPitch)
 	Pitch = InPitch;
 }
 
+void UImportedSoundWave::SetVirtualizationMode(EVirtualizationMode InVirtualizationMode)
+{
+	VirtualizationMode = InVirtualizationMode;
+}
+
 bool UImportedSoundWave::RewindPlaybackTime(float PlaybackTime)
 {
 	FRAIScopeLock Lock(&*DataGuard);
