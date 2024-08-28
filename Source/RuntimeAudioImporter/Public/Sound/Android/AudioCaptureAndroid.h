@@ -2,6 +2,7 @@
 
 #pragma once
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if PLATFORM_ANDROID
 
 #include "AudioCaptureCore.h"
@@ -76,4 +77,5 @@ namespace Audio
 		OnCapture;
 	};
 }
+#endif
 #endif

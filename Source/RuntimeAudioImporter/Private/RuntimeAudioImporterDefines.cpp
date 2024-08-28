@@ -2,7 +2,7 @@
 
 #include "RuntimeAudioImporterDefines.h"
 
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 #include "Async/Future.h"
 #include "AndroidPermissionFunctionLibrary.h"
 #include "AndroidPermissionCallbackProxy.h"
@@ -13,7 +13,7 @@ namespace RuntimeAudioImporter
 {
 	bool CheckAndRequestPermissions()
 	{
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 		TArray<FString> AllRequiredPermissions = []()
 		{
 			TArray<FString> InternalPermissions = {TEXT("android.permission.READ_EXTERNAL_STORAGE"), TEXT("android.permission.WRITE_EXTERNAL_STORAGE")};

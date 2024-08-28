@@ -2,6 +2,7 @@
 
 #pragma once
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if PLATFORM_IOS && !PLATFORM_TVOS
 #include "AudioCaptureCore.h"
 #include "Misc/EngineVersionComparison.h"
@@ -73,4 +74,5 @@ namespace Audio
 		OnCapture;
 	};
 }
+#endif
 #endif

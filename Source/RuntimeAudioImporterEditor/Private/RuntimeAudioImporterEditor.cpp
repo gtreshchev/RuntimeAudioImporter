@@ -4,8 +4,10 @@
 
 #include "Misc/EngineVersionComparison.h"
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #include "AndroidRuntimeSettings.h"
 #include "IOSRuntimeSettings.h"
+#endif
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "MetasoundDataReference.h"
@@ -30,6 +32,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 	MetaSoundEditorModule.RegisterPinType(CreateArrayTypeNameFromElementTypeName("ImportedWave"));
 #endif
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 	// This is required for the iOS microphone access prompt to show up
 	{
 		UIOSRuntimeSettings* IOSRuntimeSettings = GetMutableDefault<UIOSRuntimeSettings>();
@@ -53,7 +56,9 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 			UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("NSMicrophoneUsageDescription already exists in AdditionalPlistData"));
 		}
 	}
+#endif
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT || WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	// This is required to access the external storage and record audio on Android
 	{
 		UAndroidRuntimeSettings* AndroidRuntimeSettings = GetMutableDefault<UAndroidRuntimeSettings>();
@@ -65,6 +70,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 
 		TArray<FString> NewExtraPermissions = AndroidRuntimeSettings->ExtraPermissions;
 
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 		if (!AndroidRuntimeSettings->ExtraPermissions.Contains(AndroidReadExternalStoragePermission))
 		{
 			NewExtraPermissions.Add(AndroidReadExternalStoragePermission);
@@ -77,10 +83,13 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 		{
 			NewExtraPermissions.Add(AndroidReadMediaAudioPermission);
 		}
+#endif
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 		if (!AndroidRuntimeSettings->ExtraPermissions.Contains(AndroidRecordAudioPermission))
 		{
 			NewExtraPermissions.Add(AndroidRecordAudioPermission);
 		}
+#endif
 		if (NewExtraPermissions.Num() > AndroidRuntimeSettings->ExtraPermissions.Num())
 		{
 			AndroidRuntimeSettings->ExtraPermissions = NewExtraPermissions;
@@ -91,6 +100,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 #endif
 		}
 	}
+#endif
 }
 
 void FRuntimeAudioImporterEditorModule::ShutdownModule()

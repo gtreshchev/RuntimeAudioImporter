@@ -1,5 +1,6 @@
 // Georgy Treshchev 2024.
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if PLATFORM_ANDROID
 
 #include "Sound/Android/AudioCaptureAndroid.h"
@@ -269,4 +270,5 @@ void Audio::FAudioCaptureAndroid::AndroidCaptureStop()
 
 	FJavaWrapper::CallVoidMethod(JavaEnv, FJavaWrapper::GameActivityThis, AndroidThunkJava_AndroidStopCapture);
 }
+#endif
 #endif

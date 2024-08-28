@@ -64,8 +64,14 @@
  }
 
  public void AndroidThunkJava_AndroidStopCapture() {
-     runnableAudioCapture.setIsRunning(false);
-     microphone.stop();
+    if (runnableAudioCapture != null)
+    {
+        runnableAudioCapture.setIsRunning(false);
+    }
+    if (microphone != null)
+    {
+        microphone.stop();
+    }
  }
 
 

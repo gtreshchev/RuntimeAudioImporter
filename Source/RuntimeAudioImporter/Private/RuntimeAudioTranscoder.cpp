@@ -74,6 +74,7 @@ void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFr
 
 void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFrom, ERuntimeRAWAudioFormat RAWFormatFrom, const FString& FilePathTo, ERuntimeRAWAudioFormat RAWFormatTo, const FOnRAWDataTranscodeFromFileResultNative& Result)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	if (IsInGameThread())
 	{
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [FilePathFrom, RAWFormatFrom, FilePathTo, RAWFormatTo, Result]()
@@ -117,6 +118,10 @@ void URuntimeAudioTranscoder::TranscodeRAWDataFromFile(const FString& FilePathFr
 
 		ExecuteResult(true);
 	}));
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to transcode RAW data from file '%s' to file '%s' because the file operation support is disabled"), *FilePathFrom, *FilePathTo);
+	Result.ExecuteIfBound(false);
+#endif
 }
 
 void URuntimeAudioTranscoder::TranscodeEncodedDataFromBuffer(TArray<uint8> EncodedDataFrom, ERuntimeAudioFormat EncodedFormatFrom, ERuntimeAudioFormat EncodedFormatTo, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnEncodedDataTranscodeFromBufferResult& Result)
@@ -225,6 +230,7 @@ void URuntimeAudioTranscoder::TranscodeEncodedDataFromFile(const FString& FilePa
 
 void URuntimeAudioTranscoder::TranscodeEncodedDataFromFile(const FString& FilePathFrom, ERuntimeAudioFormat EncodedFormatFrom, const FString& FilePathTo, ERuntimeAudioFormat EncodedFormatTo, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnEncodedDataTranscodeFromFileResultNative& Result)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	if (IsInGameThread())
 	{
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [FilePathFrom, EncodedFormatFrom, FilePathTo, EncodedFormatTo, Quality, OverrideOptions, Result]()
@@ -268,4 +274,8 @@ void URuntimeAudioTranscoder::TranscodeEncodedDataFromFile(const FString& FilePa
 
 		ExecuteResult(true);
 	}));
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to transcode encoded audio data from file '%s' to file '%s' because the file operation support is disabled"), *FilePathFrom, *FilePathTo);
+	Result.ExecuteIfBound(false);
+#endif
 }

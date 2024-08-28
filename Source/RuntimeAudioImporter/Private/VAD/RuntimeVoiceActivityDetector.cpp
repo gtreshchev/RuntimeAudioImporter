@@ -12,9 +12,9 @@
 #endif
 
 URuntimeVoiceActivityDetector::URuntimeVoiceActivityDetector()
-	: AppliedSampleRate(0),
+	: AppliedSampleRate(0)
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
-	  VADInstance(nullptr)
+	  , VADInstance(nullptr)
 #endif
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
@@ -29,7 +29,10 @@ URuntimeVoiceActivityDetector::URuntimeVoiceActivityDetector()
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to create VAD instance for %s"), *GetName());
 	}
 #else
-	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("VAD support is disabled, unable to create VAD instance for %s"), *GetName());
+    if (!HasAnyFlags(RF_ClassDefaultObject))
+    {
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("VAD support is disabled, unable to create VAD instance for %s"), *GetName());
+	}
 #endif
 }
 

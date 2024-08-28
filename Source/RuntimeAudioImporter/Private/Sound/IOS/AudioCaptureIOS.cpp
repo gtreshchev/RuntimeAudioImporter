@@ -1,5 +1,6 @@
 // Georgy Treshchev 2024.
 
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #if PLATFORM_IOS && !PLATFORM_TVOS
 #include "Sound/IOS/AudioCaptureIOS.h"
 #include "Async/Future.h"
@@ -386,4 +387,5 @@ void Audio::FAudioCaptureIOS::AllocateBuffer(int32 SizeInBytes)
 		CaptureBufferData += (SizeInBytes + sizeof(AudioBuffer));
 	}
 }
+#endif
 #endif
