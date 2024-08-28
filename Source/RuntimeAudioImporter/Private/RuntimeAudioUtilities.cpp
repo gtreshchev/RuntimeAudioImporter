@@ -36,6 +36,7 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath,
 
 void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath, const FOnGetAudioHeaderInfoResultNative& Result)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [FilePath, Result]
 	{
 		auto ExecuteResult = [Result](bool bSucceeded, FRuntimeAudioHeaderInfo&& HeaderInfo)
@@ -81,6 +82,10 @@ void URuntimeAudioUtilities::GetAudioHeaderInfoFromFile(const FString& FilePath,
 			Result.ExecuteIfBound(bSucceeded, MoveTemp(HeaderInfo));
 		}));
 	});
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to get audio header info from file '%s' because the file operation support is disabled."), *FilePath);
+	Result.ExecuteIfBound(false, FRuntimeAudioHeaderInfo());
+#endif
 }
 
 void URuntimeAudioUtilities::GetAudioHeaderInfoFromBuffer(TArray<uint8> AudioData, const FOnGetAudioHeaderInfoResult& Result)

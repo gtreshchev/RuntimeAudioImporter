@@ -31,6 +31,7 @@ URuntimeAudioImporterLibrary* URuntimeAudioImporterLibrary::CreateRuntimeAudioIm
 
 void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, ERuntimeAudioFormat AudioFormat)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	if (IsInGameThread())
 	{
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), FilePath, AudioFormat]()
@@ -66,6 +67,10 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	}
 
 	ImportAudioFromBuffer(MoveTemp(AudioBuffer), AudioFormat);
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file '%s' because the file operation support is disabled"), *FilePath);
+	OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
+#endif
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromPreImportedSound(UPreImportedSoundAsset* PreImportedSoundAsset)
@@ -123,6 +128,7 @@ void URuntimeAudioImporterLibrary::ImportAudioFromBuffer(TArray64<uint8> AudioDa
 
 void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePath, ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	if (IsInGameThread())
 	{
 		AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [WeakThis = MakeWeakObjectPtr(this), FilePath, RAWFormat, SampleRate, NumOfChannels]()
@@ -156,6 +162,10 @@ void URuntimeAudioImporterLibrary::ImportAudioFromRAWFile(const FString& FilePat
 
 	OnProgress_Internal(35);
 	ImportAudioFromRAWBuffer(MoveTemp(AudioBuffer), RAWFormat, SampleRate, NumOfChannels);
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to import audio from file '%s' because the file operation support is disabled"), *FilePath);
+	OnResult_Internal(nullptr, ERuntimeImportStatus::AudioDoesNotExist);
+#endif
 }
 
 void URuntimeAudioImporterLibrary::ImportAudioFromRAWBuffer(TArray<uint8> RAWBuffer, ERuntimeRAWAudioFormat RAWFormat, int32 SampleRate, int32 NumOfChannels)

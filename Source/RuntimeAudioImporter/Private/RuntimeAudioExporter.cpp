@@ -25,6 +25,7 @@ void URuntimeAudioExporter::ExportSoundWaveToFile(UImportedSoundWave* ImportedSo
 
 void URuntimeAudioExporter::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToFileResultNative& Result)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	TArray<ERuntimeAudioFormat> AudioFormats = URuntimeAudioUtilities::GetAudioFormats(SavePath);
 	AudioFormat = AudioFormat == ERuntimeAudioFormat::Auto ? (AudioFormats.Num() == 0 ? ERuntimeAudioFormat::Invalid : AudioFormats[0]) : AudioFormat;
 	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, OverrideOptions, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceeded, const TArray64<uint8>& AudioData)
@@ -44,6 +45,10 @@ void URuntimeAudioExporter::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundW
 
 		Result.ExecuteIfBound(true);
 	}));
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to file as file operation support is disabled"));
+	Result.ExecuteIfBound(false);
+#endif
 }
 
 void URuntimeAudioExporter::ExportSoundWaveToBuffer(UImportedSoundWave* ImportedSoundWave, ERuntimeAudioFormat AudioFormat, uint8 Quality, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToBufferResult& Result)
@@ -187,6 +192,7 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWFile(UImportedSoundWave* Importe
 
 void URuntimeAudioExporter::ExportSoundWaveToRAWFile(TWeakObjectPtr<UImportedSoundWave> ImportedSoundWavePtr, const FString& SavePath, ERuntimeRAWAudioFormat RAWFormat, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToFileResultNative& Result)
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	ExportSoundWaveToRAWBuffer(ImportedSoundWavePtr, RAWFormat, OverrideOptions, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceeded, const TArray64<uint8>& AudioData)
 	{
 		if (!bSucceeded)
@@ -204,6 +210,10 @@ void URuntimeAudioExporter::ExportSoundWaveToRAWFile(TWeakObjectPtr<UImportedSou
 
 		Result.ExecuteIfBound(true);
 	}));
+#else
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to export sound wave to RAW file as file operation support is disabled"));
+	Result.ExecuteIfBound(false);
+#endif
 }
 
 void URuntimeAudioExporter::ExportSoundWaveToRAWBuffer(UImportedSoundWave* ImportedSoundWave, ERuntimeRAWAudioFormat RAWFormat, const FRuntimeAudioExportOverrideOptions& OverrideOptions, const FOnAudioExportToBufferResult& Result)

@@ -15,6 +15,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogRuntimeAudioImporter, Log, All);
 
 namespace RuntimeAudioImporter
 {
+#if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	/**
 	 * Check and request permissions required for audio importing/exporting
 	 */
@@ -34,4 +35,5 @@ namespace RuntimeAudioImporter
 		CheckAndRequestPermissions();
 		return FFileHelper::SaveArrayToFile(Forward<T>(AudioData), *FilePath);
 	}
+#endif
 }
