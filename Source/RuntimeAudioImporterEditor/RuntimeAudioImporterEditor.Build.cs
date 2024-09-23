@@ -30,17 +30,21 @@ public class RuntimeAudioImporterEditor : ModuleRules
 				"UnrealEd"
 			}
 		);
-		
-		// To access settings for adding the permissions needed for importing/exporting audio files
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"AndroidRuntimeSettings",
-				"IOSRuntimeSettings"
-			}
-		);
 
-		if (bEnableMetaSoundSupport)
+        // To access settings for adding the permissions needed for importing/exporting audio files
+        // On Linux, for some reason, the AndroidRuntimeSettings and IOSRuntimeSettings modules are not available
+        if (!Target.IsInPlatformGroup(UnrealPlatformGroup.Linux))
+        {
+	        PrivateDependencyModuleNames.AddRange(
+		        new string[]
+		        {
+			        "AndroidRuntimeSettings",
+			        "IOSRuntimeSettings"
+		        }
+	        );
+        }
+
+        if (bEnableMetaSoundSupport)
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
