@@ -211,4 +211,19 @@ public:
 		RemixedRAWData = Audio::FAlignedFloatBuffer(PCMSampleBuffer.GetData(), PCMSampleBuffer.GetNumSamples());
 		return true;
 	}
+
+	/**
+	 * Reversing RAW Data
+	 * 
+	 * @param RAWData RAW data for reversing
+	 */
+	static void ReverseRAWData(Audio::FAlignedFloatBuffer& RAWData)
+	{
+		if (RAWData.Num() <= 1)
+		{
+			UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Skipping audio data reversal because the number of samples is less than or equal to 1"));
+		}
+
+		Algo::Reverse(RAWData);
+	}
 };

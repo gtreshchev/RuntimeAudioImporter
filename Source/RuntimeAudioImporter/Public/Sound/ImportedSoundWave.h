@@ -43,11 +43,13 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnPopulateAudioDataNative, const TArray<flo
 /** Dynamic delegate broadcast newly populated PCM data */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPopulateAudioData, const TArray<float>&, PopulatedAudioData);
 
+
 /** Static delegate broadcast when the PCM data is populated. Same as FOnPopulateAudioDataNative except it doesn't broadcast the audio data */
 DECLARE_MULTICAST_DELEGATE(FOnPopulateAudioStateNative);
 
 /** Dynamic delegate broadcast when the PCM data is populated. Same as FOnPopulateAudioData except it doesn't broadcast the audio data */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPopulateAudioState);
+
 
 /** Static delegate broadcast when a sound wave is duplicated */
 DECLARE_DELEGATE_TwoParams(FOnDuplicateSoundWaveNative, bool, UImportedSoundWave*);
@@ -55,12 +57,19 @@ DECLARE_DELEGATE_TwoParams(FOnDuplicateSoundWaveNative, bool, UImportedSoundWave
 /** Dynamic delegate broadcast when a sound wave is duplicated */
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FOnDuplicateSoundWave, bool, bSucceeded, UImportedSoundWave*, DuplicatedSoundWave);
 
+
 /** Static delegate broadcast the result of stopping the sound wave playback */
 DECLARE_DELEGATE_OneParam(FOnStopPlaybackResultNative, bool);
 
 /** Dynamic delegate broadcast the result of stopping the sound wave playback */
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnStopPlaybackResult, bool, bSucceeded);
 
+
+/** Static delegate broadcast the result of reversing the audio data */
+DECLARE_DELEGATE_OneParam(FOnReverseAudioDataNative, bool);
+
+/** Dynamic delegate broadcast the result of reversing the audio data */
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnReverseAudioData, bool, bSucceeded);
 
 /**
  * Imported sound wave. Assumed to be dynamically populated once from the decoded audio data.
@@ -264,6 +273,21 @@ public:
 	 * @return Whether the sound wave was stopped or not
 	 */
 	void StopPlayback(const UObject* WorldContextObject, const FOnStopPlaybackResultNative& Result);
+
+	/**
+	 * Reverse the audio buffer (PCM data) so that when played back, it will be played in reverse (backwards)
+	 * 
+	 * @param Result Delegate broadcasting the result
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Imported Sound Wave|Main")
+	void ReverseAudioBuffer(const FOnReverseAudioData& Result);
+
+	/**
+	 * Reverse the audio buffer (PCM data) so that when played back, it will be played in reverse (backwards). Suitable for use in C++
+	 * 
+	 * @param Result Delegate broadcasting the result
+	 */
+	void ReverseAudioBuffer(const FOnReverseAudioDataNative& Result);
 
 	/**
 	 * Change the number of frames played back. Used to rewind the sound

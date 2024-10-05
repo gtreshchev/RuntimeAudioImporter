@@ -698,6 +698,50 @@ void UImportedSoundWave::StopPlayback(const UObject* WorldContextObject, const F
 	ExecuteResult(true);
 }
 
+void UImportedSoundWave::ReverseAudioBuffer(const FOnReverseAudioData& Result)
+{
+	ReverseAudioBuffer(FOnReverseAudioDataNative::CreateWeakLambda(this, [Result](bool bSucceeded)
+	{
+		Result.ExecuteIfBound(bSucceeded);
+	}));
+}
+
+void UImportedSoundWave::ReverseAudioBuffer(const FOnReverseAudioDataNative& Result)
+{
+	if (!IsInAudioThread())
+	{
+		FAudioThread::RunCommandOnAudioThread( [WeakThis = MakeWeakObjectPtr(this), Result]()
+		{
+			WeakThis->ReverseAudioBuffer(Result);
+		});
+		return;
+	}
+
+	auto ExecuteResult = [Result](bool bSucceeded)
+	{
+		AsyncTask(ENamedThreads::GameThread, [Result, bSucceeded]()
+		{
+			Result.ExecuteIfBound(bSucceeded);
+		});
+	};
+
+	FRAIScopeLock Lock(&*DataGuard);
+
+	if (PCMBufferInfo->PCMData.GetView().Num() <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to reverse the audio buffer for the imported sound wave '%s' because the PCM data is empty"), *GetName());
+		ExecuteResult(false);
+		return;
+	}
+
+	Audio::FAlignedFloatBuffer PCMData = Audio::FAlignedFloatBuffer(PCMBufferInfo->PCMData.GetView().GetData(), PCMBufferInfo->PCMData.GetView().Num());
+	FRAW_RuntimeCodec::ReverseRAWData(PCMData);
+
+	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully reversed the audio buffer for the imported sound wave '%s'"), *GetName());
+	PCMBufferInfo->PCMData = FRuntimeBulkDataBuffer<float>(PCMData);
+	ExecuteResult(true);
+}
+
 bool UImportedSoundWave::SetNumOfPlayedFrames(uint32 NumOfFrames)
 {
 	FRAIScopeLock Lock(&*DataGuard);
