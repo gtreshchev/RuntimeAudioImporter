@@ -5,8 +5,11 @@
 #include "Misc/EngineVersionComparison.h"
 
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT && !PLATFORM_LINUX
-#include "AndroidRuntimeSettings.h"
+#if PLATFORM_APPLE
 #include "IOSRuntimeSettings.h"
+#else
+#include "AndroidRuntimeSettings.h"
+#endif
 #endif
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
@@ -32,7 +35,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 	MetaSoundEditorModule.RegisterPinType(CreateArrayTypeNameFromElementTypeName("ImportedWave"));
 #endif
 
-#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT && !PLATFORM_LINUX
+#if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT && !PLATFORM_LINUX && PLATFORM_APPLE
 	// This is required for the iOS microphone access prompt to show up
 	{
 		UIOSRuntimeSettings* IOSRuntimeSettings = GetMutableDefault<UIOSRuntimeSettings>();
@@ -58,7 +61,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 	}
 #endif
 
-#if (WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT || WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT) && !PLATFORM_LINUX
+#if (WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT || WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT) && !PLATFORM_LINUX && !PLATFORM_APPLE
 	// This is required to access the external storage and record audio on Android
 	{
 		UAndroidRuntimeSettings* AndroidRuntimeSettings = GetMutableDefault<UAndroidRuntimeSettings>();
