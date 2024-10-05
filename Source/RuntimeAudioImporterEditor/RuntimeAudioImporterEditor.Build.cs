@@ -35,13 +35,15 @@ public class RuntimeAudioImporterEditor : ModuleRules
         // On Linux, for some reason, the AndroidRuntimeSettings and IOSRuntimeSettings modules are not available
         if (!Target.IsInPlatformGroup(UnrealPlatformGroup.Linux))
         {
-	        PrivateDependencyModuleNames.AddRange(
-		        new string[]
-		        {
-			        "AndroidRuntimeSettings",
-			        "IOSRuntimeSettings"
-		        }
-	        );
+	        // Add the AndroidRuntimeSettings or IOSRuntimeSettings module depending on the platform
+	        if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple))
+	        {
+		        PrivateDependencyModuleNames.Add("IOSRuntimeSettings");
+	        }
+	        else
+	        {
+		        PrivateDependencyModuleNames.Add("AndroidRuntimeSettings");
+	        }
         }
 
         if (bEnableMetaSoundSupport)
