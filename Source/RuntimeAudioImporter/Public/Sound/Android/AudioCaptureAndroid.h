@@ -62,7 +62,7 @@ namespace Audio
 		void AndroidCaptureStop();
 
 	private:
-		TFuture<bool> PermissionCheckFuture;
+		bool bPermissionsGranted = false;
 		bool bIsStreamOpen = false;
 		bool bHasCaptureStarted = false;
 

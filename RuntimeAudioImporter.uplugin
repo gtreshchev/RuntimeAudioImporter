@@ -24,11 +24,5 @@
       "Name": "RuntimeAudioImporterEditor",
       "Type": "Editor"
     }
-  ],
-  "Plugins": [
-    {
-      "Name": "AndroidPermission",
-      "Enabled": true
-    }
   ]
 }

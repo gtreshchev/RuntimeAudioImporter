@@ -129,7 +129,7 @@ public class RuntimeAudioImporter : ModuleRules
 					new string[]
 					{
 						"AudioCaptureAndroid",
-						"AndroidPermission"
+						"Launch"
 					}
 				);
 
@@ -155,16 +155,6 @@ public class RuntimeAudioImporter : ModuleRules
         }
 
         PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT={0}", (bEnableVADSupport ? "1" : "0")));
-
-        if (Target.Platform == UnrealTargetPlatform.Android && bEnableFileOperationSupport)
-        {
-            PrivateDependencyModuleNames.AddRange(
-                    new string[]
-                    {
-                        "AndroidPermission",
-                    }
-                );
-        }
 
         PublicDefinitions.Add(string.Format("WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT={0}", (bEnableFileOperationSupport ? "1" : "0")));
 
