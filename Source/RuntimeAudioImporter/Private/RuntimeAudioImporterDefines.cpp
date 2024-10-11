@@ -4,30 +4,85 @@
 
 #if PLATFORM_ANDROID && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 #include "Async/Future.h"
-#include "AndroidPermissionFunctionLibrary.h"
-#include "AndroidPermissionCallbackProxy.h"
+#include "Android/AndroidApplication.h"
 #include "Android/AndroidPlatformMisc.h"
+#include "Async/TaskGraphInterfaces.h"
+
+#if USE_ANDROID_JNI
+#include "Android/AndroidJNI.h"
+static jclass _PermissionHelperClass;
+static jmethodID _CheckPermissionMethodId;
+static jmethodID _AcquirePermissionMethodId;
+#endif
+
 #endif
 
 namespace RuntimeAudioImporter
 {
-	bool CheckAndRequestPermissions()
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FRAIAndroidPermissionDelegate, const TArray<FString>& /*Permissions*/, const TArray<bool>& /*GrantResults*/);
+	
+	class FRAIAndroidPermissionCallbackProxy
+	{
+	public:
+
+		FRAIAndroidPermissionDelegate OnPermissionsGrantedDelegate;
+	};
+
+	TSharedPtr<FRAIAndroidPermissionCallbackProxy> AndroidPermissionCallbackProxyInstance = nullptr;
+	
+	TSharedPtr<FRAIAndroidPermissionCallbackProxy> AcquirePermissions(const TArray<FString>& Permissions)
+	{
+#if PLATFORM_ANDROID && USE_ANDROID_JNI && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
+		JNIEnv* env = FAndroidApplication::GetJavaEnv();
+		auto permissionsArray = NewScopedJavaObject(env, (jobjectArray)env->NewObjectArray(Permissions.Num(), FJavaWrapper::JavaStringClass, NULL));
+		for (int i = 0; i < Permissions.Num(); i++)
+		{
+			auto str = FJavaHelper::ToJavaString(env, Permissions[i]);
+			env->SetObjectArrayElement(*permissionsArray, i, *str);
+		}
+		env->CallStaticVoidMethod(_PermissionHelperClass, _AcquirePermissionMethodId, *permissionsArray);
+#endif
+		AndroidPermissionCallbackProxyInstance = MakeShared<FRAIAndroidPermissionCallbackProxy>();
+		return AndroidPermissionCallbackProxyInstance;
+	}
+	
+	bool CheckPermission(const FString& Permission)
+	{
+#if PLATFORM_ANDROID && USE_ANDROID_JNI && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
+		JNIEnv* env = FAndroidApplication::GetJavaEnv();
+		_PermissionHelperClass = FAndroidApplication::FindJavaClassGlobalRef("com/Plugins/RuntimeAudioImporter/PermissionHelper");
+		_CheckPermissionMethodId = env->GetStaticMethodID(_PermissionHelperClass, "checkPermission", "(Ljava/lang/String;)Z");
+		_AcquirePermissionMethodId = env->GetStaticMethodID(_PermissionHelperClass, "acquirePermissions", "([Ljava/lang/String;)V");
+		
+		JNIEnv* Env = FAndroidApplication::GetJavaEnv();
+		auto Argument = FJavaHelper::ToJavaString(Env, Permission);
+		bool bResult = env->CallStaticBooleanMethod(_PermissionHelperClass, _CheckPermissionMethodId, *Argument);
+		return bResult;
+#else
+		return true;
+#endif
+	}
+	
+	bool CheckAndRequestPermissions(TArray<FString> AllRequiredPermissions)
 	{
 #if PLATFORM_ANDROID && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
-		TArray<FString> AllRequiredPermissions = []()
+		if (AllRequiredPermissions.IsEmpty())
 		{
-			TArray<FString> InternalPermissions = {TEXT("android.permission.READ_EXTERNAL_STORAGE"), TEXT("android.permission.WRITE_EXTERNAL_STORAGE")};
-			if (FAndroidMisc::GetAndroidBuildVersion() >= 33)
+			AllRequiredPermissions = []()
 			{
-				InternalPermissions.Add(TEXT("android.permission.READ_MEDIA_AUDIO"));
-			}
-			return InternalPermissions;
-		}();
+				TArray<FString> InternalPermissions = {TEXT("android.permission.READ_EXTERNAL_STORAGE"), TEXT("android.permission.WRITE_EXTERNAL_STORAGE")};
+				if (FAndroidMisc::GetAndroidBuildVersion() >= 33)
+				{
+					InternalPermissions.Add(TEXT("android.permission.READ_MEDIA_AUDIO"));
+				}
+				return InternalPermissions;
+			}();
+		}
 
 		TArray<FString> UngrantedPermissions;
 		for (const FString& Permission : AllRequiredPermissions)
 		{
-			if (!UAndroidPermissionFunctionLibrary::CheckPermission(Permission))
+			if (!CheckPermission(Permission))
 			{
 				UngrantedPermissions.Add(Permission);
 				UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Permission '%s' is not granted on Android. Requesting permission..."), *Permission);
@@ -46,31 +101,19 @@ namespace RuntimeAudioImporter
 
 		TSharedRef<TPromise<bool>> bPermissionGrantedPromise = MakeShared<TPromise<bool>>();
 		TFuture<bool> bPermissionGrantedFuture = bPermissionGrantedPromise->GetFuture();
-		UAndroidPermissionCallbackProxy* PermissionsGrantedCallbackProxy = UAndroidPermissionFunctionLibrary::AcquirePermissions(UngrantedPermissions);
+		TSharedPtr<FRAIAndroidPermissionCallbackProxy> PermissionsGrantedCallbackProxy = AcquirePermissions(UngrantedPermissions);
 		if (!PermissionsGrantedCallbackProxy)
 		{
 			UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to request permissions for reading/writing audio data on Android (PermissionsGrantedCallbackProxy is null)"));
 			return false;
 		}
 
-		FAndroidPermissionDelegate OnPermissionsGrantedDelegate;
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
+		FRAIAndroidPermissionDelegate OnPermissionsGrantedDelegate;
 		TSharedRef<FDelegateHandle> OnPermissionsGrantedDelegateHandle = MakeShared<FDelegateHandle>();
-		*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddLambda
-#else
-		OnPermissionsGrantedDelegate.BindLambda
-#endif
-		([
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
-		OnPermissionsGrantedDelegateHandle,
-#endif
+		*OnPermissionsGrantedDelegateHandle = OnPermissionsGrantedDelegate.AddLambda([OnPermissionsGrantedDelegateHandle,
 		OnPermissionsGrantedDelegate, bPermissionGrantedPromise, Permissions = MoveTemp(UngrantedPermissions)](const TArray<FString>& GrantPermissions, const TArray<bool>& GrantResults) mutable
 		{
-#if UE_VERSION_NEWER_THAN(5, 0, 0)
 			OnPermissionsGrantedDelegate.Remove(OnPermissionsGrantedDelegateHandle.Get());
-#else
-			OnPermissionsGrantedDelegate.Unbind();
-#endif
 			for (const FString& Permission : Permissions)
 			{
 				if (!GrantPermissions.Contains(Permission) || !GrantResults.IsValidIndex(GrantPermissions.Find(Permission)) || !GrantResults[GrantPermissions.Find(Permission)])
@@ -122,3 +165,23 @@ namespace RuntimeAudioImporter
 		return true;
 	}
 }
+
+#if PLATFORM_ANDROID && USE_ANDROID_JNI
+JNI_METHOD void Java_com_Plugins_RuntimeAudioImporter_PermissionHelper_onAcquirePermissions(JNIEnv *env, jclass clazz, jobjectArray permissions, jintArray grantResults) 
+{
+	if (!RuntimeAudioImporter::AndroidPermissionCallbackProxyInstance) return;
+
+	TArray<FString> arrPermissions;
+	TArray<bool> arrGranted;
+	int num = env->GetArrayLength(permissions);
+	jint* jarrGranted = env->GetIntArrayElements(grantResults, 0);
+	for (int i = 0; i < num; i++)
+	{
+		arrPermissions.Add(FJavaHelper::FStringFromLocalRef(env, (jstring)env->GetObjectArrayElement(permissions, i)));
+		arrGranted.Add(jarrGranted[i] == 0 ? true : false); // 0: permission granted, -1: permission denied
+	}
+	env->ReleaseIntArrayElements(grantResults, jarrGranted, 0);
+
+	RuntimeAudioImporter::AndroidPermissionCallbackProxyInstance->OnPermissionsGrantedDelegate.Broadcast(arrPermissions, arrGranted);
+}
+#endif

@@ -18,8 +18,9 @@ namespace RuntimeAudioImporter
 #if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	/**
 	 * Check and request permissions required for audio importing/exporting
+	 * @param AllRequiredPermissions List of all required permissions. If no permissions are provided, only those necessary for the RuntimeAudioImporter will be requested
 	 */
-	RUNTIMEAUDIOIMPORTER_API bool CheckAndRequestPermissions();
+	RUNTIMEAUDIOIMPORTER_API bool CheckAndRequestPermissions(TArray<FString> AllRequiredPermissions = TArray<FString>());
 
 	/**
 	 * Load audio file to TArray64<uint8>

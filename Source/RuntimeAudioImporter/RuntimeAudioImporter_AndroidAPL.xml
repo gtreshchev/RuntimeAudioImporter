@@ -11,6 +11,10 @@
         <addPermission android:name="android.permission.RECORD_AUDIO"/>
     </androidManifestUpdates>
 
+	<prebuildCopies>
+		<copyDir src="$S(PluginDir)/Private/Java" dst="$S(BuildDir)/src/com/Plugins/RuntimeAudioImporter" />
+	</prebuildCopies>
+
     <!-- optional additions to the GameActivity imports in GameActivity.java -->
     <gameActivityImportAdditions>
         <insert>
@@ -103,4 +107,13 @@
 ]]>
         </insert>
     </gameActivityClassAdditions>
+
+    <proguardAdditions>
+        <insert>
+            -keep class com.Plugins.RuntimeAudioImporter.** {
+            *;
+            }
+        </insert>
+    </proguardAdditions>
+
 </root>
