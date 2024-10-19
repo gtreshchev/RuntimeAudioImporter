@@ -3,6 +3,7 @@
 #pragma once
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
+#include "Misc/EngineVersionComparison.h"
 #include "MetasoundDataReference.h"
 #include "MetasoundDataTypeRegistrationMacro.h"
 #include "IAudioProxyInitializer.h"
@@ -10,6 +11,12 @@
 
 namespace RuntimeAudioImporter
 {
+#if UE_VERSION_OLDER_THAN(5, 2, 0)
+	using FProxyDataPtrType = TUniquePtr<Audio::IProxyData>;
+#else
+	using FProxyDataPtrType = TSharedPtr<Audio::IProxyData>;
+#endif
+	
 	extern const FString RUNTIMEAUDIOIMPORTER_API PluginAuthor;
 	extern const FText RUNTIMEAUDIOIMPORTER_API PluginNodeMissingPrompt;
 
@@ -25,7 +32,7 @@ namespace RuntimeAudioImporter
 		FImportedWave(const FImportedWave&) = default;
 		FImportedWave& operator=(const FImportedWave& Other) = default;
 
-		FImportedWave(const TUniquePtr<Audio::IProxyData>& InInitData);
+		FImportedWave(const FProxyDataPtrType& InInitData);
 
 		bool IsSoundWaveValid() const
 		{
@@ -45,6 +52,11 @@ namespace RuntimeAudioImporter
 		FSoundWaveProxy* operator->()
 		{
 			return SoundWaveProxy.Get();
+		}
+
+		friend FORCEINLINE uint32 GetTypeHash(const FImportedWave& InImportedWave)
+		{
+			return GetTypeHash(InImportedWave.SoundWaveProxy);
 		}
 	};
 }
