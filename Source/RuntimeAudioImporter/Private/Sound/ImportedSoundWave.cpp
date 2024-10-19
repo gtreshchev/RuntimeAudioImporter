@@ -113,12 +113,33 @@ Audio::EAudioMixerStreamDataFormat::Type UImportedSoundWave::GetGeneratedPCMData
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 TSharedPtr<Audio::IProxyData> UImportedSoundWave::CreateProxyData(const Audio::FProxyDataInitParams& InitParams)
 {
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	if (SoundWaveDataPtr)
 	{
 		SoundWaveDataPtr->InitializeDataFromSoundWave(*this);
 		SoundWaveDataPtr->OverrideRuntimeFormat(Audio::NAME_OGG);
 	}
 	return USoundWave::CreateProxyData(InitParams);
+#else
+	TSharedPtr<Audio::IProxyData> ProxyDataPtr = USoundWave::CreateProxyData(InitParams);
+	FSoundWaveProxyPtr ProxyData = StaticCastSharedPtr<FSoundWaveProxy>(ProxyDataPtr);
+	if (!ProxyData.IsValid())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to create a proxy data for the imported sound wave '%s'"), *GetName());
+		return nullptr;
+	}
+
+	FSoundWavePtr ProxyData_SoundWaveDataPtr = ProxyData->GetSoundWaveData();
+	if (!ProxyData_SoundWaveDataPtr.IsValid())
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to get the sound wave data from the proxy data for the imported sound wave '%s'"), *GetName());
+		return nullptr;
+	}
+
+	ProxyData_SoundWaveDataPtr->InitializeDataFromSoundWave(*this);
+	ProxyData_SoundWaveDataPtr->OverrideRuntimeFormat(Audio::NAME_OGG);
+	return ProxyDataPtr;
+#endif
 }
 
 bool UImportedSoundWave::InitAudioResource(FName Format)
@@ -130,10 +151,17 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 		return false;
 	}
 
+#if UE_VERSION_OLDER_THAN(5, 5, 0)
 	if (SoundWaveDataPtr->GetResourceSize() > 0)
 	{
 		return true;
 	}
+#else
+	if (GetResourceSize() > 0)
+	{
+		return true;
+	}
+#endif
 
 	FDecodedAudioStruct DecodedAudioInfo;
 	{

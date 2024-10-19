@@ -9,7 +9,7 @@ namespace RuntimeAudioImporter
 	const FString PluginAuthor = TEXT("Georgy Treshchev");
 	const FText PluginNodeMissingPrompt = NSLOCTEXT("RuntimeAudioImporter", "DefaultMissingNodePrompt", "The node was likely removed, renamed, or the RuntimeAudioImporter plugin is not loaded.");
 
-	FImportedWave::FImportedWave(const TUniquePtr<Audio::IProxyData>& InInitData)
+	FImportedWave::FImportedWave(const FProxyDataPtrType& InInitData)
 	{
 		if (InInitData.IsValid())
 		{
