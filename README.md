@@ -45,8 +45,6 @@ MP3, WAV, and FLAC audio transcoding operations are powered by [dr_libs](https:/
 
 VAD (Voice Activity Detection) is powered by [libfvad](https://github.com/dpirch/libfvad).
 
-## Legal info
+## Like my work?
 
-Unreal® is a trademark or registered trademark of Epic Games, Inc. in the United States of America and elsewhere.
-
-Unreal® Engine, Copyright 1998 – 2024, Epic Games, Inc. All rights reserved.
+Consider [supporting me](https://ko-fi.com/georgydev). Hire me at [gtreshchev@gmail.com](mailto:gtreshchev@gmail.com).
