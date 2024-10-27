@@ -159,9 +159,6 @@ namespace RuntimeAudioImporter
 		}
 #endif
 
-		// Removing unused two uninitialized bytes
-		AudioData.RemoveAt(AudioData.Num() - 2, 2);
-
 		return true;
 	}
 }
