@@ -147,7 +147,7 @@ bool UImportedSoundWave::InitAudioResource(FName Format)
 	// Only OGG format is supported for audio resource initialization
 	if (Format != Audio::NAME_OGG)
 	{
-		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("RuntimeAudioImporter does not support audio format '%s' for initialization. Supported format: %s"), *Format.ToString(), *Audio::NAME_OGG.ToString());
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("RuntimeAudioImporter does not support audio format '%s' for initialization. Supported format: %s"), *Format.ToString(), *Audio::NAME_OGG.ToString());
 		return false;
 	}
 
@@ -283,7 +283,12 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 
 void UImportedSoundWave::BeginDestroy()
 {
-	UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded"), *GetName());
+	// Log warning if not running in commandlet or cooking context, for debugging purposes
+	if (!(IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage))
+	{
+		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded."
+												"If it's not intended, make sure to keep a hard reference to the sound wave (e.g. by adding it to a UPROPERTY, variable in Blueprint, etc.)"), *GetName());
+	}
 
 	Super::BeginDestroy();
 }
