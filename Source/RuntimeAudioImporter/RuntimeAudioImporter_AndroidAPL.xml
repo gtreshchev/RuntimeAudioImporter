@@ -33,35 +33,35 @@
  /* Callback from Java to C++ */
  private static native void audioCapturePayload(short[] shortPCMDataArray, int readSize);
 
- AudioRecord RAI_microphone = null;
+ AudioRecord microphone = null;
  Thread threadAudioCapture = null;
  RunnableAudioCapture runnableAudioCapture = null;
 
  public boolean AndroidThunkJava_AndroidStartCapture(int TargetSampleRate) {
 
-     if (RAI_microphone == null) {
+     if (microphone == null) {
          final int sampleRateInHz = TargetSampleRate;
          final int channelConfig = AudioFormat.CHANNEL_IN_MONO;
          final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
 
          final int minBufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
-         RAI_microphone = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, minBufferSize);
+         microphone = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, minBufferSize);
 
          if (AcousticEchoCanceler.isAvailable()) {
-             AcousticEchoCanceler aec = AcousticEchoCanceler.create(RAI_microphone.getAudioSessionId());
+             AcousticEchoCanceler aec = AcousticEchoCanceler.create(microphone.getAudioSessionId());
              if (aec != null) {
                  aec.setEnabled(true);
              }
          }
-         RAI_microphone.startRecording();
+         microphone.startRecording();
 
-         runnableAudioCapture = new RunnableAudioCapture(RAI_microphone, minBufferSize);
+         runnableAudioCapture = new RunnableAudioCapture(microphone, minBufferSize);
          threadAudioCapture = new Thread(runnableAudioCapture);
 
          threadAudioCapture.start();
      }
 
-     RAI_microphone.startRecording();
+     microphone.startRecording();
      runnableAudioCapture.setIsRunning(true);
 
      return true;
@@ -72,9 +72,9 @@
     {
         runnableAudioCapture.setIsRunning(false);
     }
-    if (RAI_microphone != null)
+    if (microphone != null)
     {
-        RAI_microphone.stop();
+        microphone.stop();
     }
  }
 
