@@ -6,7 +6,7 @@
 
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT && !PLATFORM_LINUX
 #if PLATFORM_APPLE
-#include "IOSRuntimeSettings.h"
+//#include "IOSRuntimeSettings.h"
 #else
 #include "AndroidRuntimeSettings.h"
 #endif
@@ -37,7 +37,17 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT && !PLATFORM_LINUX && PLATFORM_APPLE
 	// This is required for the iOS microphone access prompt to show up
+
+	FString AdditionalPlistData;
+	GConfig->GetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("AdditionalPlistData"), AdditionalPlistData, GEngineIni);
+	if (!AdditionalPlistData.Contains(TEXT("NSMicrophoneUsageDescription")))
 	{
+		AdditionalPlistData += TEXT("<key>NSMicrophoneUsageDescription</key><string>Microphone access for RuntimeAudioImporter recording</string>");
+		GConfig->SetString(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("AdditionalPlistData"), *AdditionalPlistData, GEngineIni);
+	}
+
+	// Commented out because UIOSRuntimeSettings is not available when building for Mac, but only for iOS, so use GConfig instead
+	/*{
 		UIOSRuntimeSettings* IOSRuntimeSettings = GetMutableDefault<UIOSRuntimeSettings>();
 		if (!IOSRuntimeSettings)
 		{
@@ -58,7 +68,7 @@ void FRuntimeAudioImporterEditorModule::StartupModule()
 		{
 			UE_LOG(LogRuntimeAudioImporterEditor, Log, TEXT("NSMicrophoneUsageDescription already exists in AdditionalPlistData"));
 		}
-	}
+	}*/
 #endif
 
 #if (WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT || WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT) && !PLATFORM_LINUX && !PLATFORM_APPLE

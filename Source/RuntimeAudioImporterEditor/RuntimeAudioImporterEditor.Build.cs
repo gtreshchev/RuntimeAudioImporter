@@ -38,7 +38,8 @@ public class RuntimeAudioImporterEditor : ModuleRules
 	        // Add the AndroidRuntimeSettings or IOSRuntimeSettings module depending on the platform
 	        if (Target.IsInPlatformGroup(UnrealPlatformGroup.Apple))
 	        {
-		        PrivateDependencyModuleNames.Add("IOSRuntimeSettings");
+		        // Commented out - this module is not available on Mac, only on iOS, so use GConfig instead
+		        //PrivateDependencyModuleNames.Add("IOSRuntimeSettings");
 	        }
 	        else
 	        {
