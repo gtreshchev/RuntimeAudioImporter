@@ -284,7 +284,11 @@ int32 UImportedSoundWave::OnGeneratePCMAudio(TArray<uint8>& OutAudio, int32 NumS
 void UImportedSoundWave::BeginDestroy()
 {
 	// Log warning if not running in commandlet or cooking context, for debugging purposes
-	if (!(IsRunningCommandlet() || IsRunningCookCommandlet() || GIsCookerLoadingPackage))
+	if (!(IsRunningCommandlet()
+#if !UE_VERSION_OLDER_THAN(5, 0, 0)
+		|| IsRunningCookCommandlet()
+#endif
+		|| GIsCookerLoadingPackage))
 	{
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Imported sound wave ('%s') data will be cleared because it is being unloaded."
 												"If it's not intended, make sure to keep a hard reference to the sound wave (e.g. by adding it to a UPROPERTY, variable in Blueprint, etc.)"), *GetName());
