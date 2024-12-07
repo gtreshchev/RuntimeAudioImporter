@@ -16,11 +16,8 @@
     <br/>
     <a href="https://docs.georgy.dev/runtime-audio-importer/overview"><strong>Explore the docs »</strong></a>
     <br/>
-    <br/>
-    <a href="https://unrealengine.com/marketplace/product/runtime-audio-importer">Marketplace</a>
+    <a href="https://www.fab.com/listings/66e0d72e-982f-4d9e-aaaf-13a1d22efad1">Fab</a>
     .
-    <a href="https://github.com/gtreshchev/RuntimeAudioImporter/releases">Releases</a>
-    <br/>
     <a href="https://georgy.dev/discord">Discord support chat</a>
   </p>
 
