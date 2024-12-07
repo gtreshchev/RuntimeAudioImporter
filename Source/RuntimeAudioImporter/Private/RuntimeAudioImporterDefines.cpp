@@ -66,7 +66,7 @@ namespace RuntimeAudioImporter
 	bool CheckAndRequestPermissions(TArray<FString> AllRequiredPermissions)
 	{
 #if PLATFORM_ANDROID && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
-		if (AllRequiredPermissions.IsEmpty())
+		if (AllRequiredPermissions.Num() == 0)
 		{
 			AllRequiredPermissions = []()
 			{
