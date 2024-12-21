@@ -9,6 +9,7 @@ class FWAV_RuntimeCodec;
 class FFLAC_RuntimeCodec;
 class FVORBIS_RuntimeCodec;
 class FBINK_RuntimeCodec;
+class FOPUS_RuntimeCodec;
 
 class FRuntimeAudioImporterModule : public IModuleInterface
 {
@@ -23,4 +24,5 @@ protected:
 	TSharedPtr<FFLAC_RuntimeCodec> FLAC_Codec;
 	TSharedPtr<FVORBIS_RuntimeCodec> VORBIS_Codec;
 	TSharedPtr<FBINK_RuntimeCodec> BINK_Codec;
+	TSharedPtr<FOPUS_RuntimeCodec> OPUS_Codec;
 };

@@ -33,8 +33,12 @@ public class RuntimeAudioImporter : ModuleRules
 
 		AddEngineThirdPartyPrivateStaticDependencies(Target,
 			"UEOgg",
-			"Vorbis"
+			"Vorbis",
+			"libOpus"
 		);
+		
+		// Add opusfile include path for the opusfile library (used for Opus decoding)
+		PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "..", "ThirdParty", "opusfile"));
 
 		if (Target.Version.MajorVersion >= 5 && Target.Version.MinorVersion >= 4)
 		{
