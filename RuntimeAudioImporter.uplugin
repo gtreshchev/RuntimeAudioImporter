@@ -3,7 +3,7 @@
   "Version": 1,
   "VersionName": "1.0",
   "FriendlyName": "Runtime Audio Importer",
-  "Description": "Runtime Audio Importer is an open-source plugin for importing audio of various formats at runtime, including MP3, WAV, FLAC, OGG Vorbis, BINK, and RAW (int8, uint8, int16, uint16, int32, uint32, float32).",
+  "Description": "Runtime Audio Importer is an open-source plugin for importing audio of various formats at runtime, including MP3, WAV, FLAC, OGG Vorbis, OGG Opus, BINK, and RAW (int8, uint8, int16, uint16, int32, uint32, float32).",
   "Category": "Audio",
   "CreatedBy": "Georgy Treshchev",
   "CreatedByURL": "https://georgy.dev/",
