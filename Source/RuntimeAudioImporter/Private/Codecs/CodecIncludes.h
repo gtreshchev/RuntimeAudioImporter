@@ -11,6 +11,10 @@
 #undef memset
 #undef memcpy
 
+#if PLATFORM_WINDOWS
+#define NOMINMAX
+#endif
+
 #define calloc(Count, Size) [&]() { void* MemPtr = FMemory::Malloc(Count * Size); if (MemPtr) { FMemory::Memset(MemPtr, 0, Count * Size); } return MemPtr; }()
 #define malloc(Count) FMemory::Malloc(Count)
 #define free(Original) FMemory::Free(Original)
@@ -59,6 +63,14 @@ THIRD_PARTY_INCLUDES_START
 #include "binka_ue_file_header.h"
 #include "binka_ue_encode.h"
 #endif
+#endif
+
+#ifdef INCLUDE_OPUS
+#include "opusfile.h"
+#include "opusfile.c"
+#include "info_opusfile.c"
+#include "stream_opusfile.c"
+#include "internal_opusfile.c"
 #endif
 
 THIRD_PARTY_INCLUDES_END

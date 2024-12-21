@@ -10,8 +10,7 @@
 #include "Codecs/FLAC_RuntimeCodec.h"
 #include "Codecs/VORBIS_RuntimeCodec.h"
 #include "Codecs/BINK_RuntimeCodec.h"
-
-#define LOCTEXT_NAMESPACE "FRuntimeAudioImporterModule"
+#include "Codecs/OPUS_RuntimeCodec.h"
 
 #if WITH_RUNTIMEAUDIOIMPORTER_METASOUND_SUPPORT
 #include "MetasoundDataTypeRegistrationMacro.h"
@@ -22,6 +21,8 @@
 
 REGISTER_METASOUND_DATATYPE(RuntimeAudioImporter::FImportedWave, "ImportedWave", Metasound::ELiteralType::UObjectProxy, UImportedSoundWave);
 #endif
+
+#define LOCTEXT_NAMESPACE "FRuntimeAudioImporterModule"
 
 void FRuntimeAudioImporterModule::StartupModule()
 {
@@ -35,6 +36,7 @@ void FRuntimeAudioImporterModule::StartupModule()
 	FLAC_Codec = MakeShared<FFLAC_RuntimeCodec>();
 	VORBIS_Codec = MakeShared<FVORBIS_RuntimeCodec>();
 	BINK_Codec = MakeShared<FBINK_RuntimeCodec>();
+	OPUS_Codec = MakeShared<FOPUS_RuntimeCodec>();
 	
 	// Register codecs with the modular feature system
 	IModularFeatures::Get().RegisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), MP3_Codec.Get());
@@ -42,6 +44,7 @@ void FRuntimeAudioImporterModule::StartupModule()
 	IModularFeatures::Get().RegisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), FLAC_Codec.Get());
 	IModularFeatures::Get().RegisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), VORBIS_Codec.Get());
 	IModularFeatures::Get().RegisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), BINK_Codec.Get());
+	IModularFeatures::Get().RegisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), OPUS_Codec.Get());
 }
 
 void FRuntimeAudioImporterModule::ShutdownModule()
@@ -52,6 +55,7 @@ void FRuntimeAudioImporterModule::ShutdownModule()
 	IModularFeatures::Get().UnregisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), FLAC_Codec.Get());
 	IModularFeatures::Get().UnregisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), VORBIS_Codec.Get());
 	IModularFeatures::Get().UnregisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), BINK_Codec.Get());
+	IModularFeatures::Get().UnregisterModularFeature(FRuntimeCodecFactory::GetModularFeatureName(), OPUS_Codec.Get());
 }
 
 #undef LOCTEXT_NAMESPACE

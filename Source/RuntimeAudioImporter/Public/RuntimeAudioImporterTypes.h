@@ -171,6 +171,7 @@ enum class ERuntimeAudioFormat : uint8
 	Wav UMETA(DisplayName = "wav"),
 	Flac UMETA(DisplayName = "flac"),
 	OggVorbis UMETA(DisplayName = "ogg vorbis"),
+	OggOpus UMETA(DisplayName = "ogg opus"),
 	Bink UMETA(DisplayName = "bink"),
 	Custom UMETA(DisplayName = "custom"),
 	Invalid UMETA(DisplayName = "invalid", Hidden)

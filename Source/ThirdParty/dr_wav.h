@@ -4985,12 +4985,12 @@ DRWAV_PRIVATE drwav_result drwav_result_from_errno(int e)
 /* fopen */
 DRWAV_PRIVATE drwav_result drwav_fopen(FILE** ppFile, const char* pFilePath, const char* pOpenMode)
 {
-#if defined(_MSC_VER) && _MSC_VER >= 1400
+/*#if defined(_MSC_VER) && _MSC_VER >= 1400
     errno_t err;
 #endif
 
     if (ppFile != NULL) {
-        *ppFile = NULL;  /* Safety. */
+        *ppFile = NULL;
     }
 
     if (pFilePath == NULL || pOpenMode == NULL || ppFile == NULL) {
@@ -5015,12 +5015,12 @@ DRWAV_PRIVATE drwav_result drwav_fopen(FILE** ppFile, const char* pFilePath, con
     if (*ppFile == NULL) {
         drwav_result result = drwav_result_from_errno(errno);
         if (result == DRWAV_SUCCESS) {
-            result = DRWAV_ERROR;   /* Just a safety check to make sure we never ever return success when pFile == NULL. */
+            result = DRWAV_ERROR;
         }
 
         return result;
     }
-#endif
+#endif*/
 
     return DRWAV_SUCCESS;
 }
@@ -5046,8 +5046,8 @@ fallback, so if you notice your compiler not detecting this properly I'm happy t
 #ifndef DR_WAV_NO_WCHAR
 DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath, const wchar_t* pOpenMode, const drwav_allocation_callbacks* pAllocationCallbacks)
 {
-    if (ppFile != NULL) {
-        *ppFile = NULL;  /* Safety. */
+    /*if (ppFile != NULL) {
+        *ppFile = NULL;
     }
 
     if (pFilePath == NULL || pOpenMode == NULL || ppFile == NULL) {
@@ -5056,7 +5056,6 @@ DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath,
 
 #if defined(DRWAV_HAS_WFOPEN)
     {
-        /* Use _wfopen() on Windows. */
     #if defined(_MSC_VER) && _MSC_VER >= 1400
         errno_t err = _wfopen_s(ppFile, pFilePath, pOpenMode);
         if (err != 0) {
@@ -5071,22 +5070,9 @@ DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath,
         (void)pAllocationCallbacks;
     }
 #else
-	/*
-    Use fopen() on anything other than Windows. Requires a conversion. This is annoying because
-	fopen() is locale specific. The only real way I can think of to do this is with wcsrtombs(). Note
-	that wcstombs() is apparently not thread-safe because it uses a static global mbstate_t object for
-    maintaining state. I've checked this with -std=c89 and it works, but if somebody get's a compiler
-	error I'll look into improving compatibility.
-    */
-
-	/*
-	Some compilers don't support wchar_t or wcsrtombs() which we're using below. In this case we just
-	need to abort with an error. If you encounter a compiler lacking such support, add it to this list
-	and submit a bug report and it'll be added to the library upstream.
-	*/
 	#if defined(__DJGPP__)
 	{
-		/* Nothing to do here. This will fall through to the error check below. */
+		
 	}
 	#else
     {
@@ -5096,7 +5082,6 @@ DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath,
         char* pFilePathMB = NULL;
         char pOpenModeMB[32] = {0};
 
-        /* Get the length first. */
         DRWAV_ZERO_OBJECT(&mbs);
         lenMB = wcsrtombs(NULL, &pFilePathTemp, 0, &mbs);
         if (lenMB == (size_t)-1) {
@@ -5112,7 +5097,6 @@ DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath,
         DRWAV_ZERO_OBJECT(&mbs);
         wcsrtombs(pFilePathMB, &pFilePathTemp, lenMB + 1, &mbs);
 
-        /* The open mode should always consist of ASCII characters so we should be able to do a trivial conversion. */
         {
             size_t i = 0;
             for (;;) {
@@ -5135,7 +5119,7 @@ DRWAV_PRIVATE drwav_result drwav_wfopen(FILE** ppFile, const wchar_t* pFilePath,
     if (*ppFile == NULL) {
         return DRWAV_ERROR;
     }
-#endif
+#endif*/
 
     return DRWAV_SUCCESS;
 }

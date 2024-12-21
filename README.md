@@ -24,7 +24,7 @@
 ## Features
 
 - Fast transcoding speed
-- Supported for major audio formats: MP3, WAV, FLAC, OGG Vorbis and BINK
+- Supported for major audio formats: MP3, WAV, FLAC, OGG Vorbis, OGG Opus and BINK
 - Supported for RAW formats: int8, uint8, int16, uint16, int32, uint32, float32
 - Same behavior as regular sound wave, including SoundCue, MetaSounds (starting from 5.3), etc
 - Automatic detection of audio format
@@ -39,6 +39,8 @@
 ## Additional information
 
 MP3, WAV, and FLAC audio transcoding operations are powered by [dr_libs](https://github.com/mackron/dr_libs) and [minimp3](https://github.com/lieff/minimp3).
+
+OGG Opus audio decoding is powered by [opusfile](https://github.com/xiph/opusfile).
 
 VAD (Voice Activity Detection) is powered by [libfvad](https://github.com/dpirch/libfvad).
 
