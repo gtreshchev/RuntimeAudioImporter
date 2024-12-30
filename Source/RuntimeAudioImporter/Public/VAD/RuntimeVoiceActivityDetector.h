@@ -76,4 +76,52 @@ protected:
 	 * we need to either accumulate data (if too short) or split data (if too long) to match the required frame length
 	 */
 	TArray<int16> AccumulatedPCMData;
+
+public:
+	/** Static delegate broadcast when the VAD detects the start of speech */
+	DECLARE_MULTICAST_DELEGATE(FOnSpeechStartedNative);
+
+	/** Dynamic delegate broadcast when the VAD detects the start of speech */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpeechStarted);
+
+	/** Static delegate broadcast when the VAD detects the end of speech */
+	DECLARE_MULTICAST_DELEGATE(FOnSpeechEndedNative);
+
+	/** Dynamic delegate broadcast when the VAD detects the end of speech */
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSpeechEnded);
+
+	/** Bind to this delegate to know when speech activity starts. Suitable for use in C++ */
+	FOnSpeechStartedNative OnSpeechStartedNative;
+
+	/** Bind to this delegate to know when speech activity starts */
+	UPROPERTY(BlueprintAssignable, Category = "Voice Activity Detector|Delegates")
+	FOnSpeechStarted OnSpeechStarted;
+
+	/** Bind to this delegate to know when speech activity ends. Suitable for use in C++ */
+	FOnSpeechEndedNative OnSpeechEndedNative;
+
+	/** Bind to this delegate to know when speech activity ends */
+	UPROPERTY(BlueprintAssignable, Category = "Voice Activity Detector|Delegates")
+	FOnSpeechEnded OnSpeechEnded;
+
+	/** Minimum duration (in milliseconds) of continuous voice activity to trigger speech start */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voice Activity Detector|Configuration")
+	int32 MinimumSpeechDuration;
+
+	/** Duration (in milliseconds) of silence required to consider speech ended */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voice Activity Detector|Configuration")
+	int32 SilenceDuration;
+
+protected:
+	/** Tracks whether speech is currently considered active based on VAD decisions */
+	bool bIsSpeechActive;
+
+	/** Counts consecutive frames where voice activity was detected */
+	int32 ConsecutiveVoiceFrames;
+
+	/** Counts consecutive frames where no voice activity was detected */
+	int32 ConsecutiveSilenceFrames;
+
+	/** Duration of each processed frame in milliseconds (10, 20, or 30ms based on WebRTC VAD requirements) */
+	float FrameDurationMs;
 };

@@ -16,6 +16,18 @@ DECLARE_DELEGATE_OneParam(FOnPreAllocateAudioDataResultNative, bool);
 /** Dynamic delegate broadcast the result of audio data pre-allocation */
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnPreAllocateAudioDataResult, bool, bSucceeded);
 
+/** Static delegate broadcast when the VAD detects the start of speech */
+DECLARE_MULTICAST_DELEGATE(FOnStreamingSpeechStartedNative);
+
+/** Dynamic delegate broadcast when the VAD detects the start of speech */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStreamingSpeechStarted);
+
+/** Static delegate broadcast when the VAD detects the end of speech */
+DECLARE_MULTICAST_DELEGATE(FOnStreamingSpeechEndedNative);
+
+/** Dynamic delegate broadcast when the VAD detects the end of speech */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStreamingSpeechEnded);
+
 /**
  * Streaming sound wave. Can append audio data dynamically, including during playback.
  * It will live indefinitely, even if the sound wave has finished playing, until SetStopSoundOnPlaybackFinish is called.
@@ -110,6 +122,38 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Set VAD Mode", Keywords = "Voice Activity Detector Mode"), Category = "Streaming Sound Wave|VAD")
 	bool SetVADMode(ERuntimeVADMode Mode);
+
+	/**
+	 * Sets the minimum duration of continuous voice activity required to trigger a speech start event
+	 * This helps filter out brief noises that shouldn't be considered as speech
+	 *
+	 * @param InDuration The minimum duration in milliseconds
+	 */
+	UFUNCTION(BlueprintCallable, meta = (Category = "Streaming Sound Wave|VAD"))
+	bool SetMinimumSpeechDuration(UPARAM(DisplayName = "Duration") int32 InDuration);
+
+	/**
+	 * Sets the duration of silence required to trigger a speech end event
+	 * This prevents speech detection from ending during natural pauses between words
+	 *
+	 * @param InDuration The silence duration in milliseconds
+	 */
+	UFUNCTION(BlueprintCallable, meta = (Category = "Streaming Sound Wave|VAD"))
+	bool SetSilenceDuration(UPARAM(DisplayName = "Duration") int32 InDuration);
+
+	/** Bind to this delegate to know when speech activity starts. Suitable for use in C++ */
+	FOnStreamingSpeechStartedNative OnSpeechStartedNative;
+
+	/** Bind to this delegate to know when speech activity starts */
+	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
+	FOnStreamingSpeechStarted OnSpeechStarted;
+
+	/** Bind to this delegate to know when speech activity ends. Suitable for use in C++ */
+	FOnStreamingSpeechEndedNative OnSpeechEndedNative;
+
+	/** Bind to this delegate to know when speech activity ends */
+	UPROPERTY(BlueprintAssignable, Category = "Imported Sound Wave|Delegates")
+	FOnStreamingSpeechEnded OnSpeechEnded;
 
 	//~ Begin UImportedSoundWave Interface
 	virtual void PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo) override;

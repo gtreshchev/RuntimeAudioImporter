@@ -36,7 +36,27 @@ UStreamingSoundWave::UStreamingSoundWave(const FObjectInitializer& ObjectInitial
 bool UStreamingSoundWave::ToggleVAD(bool bVAD)
 {
 	VADInstance = bVAD ? NewObject<URuntimeVoiceActivityDetector>() : nullptr;
-	return true;
+	if (VADInstance)
+	{
+		VADInstance->OnSpeechStartedNative.AddWeakLambda(this, [WeakThis = MakeWeakObjectPtr(this)]()
+		{
+			if (WeakThis.IsValid())
+			{
+				WeakThis->OnSpeechStartedNative.Broadcast();
+				
+			}
+		});
+
+		VADInstance->OnSpeechEndedNative.AddWeakLambda(this, [WeakThis = MakeWeakObjectPtr(this)]()
+		{
+			if (WeakThis.IsValid())
+			{
+				WeakThis->OnSpeechEndedNative.Broadcast();
+				
+			}
+		});
+	}
+	return VADInstance != nullptr;
 }
 
 bool UStreamingSoundWave::ResetVAD()
@@ -56,6 +76,26 @@ bool UStreamingSoundWave::SetVADMode(ERuntimeVADMode Mode)
 		return VADInstance->SetVADMode(Mode);
 	}
 	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set VAD mode as the VAD instance is not valid"));
+	return false;
+}
+
+bool UStreamingSoundWave::SetMinimumSpeechDuration(int32 InDuration)
+{
+	if (VADInstance)
+	{
+		VADInstance->MinimumSpeechDuration = InDuration;
+	}
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set minimum speech duration as the VAD instance is not valid"));
+	return false;
+}
+
+bool UStreamingSoundWave::SetSilenceDuration(int32 InDuration)
+{
+	if (VADInstance)
+	{
+		VADInstance->SilenceDuration = InDuration;
+	}
+	UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to set silence duration as the VAD instance is not valid"));
 	return false;
 }
 
