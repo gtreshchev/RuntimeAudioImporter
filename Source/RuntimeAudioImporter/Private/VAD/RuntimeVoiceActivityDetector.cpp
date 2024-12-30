@@ -16,6 +16,12 @@ URuntimeVoiceActivityDetector::URuntimeVoiceActivityDetector()
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
 	  , VADInstance(nullptr)
 #endif
+	  , MinimumSpeechDuration(300) // 300ms default minimum speech duration
+	  , SilenceDuration(500) // 500ms default silence duration
+	  , bIsSpeechActive(false)
+	  , ConsecutiveVoiceFrames(0)
+	  , ConsecutiveSilenceFrames(0)
+	  , FrameDurationMs(0)
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_VAD_SUPPORT
 	VADInstance = FVAD_RuntimeAudioImporter::fvad_new();
@@ -59,6 +65,9 @@ bool URuntimeVoiceActivityDetector::ResetVAD()
 	FVAD_RuntimeAudioImporter::fvad_reset(VADInstance);
 	SetVADMode(ERuntimeVADMode::VeryAggressive);
 	AppliedSampleRate = 0;
+	bIsSpeechActive = false;
+	ConsecutiveVoiceFrames = 0;
+	ConsecutiveSilenceFrames = 0;
 	UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Successfully reset VAD for %s"), *GetName());
 	return true;
 #else
@@ -204,14 +213,39 @@ bool URuntimeVoiceActivityDetector::ProcessVAD(TArray<float> PCMData, int32 InSa
 
 		// Remove processed data from the accumulated buffer
 		AccumulatedPCMData.RemoveAt(0, NumToProcess);
+		FrameDurationMs = ValidLength;
 
 		if (VADResult == 1)
 		{
+			ConsecutiveVoiceFrames += ValidLength;
+			ConsecutiveSilenceFrames = 0;
+
+			// Check if speech should start
+			if (!bIsSpeechActive && ConsecutiveVoiceFrames >= MinimumSpeechDuration)
+			{
+				bIsSpeechActive = true;
+				OnSpeechStartedNative.Broadcast();
+				OnSpeechStarted.Broadcast();
+				UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Speech started for %s"), *GetName());
+			}
+			
 			UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("VAD detected voice activity for %s"), *GetName());
 			return true;
 		}
 		else if (VADResult == 0)
 		{
+			ConsecutiveVoiceFrames = 0;
+			ConsecutiveSilenceFrames += ValidLength;
+
+			// Check if speech should end
+			if (bIsSpeechActive && ConsecutiveSilenceFrames >= SilenceDuration)
+			{
+				bIsSpeechActive = false;
+				OnSpeechEndedNative.Broadcast();
+				OnSpeechEnded.Broadcast();
+				UE_LOG(LogRuntimeAudioImporter, Log, TEXT("Speech ended for %s"), *GetName());
+			}
+
 			UE_LOG(LogRuntimeAudioImporter, Verbose, TEXT("VAD detected no voice activity for %s"), *GetName());
 			return false;
 		}
