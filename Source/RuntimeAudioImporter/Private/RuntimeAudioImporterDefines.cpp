@@ -50,7 +50,7 @@ namespace RuntimeAudioImporter
 	{
 #if PLATFORM_ANDROID && USE_ANDROID_JNI && WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 		JNIEnv* env = FAndroidApplication::GetJavaEnv();
-		_PermissionHelperClass = FAndroidApplication::FindJavaClassGlobalRef("com/Plugins/RuntimeAudioImporter/PermissionHelper");
+		_PermissionHelperClass = FAndroidApplication::FindJavaClassGlobalRef("com/Plugins/RuntimeAudioImporter/RuntimeAudioPermissionHelper");
 		_CheckPermissionMethodId = env->GetStaticMethodID(_PermissionHelperClass, "checkPermission", "(Ljava/lang/String;)Z");
 		_AcquirePermissionMethodId = env->GetStaticMethodID(_PermissionHelperClass, "acquirePermissions", "([Ljava/lang/String;)V");
 		
@@ -164,7 +164,7 @@ namespace RuntimeAudioImporter
 }
 
 #if PLATFORM_ANDROID && USE_ANDROID_JNI
-JNI_METHOD void Java_com_Plugins_RuntimeAudioImporter_PermissionHelper_onAcquirePermissions(JNIEnv *env, jclass clazz, jobjectArray permissions, jintArray grantResults) 
+JNI_METHOD void Java_com_Plugins_RuntimeAudioImporter_RuntimeAudioPermissionHelper_onAcquirePermissions(JNIEnv *env, jclass clazz, jobjectArray permissions, jintArray grantResults) 
 {
 	if (!RuntimeAudioImporter::AndroidPermissionCallbackProxyInstance) return;
 

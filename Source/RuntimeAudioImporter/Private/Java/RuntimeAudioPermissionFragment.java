@@ -1,4 +1,4 @@
-// Copied from Engine/Source/ThirdParty/AndroidPermission/permission_library/src/com/google/vr/sdk/samples/permission/PermissionFragment.java
+// Copied from Engine/Source/ThirdParty/AndroidPermission/permission_library/src/com/google/vr/sdk/samples/permission/RuntimeAudioPermissionFragment.java
 
 package com.Plugins.RuntimeAudioImporter;
 
@@ -12,26 +12,26 @@ import android.os.Build;
 import androidx.legacy.app.FragmentCompat;
 import android.util.Log;
 
-public class PermissionFragment extends Fragment
+public class RuntimeAudioPermissionFragment extends Fragment
 		implements FragmentCompat.OnRequestPermissionsResultCallback {
 
 	private static final int PERMISSION_REQUEST_CODE = 1101;
-	private static final String TAG = "PermissionFragment";
-	private static final String PERMISSION_TAG = "TAG_PermissionFragment";
+	private static final String TAG = "RuntimeAudioPermissionFragment";
+	private static final String PERMISSION_TAG = "TAG_RuntimeAudioPermissionFragment";
 
-	public static PermissionFragment getInstance(Activity activity) {
+	public static RuntimeAudioPermissionFragment getInstance(Activity activity) {
 		FragmentManager fm = activity.getFragmentManager();
-		PermissionFragment fragment = (PermissionFragment)fm.findFragmentByTag(PERMISSION_TAG);
+		RuntimeAudioPermissionFragment fragment = (RuntimeAudioPermissionFragment)fm.findFragmentByTag(PERMISSION_TAG);
 		if (fragment == null) {
 			try {
-				Log.d(TAG, "Creating PlayGamesFragment");
-				fragment = new PermissionFragment();
+				Log.d(TAG, "Creating RuntimeAudioPermissionFragment");
+				fragment = new RuntimeAudioPermissionFragment();
 				FragmentTransaction trans = fm.beginTransaction();
 				trans.add(fragment, PERMISSION_TAG);
 				trans.commit();
 				fm.executePendingTransactions();
 			} catch (Throwable th) {
-				Log.e(TAG, "Cannot launch PermissionFragment:" + th.getMessage(), th);
+				Log.e(TAG, "Cannot launch RuntimeAudioPermissionFragment:" + th.getMessage(), th);
 				return null;
 			}
 		}
@@ -59,7 +59,7 @@ public class PermissionFragment extends Fragment
 				Log.d(TAG, "permission granted for " + permissions[0]);
 			else
 				Log.d(TAG, "permission not granted for " + permissions[0]);
-			PermissionHelper.onAcquirePermissions(permissions, grantResults);
+			RuntimeAudioPermissionHelper.onAcquirePermissions(permissions, grantResults);
 		}
 	}
 }

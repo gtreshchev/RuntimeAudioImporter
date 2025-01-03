@@ -1,4 +1,4 @@
-// Copied from Engine/Source/ThirdParty/AndroidPermission/permission_library/src/com/google/vr/sdk/samples/permission/PermissionHelper.java
+// Copied from Engine/Source/ThirdParty/AndroidPermission/permission_library/src/com/google/vr/sdk/samples/permission/RuntimeAudioPermissionHelper.java
 
 package com.Plugins.RuntimeAudioImporter;
 
@@ -8,12 +8,12 @@ import androidx.core.content.ContextCompat;
 import android.content.pm.PackageManager;
 import java.lang.reflect.Method;
 
-public class PermissionHelper {
-	private static final String LOG_TAG = "PermissionHelper";
+public class RuntimeAudioPermissionHelper {
+	private static final String LOG_TAG = "RuntimeAudioPermissionHelper";
 	public static Activity getForegroundActivity()
 	{
 		Activity activity = null;
-		//trying to find the activity PermissionFragment should be attached to
+		//trying to find the activity RuntimeAudioPermissionFragment should be attached to
 		//in the case of Daydream app, attach to GVRTransition2DActivity if there is any
 		try {
 			Class<?> clazz = Class.forName("com.google.vr.sdk.samples.transition.GVRTransition2DActivity");
@@ -52,7 +52,7 @@ public class PermissionHelper {
 	public static void acquirePermissions(final String permissions[])
 	{
 		Activity activity = getForegroundActivity();
-		PermissionHelper.acquirePermissions(permissions, activity);
+		RuntimeAudioPermissionHelper.acquirePermissions(permissions, activity);
 	}
 
 	public static void acquirePermissions(final String permissions[], Activity InActivity)
@@ -61,7 +61,7 @@ public class PermissionHelper {
 		final Activity activity = InActivity;
 		activity.runOnUiThread(new Runnable(){
 			public void run() {
-				PermissionFragment fragment = PermissionFragment.getInstance(activity);
+				RuntimeAudioPermissionFragment fragment = RuntimeAudioPermissionFragment.getInstance(activity);
 				if (fragment!=null) {
 					fragment.acquirePermissions(permissions);
 				}
