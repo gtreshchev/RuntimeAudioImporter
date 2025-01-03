@@ -59,6 +59,9 @@ void URuntimeAudioImporterLibrary::ImportAudioFromFile(const FString& FilePath, 
 	AudioFormat = AudioFormat == ERuntimeAudioFormat::Auto ? (PossibleFormats.Num() == 0 ? ERuntimeAudioFormat::Invalid : PossibleFormats[0]) : AudioFormat;
 	AudioFormat = AudioFormat == ERuntimeAudioFormat::Invalid ? ERuntimeAudioFormat::Auto : AudioFormat;
 
+	// If there are multiple possible formats, we need to use the auto format to identify the correct format based on the file content
+	AudioFormat = PossibleFormats.Num() > 1 ? ERuntimeAudioFormat::Auto : AudioFormat;
+
 	TArray64<uint8> AudioBuffer;
 	if (!RuntimeAudioImporter::LoadAudioFileToArray(AudioBuffer, *FilePath))
 	{

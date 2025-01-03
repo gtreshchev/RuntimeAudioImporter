@@ -27,7 +27,12 @@ void URuntimeAudioExporter::ExportSoundWaveToFile(TWeakObjectPtr<UImportedSoundW
 {
 #if WITH_RUNTIMEAUDIOIMPORTER_FILEOPERATION_SUPPORT
 	TArray<ERuntimeAudioFormat> AudioFormats = URuntimeAudioUtilities::GetAudioFormats(SavePath);
+
 	AudioFormat = AudioFormat == ERuntimeAudioFormat::Auto ? (AudioFormats.Num() == 0 ? ERuntimeAudioFormat::Invalid : AudioFormats[0]) : AudioFormat;
+
+	// Can't export to a file if there are multiple audio formats available
+	AudioFormat = AudioFormats.Num() > 1 ? ERuntimeAudioFormat::Invalid : AudioFormat;
+
 	ExportSoundWaveToBuffer(ImportedSoundWavePtr, AudioFormat, Quality, OverrideOptions, FOnAudioExportToBufferResultNative::CreateLambda([Result, SavePath](bool bSucceeded, const TArray64<uint8>& AudioData)
 	{
 		if (!bSucceeded)
