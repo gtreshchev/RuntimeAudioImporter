@@ -33,35 +33,35 @@
  /* Callback from Java to C++ */
  private static native void audioCapturePayload(short[] shortPCMDataArray, int readSize);
 
- AudioRecord microphone = null;
+ AudioRecord RuntimeMicrophone = null;
  Thread threadAudioCapture = null;
  RunnableAudioCapture runnableAudioCapture = null;
 
  public boolean AndroidThunkJava_AndroidStartCapture(int TargetSampleRate) {
 
-     if (microphone == null) {
+     if (RuntimeMicrophone == null) {
          final int sampleRateInHz = TargetSampleRate;
          final int channelConfig = AudioFormat.CHANNEL_IN_MONO;
          final int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
 
          final int minBufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
-         microphone = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, minBufferSize);
+         RuntimeMicrophone = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, minBufferSize);
 
          if (AcousticEchoCanceler.isAvailable()) {
-             AcousticEchoCanceler aec = AcousticEchoCanceler.create(microphone.getAudioSessionId());
+             AcousticEchoCanceler aec = AcousticEchoCanceler.create(RuntimeMicrophone.getAudioSessionId());
              if (aec != null) {
                  aec.setEnabled(true);
              }
          }
-         microphone.startRecording();
+         RuntimeMicrophone.startRecording();
 
-         runnableAudioCapture = new RunnableAudioCapture(microphone, minBufferSize);
+         runnableAudioCapture = new RunnableAudioCapture(RuntimeMicrophone, minBufferSize);
          threadAudioCapture = new Thread(runnableAudioCapture);
 
          threadAudioCapture.start();
      }
 
-     microphone.startRecording();
+     RuntimeMicrophone.startRecording();
      runnableAudioCapture.setIsRunning(true);
 
      return true;
@@ -72,9 +72,9 @@
     {
         runnableAudioCapture.setIsRunning(false);
     }
-    if (microphone != null)
+    if (RuntimeMicrophone != null)
     {
-        microphone.stop();
+        RuntimeMicrophone.stop();
     }
  }
 
