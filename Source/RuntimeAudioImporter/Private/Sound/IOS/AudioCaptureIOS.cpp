@@ -2,7 +2,7 @@
 
 #if WITH_RUNTIMEAUDIOIMPORTER_CAPTURE_SUPPORT
 #ifndef PLATFORM_TVOS
-	#define PLATFORM_TVOS 0
+#define PLATFORM_TVOS 0
 #endif
 #if PLATFORM_IOS && !PLATFORM_TVOS
 #include "Sound/IOS/AudioCaptureIOS.h"
@@ -12,12 +12,12 @@
 constexpr int32 kInputBus = 1;
 constexpr int32 kOutputBus = 0;
 
-static OSStatus RecordingCallback(void *inRefCon,
-                                  AudioUnitRenderActionFlags *ioActionFlags,
-                                  const AudioTimeStamp *inTimeStamp,
-                                  UInt32 inBusNumber,
-                                  UInt32 inNumberFrames,
-                                  AudioBufferList *ioData)
+static OSStatus RecordingCallback(void* inRefCon,
+	AudioUnitRenderActionFlags* ioActionFlags,
+	const AudioTimeStamp* inTimeStamp,
+	UInt32 inBusNumber,
+	UInt32 inNumberFrames,
+	AudioBufferList* ioData)
 {
 	Audio::FAudioCaptureIOS* AudioCapture = (Audio::FAudioCaptureIOS*)inRefCon;
 	return AudioCapture->OnCaptureCallback(ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData);
@@ -35,11 +35,11 @@ bool Audio::FAudioCaptureIOS::GetCaptureDeviceInfo(Audio::FCaptureDeviceInfo& Ou
 
 bool Audio::FAudioCaptureIOS::
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
-	OpenAudioCaptureStream
+OpenAudioCaptureStream
 #else
-	OpenCaptureStream
+OpenCaptureStream
 #endif
-	(const Audio::FAudioCaptureDeviceParams& InParams,
+(const Audio::FAudioCaptureDeviceParams& InParams,
 #if UE_VERSION_NEWER_THAN(5, 2, 9)
 	FOnAudioCaptureFunction InOnCapture
 #else
@@ -54,32 +54,32 @@ bool Audio::FAudioCaptureIOS::
 	}
 
 	auto CheckPermissionGranted = [this]() -> bool {
-		const bool bPermissionGranted = 
+		const bool bPermissionGranted =
 #if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
-		[[AVAudioApplication sharedInstance] recordPermission] == AVAudioApplicationRecordPermissionGranted;
+			[[AVAudioApplication sharedInstance]recordPermission] == AVAudioApplicationRecordPermissionGranted;
 #else
-		[[AVAudioSession sharedInstance] recordPermission] == AVAudioSessionRecordPermissionGranted;
+			[[AVAudioSession sharedInstance]recordPermission] == AVAudioSessionRecordPermissionGranted;
 #endif
 		return bPermissionGranted;
-	};
+		};
 
 	if (!CheckPermissionGranted())
 	{
 		UE_LOG(LogRuntimeAudioImporter, Warning, TEXT("Permission to record audio on iOS is not granted. Requesting permission..."));
-		
+
 		TSharedPtr<TPromise<bool>> PermissionPromise = MakeShared<TPromise<bool>>();
 
 #if (defined(__IPHONE_17_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_17_0)
-		[AVAudioApplication requestRecordPermissionWithCompletionHandler:^(BOOL granted) {
-			dispatch_async(dispatch_get_main_queue(), ^{
+		[AVAudioApplication requestRecordPermissionWithCompletionHandler : ^ (BOOL granted) {
+			dispatch_async(dispatch_get_main_queue(), ^ {
 				PermissionPromise->SetValue(granted);
-			});
+				});
 		}];
 #else
-		[[AVAudioSession sharedInstance] requestRecordPermission:^(BOOL granted) {
-			dispatch_async(dispatch_get_main_queue(), ^{
+		[[AVAudioSession sharedInstance]requestRecordPermission:^ (BOOL granted) {
+			dispatch_async(dispatch_get_main_queue(), ^ {
 				PermissionPromise->SetValue(granted);
-			});
+				});
 		}];
 #endif
 
@@ -103,15 +103,15 @@ bool Audio::FAudioCaptureIOS::
 
 	OSStatus Status = noErr;
 
-	NSError *setCategoryError = nil;
-	[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord withOptions : (AVAudioSessionCategoryOptionDefaultToSpeaker | AVAudioSessionCategoryOptionAllowBluetooth) error : &setCategoryError];
+	NSError* setCategoryError = nil;
+	[[AVAudioSession sharedInstance]setCategory:AVAudioSessionCategoryPlayAndRecord withOptions : (AVAudioSessionCategoryOptionDefaultToSpeaker | AVAudioSessionCategoryOptionAllowBluetooth) error : &setCategoryError];
 	if (setCategoryError != nil)
-	{		
+	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream due to error %d when setting audio session category"), static_cast<int32>(Status));
 		return false;
 	}
 
-	[[AVAudioSession sharedInstance] setActive:YES error : &setCategoryError];
+	[[AVAudioSession sharedInstance]setActive:YES error : &setCategoryError];
 	if (setCategoryError != nil)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream due to error %d when setting audio session active"), static_cast<int32>(Status));
@@ -204,7 +204,7 @@ bool Audio::FAudioCaptureIOS::
 		kInputBus,
 		&CallbackInfo,
 		sizeof(CallbackInfo));
-	if (Status != noErr) {		
+	if (Status != noErr) {
 		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Unable to open capture stream due to error %d when setting callback"), static_cast<int32>(Status));
 		return false;
 	}
@@ -219,8 +219,8 @@ bool Audio::FAudioCaptureIOS::
 
 	// Configure unit processing
 #if UE_VERSION_NEWER_THAN(4, 25, 0)
-    SetHardwareFeatureEnabled(Audio::EHardwareInputFeature::EchoCancellation, InParams.bUseHardwareAEC);
-    SetHardwareFeatureEnabled(Audio::EHardwareInputFeature::AutomaticGainControl, InParams.bUseHardwareAEC);
+	SetHardwareFeatureEnabled(Audio::EHardwareInputFeature::EchoCancellation, InParams.bUseHardwareAEC);
+	SetHardwareFeatureEnabled(Audio::EHardwareInputFeature::AutomaticGainControl, InParams.bUseHardwareAEC);
 #endif
 
 	bIsStreamOpen = (Status == noErr);
@@ -230,7 +230,13 @@ bool Audio::FAudioCaptureIOS::
 bool Audio::FAudioCaptureIOS::CloseStream()
 {
 	StopStream();
-	AudioComponentInstanceDispose(IOUnit);
+	if (IOUnit)
+	{
+		AudioComponentInstanceDispose(IOUnit);
+		IOUnit = nullptr;
+	}
+	CaptureBuffer.Empty();
+	BufferSize = 0;
 	bIsStreamOpen = false;
 	return true;
 }
@@ -338,6 +344,11 @@ void Audio::FAudioCaptureIOS::SetHardwareFeatureEnabled(Audio::EHardwareInputFea
 
 OSStatus Audio::FAudioCaptureIOS::OnCaptureCallback(AudioUnitRenderActionFlags* ioActionFlags, const AudioTimeStamp* inTimeStamp, UInt32 inBusNumber, UInt32 inNumberFrames, AudioBufferList* ioData)
 {
+	if (!IOUnit || !bIsStreamOpen)
+	{
+		return -1;
+	}
+
 	OSStatus status = noErr;
 
 	const int32 NeededBufferSize = inNumberFrames * NumChannels * sizeof(float);
@@ -375,9 +386,22 @@ OSStatus Audio::FAudioCaptureIOS::OnCaptureCallback(AudioUnitRenderActionFlags* 
 void Audio::FAudioCaptureIOS::AllocateBuffer(int32 SizeInBytes)
 {
 	const size_t CaptureBufferBytes = sizeof(AudioBufferList) + NumChannels * (sizeof(AudioBuffer) + SizeInBytes);
-	CaptureBuffer.SetNum(CaptureBufferBytes);
+
+	if (CaptureBufferBytes <= 0)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Invalid buffer size for allocation."));
+		return;
+	}
+
+	CaptureBuffer.SetNumUninitialized(CaptureBufferBytes);
 
 	AudioBufferList* list = (AudioBufferList*)CaptureBuffer.GetData();
+	if (list == nullptr)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Error, TEXT("Failed to allocate CaptureBuffer."));
+		return;
+	}
+
 	uint8* CaptureBufferData = CaptureBuffer.GetData() + sizeof(AudioBufferList) + sizeof(AudioBuffer);
 
 	list->mNumberBuffers = NumChannels;
