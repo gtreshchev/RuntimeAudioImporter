@@ -10,10 +10,10 @@
   "DocsURL": "https://docs.georgy.dev/runtime-audio-importer/overview",
   "MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/81fd278e318e4235a028d3fdf46bf036",
   "SupportURL": "https://georgy.dev/",
-  "CanContainContent": true,
+  "CanContainContent": false,
   "IsBetaVersion": false,
   "IsExperimentalVersion": false,
-  "Installed": true,
+  "Installed": false,
   "Modules": [
     {
       "Name": "RuntimeAudioImporter",
