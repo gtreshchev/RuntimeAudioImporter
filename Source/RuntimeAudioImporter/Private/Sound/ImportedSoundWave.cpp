@@ -301,12 +301,6 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 {
 	FRAIScopeLock Lock(&*DataGuard);
 
-	if (ActiveSound.PlaybackTime == 0.f)
-	{
-		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The playback time for the sound wave '%s' will be set to '%f'"), *GetName(), ParseParams.StartTime);
-		RewindPlaybackTime_Internal(ParseParams.StartTime);
-	}
-
 #if UE_VERSION_OLDER_THAN(5, 0, 0)
 	// In UE 4.27 and older, the engine can't play a procedural sound wave if the playback time is not zero, so we have to set it to zero
 	const_cast<FSoundParseParameters&>(ParseParams).StartTime = 0;
