@@ -366,7 +366,13 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 void UImportedSoundWave::PopulateAudioDataFromDecodedInfo(FDecodedAudioStruct&& DecodedAudioInfo)
 {
 	FRAIScopeLock Lock(&*DataGuard);
-
+	
+	if (ActiveSound.PlaybackTime == 0.f)
+	{
+		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The playback time for the sound wave '%s' will be set to '%f'"), *GetName(), ParseParams.StartTime);
+		RewindPlaybackTime_Internal(FMath::Max(.00001f, ParseParams.StartTime));
+	}
+	
 	// If the sound wave has not yet been filled in with audio data and the initial desired sample rate and the number of channels are set, resample and mix the channels
 	if (InitialDesiredSampleRate.IsSet() || InitialDesiredNumOfChannels.IsSet())
 	{
