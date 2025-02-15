@@ -301,7 +301,7 @@ void UImportedSoundWave::Parse(FAudioDevice* AudioDevice, const UPTRINT NodeWave
 {
 	FRAIScopeLock Lock(&*DataGuard);
 
-	if (ActiveSound.PlaybackTime == 0 && ActiveSound.PlaybackTime != ParseParams.StartTime)
+	if (ActiveSound.PlaybackTime == 0.f)
 	{
 		UE_LOG(LogRuntimeAudioImporter, Log, TEXT("The playback time for the sound wave '%s' will be set to '%f'"), *GetName(), ParseParams.StartTime);
 		RewindPlaybackTime_Internal(ParseParams.StartTime);
